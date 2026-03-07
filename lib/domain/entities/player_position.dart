@@ -1,9 +1,20 @@
-class PlayerPosition {
-  final int id;
-  final Enum position;
-
-  PlayerPosition({
-    required this.id,
-    required this.position,
-  });
+enum PlayerPosition {
+  portero,
+  central,
+  centralDerecho,
+  centralIzquierdo,
+  lateralIzquierdo,
+  lateralDerecho,
+  mediocentro,
+  mediocentroDerecho,
+  mediocentroIzquierdo,
+  mediocentroDefensivo,
+  mediocentroOfensivo,
+  extremoDerecho,
+  extremoIzquierdo,
+  interiorDerecho,
+  interiorIzquierdo,
+  pivote,
+  delanteroCentro,
+  mediapunta,
 }

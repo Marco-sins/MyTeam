@@ -9,7 +9,7 @@ class Player {
   final int? number;
   final String? phone;
   final String? email;
-  final PlayerPosition? position;
+  final List<PlayerPosition>? position;
   final PlayerStatitics? statistics;
 
   Player({
