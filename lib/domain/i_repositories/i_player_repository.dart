@@ -1,15 +1,17 @@
+import 'package:dartz/dartz.dart';
+import 'package:tfg1/core/errors/failure/failure.dart';
 import 'package:tfg1/domain/entities/player.dart';
 import 'package:tfg1/domain/entities/player_position.dart';
 
 abstract class IPlayerRepository {
-  Future<List<Player>> getPlayers();
-  Future<Player> getPlayerById(int id);
-  Future<void> addPlayer(Player player);
-  Future<void> updatePlayer(Player player);
-  Future<void> deletePlayer(int id);
-  Future<List<Player>> getPlayersByTeamId(int teamId);
-  Future<List<Player>> getPlayersByPosition(int teamId, PlayerPosition position);
-  Future<List<Player>> getPlayerByName(int teamId, String name);
-  Future<List<Player>> getPlayersByNumber(int teamId, int number);
-  Future<List<Player>> getPlayerByMatchId(int matchId);
+  Future<Either<Failure, List<Player>>> getPlayers();
+  Future<Either<Failure, Player>> getPlayerById(int id);
+  Future<Either<Failure, void>> addPlayer(Player player);
+  Future<Either<Failure, void>> updatePlayer(Player player);
+  Future<Either<Failure, void>> deletePlayer(int id);
+  Future<Either<Failure, List<Player>>> getPlayersByTeamId(int teamId);
+  Future<Either<Failure, List<Player>>> getPlayersByPosition(int teamId, PlayerPosition position);
+  Future<Either<Failure, List<Player>>> getPlayerByName(int teamId, String name);
+  Future<Either<Failure, List<Player>>> getPlayersByNumber(int teamId, int number);
+  Future<Either<Failure, List<Player>>> getPlayerByMatchId(int matchId);
 }
