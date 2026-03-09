@@ -9,7 +9,7 @@ abstract class IPlayerRepository {
   Future<Either<Failure, void>> addPlayer(Player player);
   Future<Either<Failure, void>> updatePlayer(Player player);
   Future<Either<Failure, void>> deletePlayer(int id);
-  Future<Either<Failure, List<Player>>> getPlayersByTeamId(int teamId);
+  Future<Either<Failure, List<Player>>> getPlayersByTeam(int teamId);
   Future<Either<Failure, List<Player>>> getPlayersByPosition(int teamId, PlayerPosition position);
   Future<Either<Failure, List<Player>>> getPlayerByName(int teamId, String name);
   Future<Either<Failure, List<Player>>> getPlayersByNumber(int teamId, int number);
