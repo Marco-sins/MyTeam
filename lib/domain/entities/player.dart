@@ -9,7 +9,7 @@ class Player {
   final int? number;
   final String? phone;
   final String? email;
-  final List<PlayerPosition>? position;
+  final List<PlayerPosition>? positions;
   final PlayerStatitics? statistics;
 
   Player({
@@ -20,7 +20,7 @@ class Player {
     this.number,
     this.phone,
     this.email,
-    this.position,
+    this.positions,
     this.statistics,
   });
 }
