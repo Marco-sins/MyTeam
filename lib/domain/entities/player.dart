@@ -1,4 +1,4 @@
-import 'package:tfg1/domain/entities/player_position.dart';
+import 'package:tfg1/domain/entities/enum/player_position.dart';
 import 'package:tfg1/domain/entities/player_statitics.dart';
 
 class Player {
@@ -10,7 +10,7 @@ class Player {
   final String? phone;
   final String? email;
   final List<PlayerPosition>? positions;
-  final PlayerStatitics? statistics;
+  final PlayerStats? statistics;
 
   Player({
     required this.id,

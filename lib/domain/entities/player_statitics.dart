@@ -1,4 +1,4 @@
-class PlayerStatitics {
+class PlayerStats {
   final int id;
   final int idPlayer;
   final int goals;
@@ -6,7 +6,7 @@ class PlayerStatitics {
   final int yellowCards;
   final int redCards;
 
-  PlayerStatitics({
+  PlayerStats({
     required this.id,
     required this.idPlayer,
     required this.goals,
