@@ -1,3 +1,5 @@
+import 'package:tfg1/domain/entities/enum/match_status.dart';
+
 class Match {
   final int id;
   final int teamId;
@@ -5,7 +7,7 @@ class Match {
   final int goalsScored;
   final int goalsConceded;
   final DateTime date;
-  final bool status;
+  final MatchStatus status;
 
   Match({
     required this.id,
