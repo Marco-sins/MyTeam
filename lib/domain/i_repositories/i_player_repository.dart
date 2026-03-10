@@ -1,7 +1,8 @@
 import 'package:dartz/dartz.dart';
 import 'package:tfg1/core/errors/failure/failure.dart';
 import 'package:tfg1/domain/entities/player.dart';
-import 'package:tfg1/domain/entities/player_position.dart';
+import 'package:tfg1/domain/entities/enum/player_position.dart';
+import 'package:tfg1/domain/entities/player_statitics.dart';
 
 abstract class IPlayerRepository {
   Future<Either<Failure, List<Player>>> getPlayers();
@@ -14,4 +15,5 @@ abstract class IPlayerRepository {
   Future<Either<Failure, List<Player>>> getPlayerByName(int teamId, String name);
   Future<Either<Failure, List<Player>>> getPlayersByNumber(int teamId, int number);
   Future<Either<Failure, List<Player>>> getPlayerByMatchId(int matchId);
+  Future<Either<Failure, void>> updatePlayerStats(PlayerStats playerStats);
 }
