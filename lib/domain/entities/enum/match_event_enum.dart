@@ -1,0 +1,13 @@
+enum MatchEventEnum {
+  scoreGoal,
+  concedeGoal,
+  yellowCard,
+  redCard,
+  penalty,
+  ownGoal,
+  assist,
+  injury,
+  keyPass,
+  goodSave,
+  substitution,
+}
