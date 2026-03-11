@@ -5,6 +5,8 @@ class PlayerStats {
   final int assists;
   final int yellowCards;
   final int redCards;
+  final int matchesPlayed;
+  
 
   const PlayerStats({
     this.id = 0,
@@ -12,6 +14,7 @@ class PlayerStats {
     this.goals = 0,
     this.assists = 0,
     this.yellowCards = 0,
-    this.redCards = 0,
+    this.redCards = 0, 
+    this.matchesPlayed = 0,
   });
 }

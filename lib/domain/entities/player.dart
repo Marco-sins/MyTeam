@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:tfg1/domain/entities/enum/player_position.dart';
 import 'package:tfg1/domain/entities/player_stats.dart';
 
@@ -14,7 +13,7 @@ class Player {
   final PlayerStats? stats;
 
   const Player({
-    required this.id,
+    this.id = 0,
     required this.teamId,
     required this.firstName,
     this.lastName,
