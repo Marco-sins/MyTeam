@@ -1,0 +1,26 @@
+import 'package:tfg1/data/models/player_stats_model.dart';
+import 'package:tfg1/domain/entities/player_stats.dart';
+
+class PlayerStatsMapper {
+  static PlayerStatsModel toModel(PlayerStats playerStats) {
+    return PlayerStatsModel(
+      id: playerStats.id,
+      playerId: playerStats.playerId,
+      goals: playerStats.goals,
+      assists: playerStats.assists,
+      yellowCards: playerStats.yellowCards,
+      redCards: playerStats.redCards,
+    );
+  }
+
+  static PlayerStats toEntity(PlayerStatsModel playerStatsModel) {
+    return PlayerStats(
+      id: playerStatsModel.id,
+      playerId: playerStatsModel.playerId,
+      goals: playerStatsModel.goals,
+      assists: playerStatsModel.assists,
+      yellowCards: playerStatsModel.yellowCards,
+      redCards: playerStatsModel.redCards,
+    );
+  }
+}
