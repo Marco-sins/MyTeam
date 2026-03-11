@@ -1,0 +1,28 @@
+import 'package:tfg1/domain/entities/team.dart';
+
+class TeamModel extends Team {
+  const TeamModel({
+    required super.id,
+    required super.name,
+    required super.category,
+    super.logoUrl,
+  });
+
+  factory TeamModel.fromJson(Map<String, dynamic> json) {
+    return TeamModel(
+      id: json['id'],
+      name: json['name'],
+      category: json['category'],
+      logoUrl: json['logoUrl'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'logoUrl': logoUrl,
+    };
+  }
+}
