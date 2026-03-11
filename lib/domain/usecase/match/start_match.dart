@@ -17,7 +17,8 @@ class StartMatch {
       goalsScored: match.goalsScored,
       goalsConceded: match.goalsConceded,
       date: match.date,
-      status: MatchStatus.inProgress, // Set status to inProgress to indicate the match has started
+      status: MatchStatus.inProgress, 
+      lineups: match.lineups,
     );
     return await _matchRepository.updateMatch(updatedMatch);
   }

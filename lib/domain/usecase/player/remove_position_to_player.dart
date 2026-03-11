@@ -24,7 +24,7 @@ class RemovePositionToPlayer {
       phone: player.phone,
       email: player.email,
       positions: updatedPositions,
-      statistics: player.statistics,
+      stats: player.stats,
     );
     return _playerRepository.updatePlayer(updatedPlayer);
   }
