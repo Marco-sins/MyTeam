@@ -9,7 +9,10 @@ class GetPlayersByPosition {
 
   GetPlayersByPosition(this._playerRepository);
 
-  Future<Either<Failure, List<Player>>> call(int teamId, PlayerPosition position) async {
+  Future<Either<Failure, List<Player>>> call(
+    int teamId,
+    PlayerPosition position,
+  ) async {
     return await _playerRepository.getPlayersByPosition(teamId, position);
   }
 }

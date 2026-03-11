@@ -8,7 +8,10 @@ class UpdatePlayerStatitics {
 
   UpdatePlayerStatitics(this._playerRepository);
 
-  Future<Either<Failure, void>> call(PlayerStats playerStats) async {
-    return await _playerRepository.updatePlayerStats(playerStats);
+  Future<Either<Failure, void>> call(
+    PlayerStats playerStats,
+    int playerId,
+  ) async {
+    return await _playerRepository.updatePlayerStats(playerId, playerStats);
   }
 }

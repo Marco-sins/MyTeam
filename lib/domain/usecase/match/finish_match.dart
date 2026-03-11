@@ -14,11 +14,17 @@ class FinishMatch {
   final IMatchEventRepository _matchEventRepository;
   final IPlayerRepository _playerRepository;
 
-  FinishMatch(this._matchRepository, this._matchEventRepository, this._playerRepository);
+  FinishMatch(
+    this._matchRepository,
+    this._matchEventRepository,
+    this._playerRepository,
+  );
 
   Future<Either<Failure, void>> call(Match match) async {
-    Either<Failure, List<MatchEvent>> events = await _matchEventRepository.getMatchEventsByMatch(match.id);
-    if (events.isLeft()) { // If it is an error, return the error
+    Either<Failure, List<MatchEvent>> events = await _matchEventRepository
+        .getMatchEventsByMatch(match.id);
+    if (events.isLeft()) {
+      // If it is an error, return the error
       return events;
     }
 
@@ -31,7 +37,8 @@ class FinishMatch {
     for (int i = 0; i < matchEvents.length; i++) {
       if (matchEvents[i].type == MatchEventEnum.scoreGoal) {
         goalsScored++;
-      } else if (matchEvents[i].type == MatchEventEnum.concedeGoal || matchEvents[i].type == MatchEventEnum.ownGoal) {
+      } else if (matchEvents[i].type == MatchEventEnum.concedeGoal ||
+          matchEvents[i].type == MatchEventEnum.ownGoal) {
         goalsConceded++;
       }
     }
@@ -43,19 +50,29 @@ class FinishMatch {
       goalsScored: goalsScored,
       goalsConceded: goalsConceded,
       date: match.date,
-      status: MatchStatus.finished, // Set status to finished to indicate the match is finished
+      status: MatchStatus
+          .finished, // Set status to finished to indicate the match is finished
       lineups: match.lineups,
     );
-    Either<Failure, void> result = await _matchRepository.updateMatch(updatedMatch);
-    if (result.isLeft()) { // If it is an error, return the error
+    Either<Failure, void> result = await _matchRepository.updateMatch(
+      updatedMatch,
+    );
+    if (result.isLeft()) {
+      // If it is an error, return the error
       return result;
     }
-    List<int> playerIds = matchEvents.map((event) => event.playerId).whereType<int>().toSet().toList();
+    List<int> playerIds = matchEvents
+        .map((event) => event.playerId1)
+        .whereType<int>()
+        .toSet()
+        .toList();
     int i = 0;
     while (i < playerIds.length) {
-      PlayerStats playerStats = _getPlayerStats(matchEvents, playerIds[i]);
-      result = await _playerRepository.updatePlayerStats(playerStats);
-      if (result.isLeft()) { // If it is an error, return the error
+      int playerId = playerIds[i];
+      PlayerStats playerStats = _getPlayerStats(matchEvents, playerId);
+      result = await _playerRepository.updatePlayerStats(playerId, playerStats);
+      if (result.isLeft()) {
+        // If it is an error, return the error
         return result;
       }
       i++;
@@ -64,7 +81,6 @@ class FinishMatch {
   }
 
   PlayerStats _getPlayerStats(List<MatchEvent> events, int playerId) {
-    
     int idPlayer = playerId;
     int goals = 0;
     int assists = 0;
@@ -72,7 +88,7 @@ class FinishMatch {
     int redCards = 0;
 
     for (int i = 0; i < events.length; i++) {
-      if (events[i].playerId == idPlayer) {
+      if (events[i].playerId1 == idPlayer) {
         if (events[i].type == MatchEventEnum.scoreGoal) {
           goals++;
         } else if (events[i].type == MatchEventEnum.yellowCard) {
@@ -94,5 +110,4 @@ class FinishMatch {
       redCards: redCards,
     );
   }
-
 }
