@@ -19,7 +19,7 @@ class SupabaseExceptionHandler {
       case '23514': // Check constraint violada
         return ValidationFailure('Los datos introducidos no cumplen con las reglas del equipo.');
       default:
-        return ServerFailure('Algo ha salido mal en el servidor. Por favor, inténtalo más tarde.');
+        return ServerFailure('Algo ha salido mal en el servidor. Por favor, inténtalo más tarde. Mensaje: ${e.message} - Código: ${e.code} - Detalles: ${e.details}');
     }
   }
 }
