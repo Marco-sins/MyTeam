@@ -6,8 +6,8 @@ class MatchEventMapper {
     return MatchEventModel(
       id: matchEvent.id,
       matchId: matchEvent.matchId,
-      playerId: matchEvent.playerId,
-      player2Id: matchEvent.player2Id,
+      playerId1: matchEvent.playerId1,
+      playerId2: matchEvent.playerId2,
       minute: matchEvent.minute,
       type: matchEvent.type,
       note: matchEvent.note,
@@ -18,8 +18,8 @@ class MatchEventMapper {
     return MatchEvent(
       id: matchEventModel.id,
       matchId: matchEventModel.matchId,
-      playerId: matchEventModel.playerId,
-      player2Id: matchEventModel.player2Id,
+      playerId1: matchEventModel.playerId1,
+      playerId2: matchEventModel.playerId2,
       minute: matchEventModel.minute,
       type: matchEventModel.type,
       note: matchEventModel.note,
