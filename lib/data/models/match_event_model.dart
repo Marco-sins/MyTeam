@@ -4,8 +4,8 @@ class MatchEventModel extends MatchEvent {
   const MatchEventModel({
     required super.id,
     required super.matchId,
-    super.playerId,
-    super.player2Id,
+    super.playerId1,
+    super.playerId2,
     required super.minute,
     required super.type,
     super.note,
@@ -15,8 +15,8 @@ class MatchEventModel extends MatchEvent {
     return MatchEventModel(
       id: json['id'],
       matchId: json['matchId'],
-      playerId: json['playerId'],
-      player2Id: json['playerId2'],
+      playerId1: json['playerId1'],
+      playerId2: json['playerId2'],
       type: json['eventType'],
       minute: json['minute'],
       note: json['note'],
@@ -27,8 +27,8 @@ class MatchEventModel extends MatchEvent {
     return {
       'id': id,
       'matchId': matchId,
-      'playerId': playerId,
-      'player2Id': player2Id,
+      'playerId1': playerId1,
+      'playerId2': playerId2,
       'minute': minute,
       'eventType': type,
       'note': note,
