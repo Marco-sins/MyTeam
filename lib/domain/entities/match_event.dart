@@ -2,20 +2,20 @@ import 'package:tfg1/domain/entities/enum/match_event_enum.dart';
 
 class MatchEvent {
   final int id;
-  final int idMatch;
-  final int? idPlayer;
-  final int? idPlayer2;
+  final int matchId;
+  final int? playerId;
+  final int? player2Id;
   final int minute;
   final MatchEventEnum type;
   final String? note;
 
-  MatchEvent({
+  const MatchEvent({
     required this.id,
-    required this.idMatch,
-    this.idPlayer,
+    required this.matchId,
+    this.playerId,
     required this.minute,
     required this.type,
     this.note, 
-    this.idPlayer2,
+    this.player2Id,
   });
 }

@@ -4,7 +4,7 @@ class Team {
   final String category;
   final String? logoUrl;
 
-  Team({
+  const Team({
     required this.id,
     required this.name,
     required this.category,

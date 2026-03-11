@@ -6,12 +6,12 @@ class MatchLineup {
   final int minutesPlayed;
   final int rating;
 
-  MatchLineup({
+  const MatchLineup({
     required this.id,
     required this.playerId,
     required this.matchId,
     required this.isStarting,
-    required this.minutesPlayed,
-    required this.rating,
+    this.minutesPlayed = 0,
+    this.rating = 5,
   });
 }

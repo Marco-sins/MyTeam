@@ -5,7 +5,7 @@ class Attendance {
   final DateTime date;
   final bool attended;
 
-  Attendance({
+  const Attendance({
     required this.id,
     required this.teamId,
     required this.playerId,

@@ -1,5 +1,6 @@
+import 'package:flutter/widgets.dart';
 import 'package:tfg1/domain/entities/enum/player_position.dart';
-import 'package:tfg1/domain/entities/player_statitics.dart';
+import 'package:tfg1/domain/entities/player_stats.dart';
 
 class Player {
   final int id;
@@ -10,9 +11,9 @@ class Player {
   final String? phone;
   final String? email;
   final List<PlayerPosition>? positions;
-  final PlayerStats? statistics;
+  final PlayerStats? stats;
 
-  Player({
+  const Player({
     required this.id,
     required this.teamId,
     required this.firstName,
@@ -21,6 +22,8 @@ class Player {
     this.phone,
     this.email,
     this.positions,
-    this.statistics,
+    this.stats,
   });
+
+  String get fullName => lastName != null ? '$firstName $lastName' : firstName;
 }
