@@ -7,13 +7,25 @@ import 'package:tfg1/domain/entities/player_stats.dart';
 abstract class IPlayerRepository {
   Future<Either<Failure, List<Player>>> getPlayers();
   Future<Either<Failure, Player>> getPlayerById(int id);
-  Future<Either<Failure, void>> addPlayer(Player player);
-  Future<Either<Failure, void>> updatePlayer(Player player);
-  Future<Either<Failure, void>> deletePlayer(int id);
+  Future<Either<Failure, Unit>> addPlayer(Player player);
+  Future<Either<Failure, Unit>> updatePlayer(Player player);
+  Future<Either<Failure, Unit>> deletePlayer(int id);
   Future<Either<Failure, List<Player>>> getPlayersByTeam(int teamId);
-  Future<Either<Failure, List<Player>>> getPlayersByPosition(int teamId, PlayerPosition position);
-  Future<Either<Failure, List<Player>>> getPlayerByName(int teamId, String name);
-  Future<Either<Failure, List<Player>>> getPlayersByNumber(int teamId, int number);
+  Future<Either<Failure, List<Player>>> getPlayersByPosition(
+    int teamId,
+    PlayerPosition position,
+  );
+  Future<Either<Failure, List<Player>>> getPlayerByName(
+    int teamId,
+    String name,
+  );
+  Future<Either<Failure, List<Player>>> getPlayersByNumber(
+    int teamId,
+    int number,
+  );
   Future<Either<Failure, List<Player>>> getPlayerByMatchId(int matchId);
-  Future<Either<Failure, void>> updatePlayerStats(PlayerStats playerStats);
+  Future<Either<Failure, Unit>> updatePlayerStats(
+    int playerId,
+    PlayerStats playerStats,
+  );
 }
