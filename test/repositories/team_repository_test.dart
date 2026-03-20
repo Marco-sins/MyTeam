@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:tfg1/data/datasource/team_remote_datasource.dart';
 import 'package:tfg1/data/repositories/team_repository.dart';
 import 'package:tfg1/domain/entities/team.dart';
 import 'package:mock_supabase_http_client/mock_supabase_http_client.dart';
@@ -9,6 +10,7 @@ import 'package:mock_supabase_http_client/mock_supabase_http_client.dart';
 void main() async {
   late MockSupabaseHttpClient mockHttpClient;
   late SupabaseClient supabase;
+  late TeamRemoteDatasource datasource;
   late TeamRepository repository;
   await dotenv.load(fileName: ".env");
 
@@ -20,7 +22,8 @@ void main() async {
       httpClient: mockHttpClient,
     );
     // Inyectamos el cliente "trucado" en el repositorio
-    repository = TeamRepository(supabase);
+    datasource = TeamRemoteDatasource(supabase);
+    repository = TeamRepository(datasource);
   });
 
   test(
@@ -31,7 +34,7 @@ void main() async {
       final team = Team(name: 'Team 1', category: 'Sénior', logoUrl: '');
       debugPrint("Intentando agregar el equipo: ${team.name}");
 
-      final result = await repository.addTeam(team);
+      final result = await repository.createTeam(team);
 
       debugPrint("Insetado el equipo, resultado: $result");
 
@@ -48,17 +51,19 @@ void main() async {
       final team = Team(name: duplicateName, category: 'Sénior');
 
       // 2. Insertamos la primera vez (puede que ya exista, no nos importa el resultado)
-      await repository.addTeam(team);
+      await repository.createTeam(team);
 
       // 3. Intentamos insertar de nuevo el mismo nombre
-      final result = await repository.addTeam(team);
+      final result = await repository.createTeam(team);
 
       // 4. Verificamos que sea Left y contenga nuestro mensaje del Handler
       expect(result.isLeft(), true);
 
       result.fold((failure) {
         // Aquí compruebas que tu mensaje "cariñoso" está funcionando
-        print('Mensaje capturado: ${failure.message}');
+        if (kDebugMode) {
+          print('Mensaje capturado: ${failure.message}');
+        }
         expect(failure.message, contains('ya existe'));
       }, (_) => fail('Debería haber fallado por nombre duplicado'));
     },

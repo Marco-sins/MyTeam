@@ -1,55 +1,35 @@
 import 'package:dartz/dartz.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/core/errors/exception/supabase_exception_handler.dart';
+import 'package:tfg1/core/errors/exception/server_exception.dart';
+import 'package:tfg1/core/errors/exception/unknow_exception.dart';
 import 'package:tfg1/core/errors/failure/failure.dart';
 import 'package:tfg1/core/errors/failure/server_failure.dart';
-import 'package:tfg1/data/models/player_model.dart';
+import 'package:tfg1/data/datasource/player_remote_datasource.dart';
+import 'package:tfg1/data/mappers/player_mapper.dart';
+import 'package:tfg1/data/mappers/player_stats_mapper.dart';
 import 'package:tfg1/domain/entities/enum/player_position.dart';
 import 'package:tfg1/domain/entities/player.dart';
 import 'package:tfg1/domain/entities/player_stats.dart';
 import 'package:tfg1/domain/i_repositories/i_player_repository.dart';
 
 class PlayerRepository implements IPlayerRepository {
-  final SupabaseClient _supabase;
+  final PlayerRemoteDatasource _remoteDatasource;
 
-  PlayerRepository(this._supabase);
+  PlayerRepository(this._remoteDatasource);
 
   @override
-  Future<Either<Failure, Unit>> addPlayer(Player player) async {
+  Future<Either<Failure, Unit>> createPlayer(
+    Player player,
+    PlayerStats playerStats,
+  ) async {
     try {
-      final newPlayer = await _supabase
-          .from('players')
-          .insert({
-            {
-              'team_id': player.teamId,
-              'firstname': player.firstName,
-              'lastname': player.lastName,
-              'number': player.number,
-              'phone': player.phone,
-              'email': player.email,
-              'position': player.positions.toString().split('.').last,
-            },
-          })
-          .select('id')
-          .single();
-
-      final int playerId = newPlayer['id'];
-
-      await _supabase.from('player_stats').insert({
-        'player_id': playerId,
-        'goals': 0,
-        'assists': 0,
-        'yellow_cards': 0,
-        'red_cards': 0,
-        'matches_played': 0,
-      });
-
+      await _remoteDatasource.createPlayer(
+        PlayerMapper.toModel(player),
+        PlayerStatsMapper.toModel(playerStats),
+      );
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -57,13 +37,11 @@ class PlayerRepository implements IPlayerRepository {
   @override
   Future<Either<Failure, Unit>> deletePlayer(int id) async {
     try {
-      await _supabase.from('players').delete().eq('id', id);
+      await _remoteDatasource.deletePlayer(id);
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -71,18 +49,12 @@ class PlayerRepository implements IPlayerRepository {
   @override
   Future<Either<Failure, Player>> getPlayerById(int id) async {
     try {
-      final result = await _supabase
-          .from('players')
-          .select()
-          .eq('id', id)
-          .single();
-      PlayerModel player = PlayerModel.fromJson(result);
+      final response = await _remoteDatasource.getPlayerById(id);
+      Player player = PlayerMapper.toEntity(response);
       return Right(player);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -90,43 +62,29 @@ class PlayerRepository implements IPlayerRepository {
   @override
   Future<Either<Failure, List<Player>>> getPlayerByMatchId(int matchId) async {
     try {
-      final result = await _supabase
-          .from('players')
-          .select()
-          .eq('match_id', matchId);
-      List<PlayerModel> players = result
-          .map((e) => PlayerModel.fromJson(e))
+      final result = await _remoteDatasource.getPlayerByMatchId(matchId);
+      List<Player> players = result
+          .map((e) => PlayerMapper.toEntity(e))
           .toList();
       return Right(players);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
 
   @override
-  Future<Either<Failure, List<Player>>> getPlayerByName(
-    int teamId,
-    String name,
-  ) async {
+  Future<Either<Failure, List<Player>>> getPlayerByName(String name) async {
     try {
-      final result = await _supabase
-          .from('players')
-          .select()
-          .eq('team_id', teamId)
-          .ilike('firstname', '%$name%');
-      List<PlayerModel> players = result
-          .map((e) => PlayerModel.fromJson(e))
+      final result = await _remoteDatasource.getPlayerByName(name);
+      List<Player> players = result
+          .map((e) => PlayerMapper.toEntity(e))
           .toList();
       return Right(players);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -134,16 +92,14 @@ class PlayerRepository implements IPlayerRepository {
   @override
   Future<Either<Failure, List<Player>>> getPlayers() async {
     try {
-      final result = await _supabase.from('players').select();
-      List<PlayerModel> players = result
-          .map((e) => PlayerModel.fromJson(e))
+      final response = await _remoteDatasource.getPlayers();
+      List<Player> players = response
+          .map((e) => PlayerMapper.toEntity(e))
           .toList();
       return Right(players);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -154,20 +110,14 @@ class PlayerRepository implements IPlayerRepository {
     int number,
   ) async {
     try {
-      final result = await _supabase
-          .from('players')
-          .select()
-          .eq('team_id', teamId)
-          .eq('number', number);
-      List<PlayerModel> players = result
-          .map((e) => PlayerModel.fromJson(e))
+      final result = await _remoteDatasource.getPlayersByNumber(teamId, number);
+      List<Player> players = result
+          .map((e) => PlayerMapper.toEntity(e))
           .toList();
       return Right(players);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -178,20 +128,17 @@ class PlayerRepository implements IPlayerRepository {
     PlayerPosition position,
   ) async {
     try {
-      final result = await _supabase
-          .from('players')
-          .select()
-          .eq('team_id', teamId)
-          .eq('position', position.toString().split('.').last);
-      List<PlayerModel> players = result
-          .map((e) => PlayerModel.fromJson(e))
+      final result = await _remoteDatasource.getPlayersByPosition(
+        teamId,
+        position,
+      );
+      List<Player> players = result
+          .map((e) => PlayerMapper.toEntity(e))
           .toList();
       return Right(players);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -199,19 +146,14 @@ class PlayerRepository implements IPlayerRepository {
   @override
   Future<Either<Failure, List<Player>>> getPlayersByTeam(int teamId) async {
     try {
-      final result = await _supabase
-          .from('players')
-          .select()
-          .eq('team_id', teamId);
-      List<PlayerModel> players = result
-          .map((e) => PlayerModel.fromJson(e))
+      final result = await _remoteDatasource.getPlayersByTeam(teamId);
+      List<Player> players = result
+          .map((e) => PlayerMapper.toEntity(e))
           .toList();
       return Right(players);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -219,24 +161,11 @@ class PlayerRepository implements IPlayerRepository {
   @override
   Future<Either<Failure, Unit>> updatePlayer(Player player) async {
     try {
-      await _supabase
-          .from('players')
-          .update({
-            'team_id': player.teamId,
-            'firstname': player.firstName,
-            'lastname': player.lastName,
-            'number': player.number,
-            'phone': player.phone,
-            'email': player.email,
-            'position': player.positions.toString().split('.').last,
-          })
-          .eq('id', player.id);
+      await _remoteDatasource.updatePlayer(PlayerMapper.toModel(player));
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -247,22 +176,14 @@ class PlayerRepository implements IPlayerRepository {
     PlayerStats playerStats,
   ) async {
     try {
-      await _supabase
-          .from('player_stats')
-          .update({
-            'goals': playerStats.goals,
-            'assists': playerStats.assists,
-            'yellow_cards': playerStats.yellowCards,
-            'red_cards': playerStats.redCards,
-            'matches_played': playerStats.matchesPlayed,
-          })
-          .eq('player_id', playerId);
+      await _remoteDatasource.updatePlayerStats(
+        playerId,
+        PlayerStatsMapper.toModel(playerStats),
+      );
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }

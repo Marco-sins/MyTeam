@@ -8,5 +8,8 @@ abstract class IAttendanceRepository {
   Future<Either<Failure, Unit>> createAttendance(Attendance attendance);
   Future<Either<Failure, Unit>> updateAttendance(Attendance attendance);
   Future<Either<Failure, Unit>> deleteAttendance(int id);
-  Future<Either<Failure, List<Attendance>>> getAttendancesByDate(DateTime date);
+  Future<Either<Failure, List<Attendance>>> getAttendancesByDate(
+    DateTime date,
+    int teamId,
+  );
 }

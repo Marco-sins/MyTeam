@@ -4,7 +4,7 @@ class MatchLineup {
   final int matchId;
   final bool isStarting;
   final int minutesPlayed;
-  final int rating;
+  final double rating;
 
   const MatchLineup({
     required this.id,

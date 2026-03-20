@@ -18,11 +18,20 @@ class TeamModel extends Team {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'category': category,
-      'logoUrl': logoUrl,
-    };
+    return {'id': id, 'name': name, 'category': category, 'logoUrl': logoUrl};
+  }
+
+  TeamModel copyWith({
+    int? id,
+    String? name,
+    String? category,
+    String? logoUrl,
+  }) {
+    return TeamModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      logoUrl: logoUrl ?? this.logoUrl,
+    );
   }
 }

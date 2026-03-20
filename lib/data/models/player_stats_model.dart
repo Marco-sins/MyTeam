@@ -1,6 +1,6 @@
 import 'package:tfg1/domain/entities/player_stats.dart';
 
-class PlayerStatsModel extends PlayerStats{
+class PlayerStatsModel extends PlayerStats {
   const PlayerStatsModel({
     super.id,
     super.playerId,
@@ -30,5 +30,23 @@ class PlayerStatsModel extends PlayerStats{
       'yellowCards': yellowCards,
       'redCards': redCards,
     };
+  }
+
+  PlayerStatsModel copyWith({
+    int? id,
+    int? playerId,
+    int? goals,
+    int? assists,
+    int? yellowCards,
+    int? redCards,
+  }) {
+    return PlayerStatsModel(
+      id: id ?? this.id,
+      playerId: playerId ?? this.playerId,
+      goals: goals ?? this.goals,
+      assists: assists ?? this.assists,
+      yellowCards: yellowCards ?? this.yellowCards,
+      redCards: redCards ?? this.redCards,
+    );
   }
 }

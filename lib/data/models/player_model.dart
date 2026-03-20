@@ -2,7 +2,7 @@ import 'package:tfg1/data/models/player_stats_model.dart';
 import 'package:tfg1/domain/entities/enum/player_position.dart';
 import 'package:tfg1/domain/entities/player.dart';
 
-class PlayerModel extends Player{
+class PlayerModel extends Player {
   const PlayerModel({
     required super.id,
     required super.teamId,
@@ -24,9 +24,11 @@ class PlayerModel extends Player{
       number: json['number'] ?? 0,
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
-      positions: (json['positions'] as List?)
-          ?.map((p) => PlayerPosition.values.byName(p.toString()))
-          .toList() ?? [],
+      positions:
+          (json['positions'] as List?)
+              ?.map((p) => PlayerPosition.values.byName(p.toString()))
+              .toList() ??
+          [],
       stats: json['stats'] != null
           ? PlayerStatsModel.fromJson(json['stats'])
           : const PlayerStatsModel(),
@@ -42,8 +44,34 @@ class PlayerModel extends Player{
       'number': number,
       'phone': phone,
       'email': email,
-      'positions': positions?.map((position) => position.toString().split('.').last).toList(),
+      'positions': positions
+          ?.map((position) => position.toString().split('.').last)
+          .toList(),
       'stats': (stats as PlayerStatsModel).toJson(),
     };
+  }
+
+  PlayerModel copyWith({
+    int? id,
+    int? teamId,
+    String? firstName,
+    String? lastName,
+    int? number,
+    String? phone,
+    String? email,
+    List<PlayerPosition>? positions,
+    PlayerStatsModel? stats,
+  }) {
+    return PlayerModel(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      number: number ?? this.number,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      positions: positions ?? this.positions,
+      stats: stats ?? this.stats as PlayerStatsModel?,
+    );
   }
 }

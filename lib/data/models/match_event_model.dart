@@ -1,3 +1,4 @@
+import 'package:tfg1/domain/entities/enum/match_event_enum.dart';
 import 'package:tfg1/domain/entities/match_event.dart';
 
 class MatchEventModel extends MatchEvent {
@@ -33,5 +34,25 @@ class MatchEventModel extends MatchEvent {
       'eventType': type,
       'note': note,
     };
+  }
+
+  MatchEventModel copyWith({
+    int? id,
+    int? matchId,
+    int? playerId1,
+    int? playerId2,
+    int? minute,
+    MatchEventEnum? type,
+    String? note,
+  }) {
+    return MatchEventModel(
+      id: id ?? this.id,
+      matchId: matchId ?? this.matchId,
+      playerId1: playerId1 ?? this.playerId1,
+      playerId2: playerId2 ?? this.playerId2,
+      minute: minute ?? this.minute,
+      type: type ?? this.type,
+      note: note ?? this.note,
+    );
   }
 }

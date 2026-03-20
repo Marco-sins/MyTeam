@@ -10,7 +10,7 @@ class MatchModel extends Match {
     required super.goalsScored,
     required super.goalsConceded,
     required super.date,
-    required super.status, 
+    required super.status,
     required super.lineups,
   });
 
@@ -22,8 +22,12 @@ class MatchModel extends Match {
       goalsScored: json['goalsScored'],
       goalsConceded: json['goalsConceded'],
       date: DateTime.parse(json['date']),
-      status: MatchStatus.values.firstWhere((e) => e.toString() == 'MatchStatus.${json['status']}'),
-      lineups: (json['lineups'] as List).map((lineupJson) => MatchLineupModel.fromJson(lineupJson)).toList(),
+      status: MatchStatus.values.firstWhere(
+        (e) => e.toString() == 'MatchStatus.${json['status']}',
+      ),
+      lineups: (json['lineups'] as List)
+          .map((lineupJson) => MatchLineupModel.fromJson(lineupJson))
+          .toList(),
     );
   }
 
@@ -35,8 +39,35 @@ class MatchModel extends Match {
       'goalsScored': goalsScored,
       'goalsConceded': goalsConceded,
       'date': date.toIso8601String(),
-      'status': status.toString().split('.').last, // Store only the enum value as a string
-      'lineups': lineups.map((lineup) => (lineup as MatchLineupModel).toJson()).toList(),
+      'status': status
+          .toString()
+          .split('.')
+          .last, // Store only the enum value as a string
+      'lineups': lineups
+          .map((lineup) => (lineup as MatchLineupModel).toJson())
+          .toList(),
     };
+  }
+
+  MatchModel copyWith({
+    int? id,
+    int? teamId,
+    String? opponent,
+    int? goalsScored,
+    int? goalsConceded,
+    DateTime? date,
+    MatchStatus? status,
+    List<MatchLineupModel>? lineups,
+  }) {
+    return MatchModel(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      opponent: opponent ?? this.opponent,
+      goalsScored: goalsScored ?? this.goalsScored,
+      goalsConceded: goalsConceded ?? this.goalsConceded,
+      date: date ?? this.date,
+      status: status ?? this.status,
+      lineups: lineups ?? this.lineups,
+    );
   }
 }

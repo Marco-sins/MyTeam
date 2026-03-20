@@ -2,12 +2,12 @@ import 'package:tfg1/domain/entities/attendance.dart';
 
 class AttendanceModel extends Attendance {
   const AttendanceModel({
-    required super.id, 
-    required super.teamId, 
-    required super.playerId, 
-    required super.date, 
-    required super.attended
-    });
+    required super.id,
+    required super.teamId,
+    required super.playerId,
+    required super.date,
+    required super.attended,
+  });
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
@@ -28,5 +28,20 @@ class AttendanceModel extends Attendance {
       'attended': attended,
     };
   }
-  
+
+  AttendanceModel copyWith({
+    int? id,
+    int? teamId,
+    int? playerId,
+    DateTime? date,
+    bool? attended,
+  }) {
+    return AttendanceModel(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      playerId: playerId ?? this.playerId,
+      date: date ?? this.date,
+      attended: attended ?? this.attended,
+    );
+  }
 }

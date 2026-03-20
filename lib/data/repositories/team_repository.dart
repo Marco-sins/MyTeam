@@ -1,31 +1,26 @@
 import 'package:dartz/dartz.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/core/errors/exception/supabase_exception_handler.dart';
+import 'package:tfg1/core/errors/exception/server_exception.dart';
+import 'package:tfg1/core/errors/exception/unknow_exception.dart';
 import 'package:tfg1/core/errors/failure/failure.dart';
 import 'package:tfg1/core/errors/failure/server_failure.dart';
-import 'package:tfg1/data/models/team_model.dart';
+import 'package:tfg1/data/datasource/team_remote_datasource.dart';
+import 'package:tfg1/data/mappers/team_mapper.dart';
 import 'package:tfg1/domain/entities/team.dart';
 import 'package:tfg1/domain/i_repositories/i_team_repository.dart';
 
 class TeamRepository implements ITeamRepository {
-  final SupabaseClient _supabase;
+  final TeamRemoteDatasource _datasource;
 
-  TeamRepository(this._supabase);
+  TeamRepository(this._datasource);
 
   @override
-  Future<Either<Failure, Unit>> addTeam(Team team) async {
+  Future<Either<Failure, Unit>> createTeam(Team team) async {
     try {
-      await _supabase.from('teams').insert({
-        'name': team.name,
-        'category': team.category,
-        'logo_url': team.logoUrl,
-      });
+      await _datasource.createTeam(TeamMapper.toModel(team));
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -33,13 +28,11 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<Either<Failure, Unit>> deleteTeam(int id) async {
     try {
-      await _supabase.from('teams').delete().eq('id', id);
+      await _datasource.deleteTeam(id);
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -47,18 +40,12 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<Either<Failure, Team>> getTeamById(int id) async {
     try {
-      final result = await _supabase
-          .from('teams')
-          .select()
-          .eq('id', id)
-          .single();
-      TeamModel team = TeamModel.fromJson(result);
+      final result = await _datasource.getTeamById(id);
+      Team team = TeamMapper.toEntity(result);
       return Right(team);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -66,14 +53,12 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<Either<Failure, List<Team>>> getTeams() async {
     try {
-      final result = await _supabase.from('teams').select();
-      List<TeamModel> teams = result.map((e) => TeamModel.fromJson(e)).toList();
+      final result = await _datasource.getTeams();
+      List<Team> teams = result.map((e) => TeamMapper.toEntity(e)).toList();
       return Right(teams);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
@@ -81,20 +66,11 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<Either<Failure, Unit>> updateTeam(Team team) async {
     try {
-      await _supabase
-          .from('teams')
-          .update({
-            'name': team.name,
-            'category': team.category,
-            'logo_url': team.logoUrl,
-          })
-          .eq('id', team.id);
+      await _datasource.updateTeam(TeamMapper.toModel(team));
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }

@@ -1,26 +1,27 @@
 import 'package:dartz/dartz.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/core/errors/exception/supabase_exception_handler.dart';
+import 'package:tfg1/core/errors/exception/server_exception.dart';
+import 'package:tfg1/core/errors/exception/unknow_exception.dart';
 import 'package:tfg1/core/errors/failure/failure.dart';
 import 'package:tfg1/core/errors/failure/server_failure.dart';
+import 'package:tfg1/core/errors/failure/unknow_failure.dart';
+import 'package:tfg1/data/datasource/match_event_remote_datasource.dart';
+import 'package:tfg1/data/mappers/match_event_mapper.dart';
 import 'package:tfg1/data/models/match_event_model.dart';
 import 'package:tfg1/domain/entities/match_event.dart';
 import 'package:tfg1/domain/i_repositories/i_match_event_repository.dart';
 
 class MatchEventRepository implements IMatchEventRepository {
-  final SupabaseClient _supabase;
+  final MatchEventRemoteDatasource _remoteDatasource;
 
-  MatchEventRepository(this._supabase);
+  MatchEventRepository(this._remoteDatasource);
 
   @override
   Future<Either<Failure, Unit>> deleteMatchEvent(int id) async {
     try {
-      await _supabase.from('match_events').delete().eq('id', id);
+      await _remoteDatasource.deleteMatchEvent(id);
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     } catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
@@ -31,18 +32,13 @@ class MatchEventRepository implements IMatchEventRepository {
     int matchId,
   ) async {
     try {
-      final result = await _supabase
-          .from('match_events')
-          .select()
-          .eq('match_id', matchId);
+      final result = await _remoteDatasource.getMatchEventsByMatch(matchId);
       List<MatchEventModel> events = result
-          .map((e) => MatchEventModel.fromJson(e))
+          .map((e) => MatchEventMapper.toModel(e))
           .toList();
       return Right(events);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
     } catch (e) {
       return Left(ServerFailure('Unexpected error: $e'));
     }
@@ -51,45 +47,28 @@ class MatchEventRepository implements IMatchEventRepository {
   @override
   Future<Either<Failure, Unit>> saveMatchEvent(MatchEvent matchEvent) async {
     try {
-      await _supabase.from('match_events').insert({
-        'match_id': matchEvent.matchId,
-        'player_id1': matchEvent.playerId1,
-        'player_id2': matchEvent.playerId2,
-        'minute': matchEvent.minute,
-        'type': matchEvent.type,
-        'note': matchEvent.note,
-      });
+      await _remoteDatasource.saveMatchEvent(
+        MatchEventMapper.toModel(matchEvent),
+      );
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure('Unexpected error: $e'));
     }
   }
 
   @override
   Future<Either<Failure, Unit>> updateMatchEvent(MatchEvent matchEvent) async {
     try {
-      await _supabase
-          .from('match_events')
-          .update({
-            'match_id': matchEvent.matchId,
-            'player_id1': matchEvent.playerId1,
-            'player_id2': matchEvent.playerId2,
-            'minute': matchEvent.minute,
-            'type': matchEvent.type,
-            'note': matchEvent.note,
-          })
-          .eq('id', matchEvent.id);
+      await _remoteDatasource.updateMatchEvent(
+        MatchEventMapper.toModel(matchEvent),
+      );
       return const Right(unit);
-    } on PostgrestException catch (e) {
-      return Left(SupabaseExceptionHandler.handleException(e));
-    } on AuthException catch (e) {
-      return Left(ServerFailure('Authentication error: $e'));
-    } catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure('Unexpected error: $e'));
     }
   }
 }
