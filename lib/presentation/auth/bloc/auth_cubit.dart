@@ -1,14 +1,19 @@
 import 'package:bloc/bloc.dart';
 import 'package:tfg1/domain/usecase/auth/sign_in_use_case.dart';
 import 'package:tfg1/domain/usecase/auth/sign_up_use_case.dart';
+import 'package:tfg1/domain/usecase/auth/sign_out_use_case.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final SignInUseCase signInUseCase;
   final SignUpUseCase signUpUseCase;
+  final SignOutUseCase signOutUseCase;
 
-  AuthCubit({required this.signInUseCase, required this.signUpUseCase})
-    : super(AuthInitial());
+  AuthCubit({
+    required this.signInUseCase,
+    required this.signUpUseCase,
+    required this.signOutUseCase,
+  }) : super(AuthInitial());
 
   Future<void> login(String username, String password) async {
     // Implement login logic here
@@ -22,8 +27,12 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> logout() async {
-    // Implement logout logic here
-    emit(AuthInitial());
+    emit(AuthLoading());
+    final result = await signOutUseCase();
+    result.fold(
+      (failure) => emit(AuthError(failure.toString())),
+      (_) => emit(AuthInitial()),
+    );
   }
 
   Future<void> register(String email, String username, String password) async {

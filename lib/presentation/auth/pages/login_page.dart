@@ -3,7 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tfg1/presentation/home/pages/home_page.dart';
 import '../bloc/auth_cubit.dart';
 import '../bloc/auth_state.dart';
-import 'register_page.dart';
+import '../widgets/login_form.dart';
+import '../widgets/register_form.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,20 +14,23 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-
+  bool _isRegisterMode = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Fondo con gradiente "futbolero" o profesional
+      // Fondo tipo césped de campo de fútbol
       body: Container(
         width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
-            colors: [Color(0xFF1B5E20), Color(0xFF4CAF50), Color(0xFF81C784)],
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF388E3C), // Verde césped oscuro
+              Color(0xFF66BB6A), // Verde césped medio
+              Color(0xFFB9F6CA), // Verde césped claro
+            ],
           ),
         ),
         child: BlocConsumer<AuthCubit, AuthState>(
@@ -40,7 +44,6 @@ class _LoginPageState extends State<LoginPage> {
               );
             }
             if (state is Authenticated) {
-              // NAVEGACIÓN: Al detectar el estado éxito, saltamos al Home
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const HomePage()),
@@ -50,30 +53,50 @@ class _LoginPageState extends State<LoginPage> {
           builder: (context, state) {
             return Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Icono o Logo
-                    const Icon(
-                      Icons.sports_soccer,
-                      size: 100,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 20),
-                    const Text(
-                      "FOOTBALL MANAGER",
-                      style: TextStyle(
+                    // Nombre de la app arriba
+                    Text(
+                      "Equipaso",
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
+                        fontSize: 36,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 8,
+                            color: Colors.black26,
+                            offset: Offset(0, 3),
+                          ),
+                        ],
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 40),
-
-                    // Tarjeta del Formulario
+                    const SizedBox(height: 12),
+                    // Mensaje de bienvenida según modo
+                    Text(
+                      _isRegisterMode ? "Nice tu meet you!" : "Welcome back!",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 6,
+                            color: Colors.black26,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    // Tarjeta con el formulario de login/registro
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      constraints: const BoxConstraints(maxWidth: 340),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
@@ -85,77 +108,26 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ],
                       ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            _buildTextField(
-                              controller: _emailController,
-                              label: "Email",
-                              icon: Icons.email_outlined,
-                            ),
-                            const SizedBox(height: 20),
-                            _buildTextField(
-                              controller: _passwordController,
-                              label: "Contraseña",
-                              icon: Icons.lock_outline,
-                              isPassword: true,
-                            ),
-                            const SizedBox(height: 30),
-
-                            // Botón de Login con Loading
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2E7D32),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: state is AuthLoading
-                                    ? null
-                                    : () {
-                                        if (_formKey.currentState!.validate()) {
-                                          context.read<AuthCubit>().login(
-                                            _emailController.text.trim(),
-                                            _passwordController.text.trim(),
-                                          );
-                                        }
-                                      },
-                                child: state is AuthLoading
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
-                                    : const Text(
-                                        "ENTRAR",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      child: _isRegisterMode
+                          ? const RegisterForm()
+                          : const LoginForm(),
                     ),
-
-                    const SizedBox(height: 20),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterPage(),
-                          ),
-                        );
+                    const SizedBox(height: 16),
+                    // Texto debajo del formulario para cambiar de modo
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isRegisterMode = !_isRegisterMode;
+                        });
                       },
-                      child: const Text(
-                        "¿No tienes cuenta? Regístrate gratis",
-                        style: TextStyle(color: Colors.white70),
+                      child: Text(
+                        _isRegisterMode
+                            ? "¿Ya tienes cuenta? Inicia sesión"
+                            : "¿No tienes cuenta todavia? Creala aqui",
+                        style: const TextStyle(
+                          color: Color(0xFFFFF176), // Amarillo suave llamativo
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -165,29 +137,6 @@ class _LoginPageState extends State<LoginPage> {
           },
         ),
       ),
-    );
-  }
-
-  // Widget auxiliar para los campos de texto
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool isPassword = false,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isPassword,
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.green),
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.grey),
-        ),
-      ),
-      validator: (value) => value!.isEmpty ? "Campo obligatorio" : null,
     );
   }
 }

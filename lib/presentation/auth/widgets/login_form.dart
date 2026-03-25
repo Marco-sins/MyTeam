@@ -21,6 +21,15 @@ class _LoginFormState extends State<LoginForm> {
     super.dispose();
   }
 
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      context.read<AuthCubit>().login(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -51,15 +60,7 @@ class _LoginFormState extends State<LoginForm> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  // LLAMADA AL CUBIT
-                  context.read<AuthCubit>().login(
-                    _emailController.text.trim(),
-                    _passwordController.text.trim(),
-                  );
-                }
-              },
+              onPressed: _submit,
               child: const Text('Iniciar Sesión'),
             ),
           ),
