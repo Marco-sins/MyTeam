@@ -58,8 +58,15 @@ class AuthRepository implements IAuthRepository {
     String email,
     String name,
     String password,
-  ) {
-    // TODO: implement signUp
-    throw UnimplementedError();
+  ) async {
+    try {
+      final response = await _datasource.signUp(email, name, password);
+      final user = AuthUserMapper.toEntity(response);
+      return Right(user);
+    } on AuthServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure(e.message));
+    }
   }
 }
