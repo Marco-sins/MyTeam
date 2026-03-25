@@ -5,7 +5,13 @@ import 'package:tfg1/data/datasource/auth_remote_datasource.dart';
 import 'package:tfg1/data/repositories/auth_repository.dart';
 import 'package:tfg1/domain/usecase/auth/sign_in_use_case.dart';
 import 'package:tfg1/domain/usecase/auth/sign_up_use_case.dart';
+import 'package:tfg1/domain/usecase/auth/sign_out_use_case.dart';
 import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
+import 'package:tfg1/data/datasource/team_remote_datasource.dart';
+import 'package:tfg1/data/repositories/team_repository.dart';
+import 'package:tfg1/domain/usecase/team/create_team_use_case.dart';
+import 'package:tfg1/presentation/create_team/bloc/create_team_cubit.dart';
+import 'package:tfg1/presentation/home/pages/home_page.dart';
 
 // --- IMPORTA TUS CAPAS ---
 // Ajusta estas rutas a las carpetas de tu proyecto
@@ -46,11 +52,21 @@ class MyApp extends StatelessWidget {
             signUpUseCase: SignUpUseCase(
               AuthRepository(AuthRemoteDatasource(supabaseClient)),
             ),
+            signOutUseCase: SignOutUseCase(
+              AuthRepository(AuthRemoteDatasource(supabaseClient)),
+            ),
           ),
         ),
         BlocProvider(
           create: (context) =>
               HomeCubit()..fetchTeams(), // Carga equipos al iniciar
+        ),
+        BlocProvider(
+          create: (context) => CreateTeamCubit(
+            CreateTeamUseCase(
+              TeamRepository(TeamRemoteDatasource(supabaseClient)),
+            ),
+          ),
         ),
       ],
       child: MaterialApp(
