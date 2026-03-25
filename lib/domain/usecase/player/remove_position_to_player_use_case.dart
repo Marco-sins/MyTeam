@@ -40,6 +40,10 @@ class RemovePositionToPlayerUseCase {
       positions: updatedPositions,
       stats: player.stats,
     );
-    return await _playerRepository.updatePlayer(updatedPlayer);
+    final response = await _playerRepository.updatePlayer(updatedPlayer);
+    if (response.isLeft()) {
+      return response;
+    }
+    return Right(null);
   }
 }

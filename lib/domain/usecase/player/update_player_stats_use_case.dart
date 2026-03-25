@@ -24,6 +24,10 @@ class UpdatePlayerStatiticsUseCase {
         ),
       );
     }
-    return await _playerRepository.updatePlayerStats(player.id, playerStats);
+    final response = await _playerRepository.updatePlayerStats(player.id, playerStats);
+    if (response.isLeft()) {
+      return response;
+    }
+    return Right(null);
   }
 }

@@ -17,6 +17,10 @@ class UpdatePlayerUseCase {
         PermissionFailure('You do not have permission to update this player.'),
       );
     }
-    return await _playerRepository.updatePlayer(player);
+    final response = await _playerRepository.updatePlayer(player);
+    if (response.isLeft()) {
+      return response;
+    }
+    return Right(null);
   }
 }
