@@ -8,10 +8,16 @@ class CreateTeamCubit extends Cubit<CreateTeamState> {
 
   CreateTeamCubit(this.createTeamUseCase) : super(CreateTeamInitial());
 
-  Future<void> createTeam(String teamName, String category) async {
+  Future<void> createTeam(
+    String teamName,
+    String category, [
+    String? logoUrl,
+  ]) async {
     emit(CreateTeamLoading());
     try {
-      await createTeamUseCase(Team(name: teamName, category: category));
+      await createTeamUseCase(
+        Team(name: teamName, category: category, logoUrl: logoUrl),
+      );
 
       emit(CreateTeamSuccess());
     } catch (e) {
