@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/presentation/create_team/pages/create_team_page.dart';
+import 'package:tfg1/presentation/create_team/pages/add_team_page.dart';
+import '../../auth/bloc/auth_cubit.dart';
+import '../../auth/bloc/auth_state.dart';
+import '../../auth/pages/login_page.dart';
 import '../bloc/home_cubit.dart';
 import '../bloc/home_state.dart';
 
@@ -9,56 +12,72 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5), // Gris muy claro de fondo
-      appBar: AppBar(
-        title: const Text(
-          "Mis Equipos",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
-
-      // BOTÓN PARA AÑADIR EQUIPOS
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreateTeamPage()),
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state is AuthInitial) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
           );
-        },
-        backgroundColor: const Color(0xFF2E7D32),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "Nuevo Equipo",
-          style: TextStyle(color: Colors.white),
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5), // Gris muy claro de fondo
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              context.read<AuthCubit>().logout();
+            },
+          ),
+          title: const Text(
+            "Mis Equipos",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
         ),
-      ),
 
-      body: BlocBuilder<HomeCubit, HomeState>(
-        builder: (context, state) {
-          if (state is HomeLoading) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.green),
+        // BOTÓN PARA AÑADIR EQUIPOS
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddTeamPage()),
             );
-          }
+          },
+          backgroundColor: const Color(0xFF2E7D32),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text(
+            "Nuevo Equipo",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
 
-          if (state is HomeLoaded) {
-            if (state.teams.isEmpty) {
-              return _buildEmptyState();
+        body: BlocBuilder<HomeCubit, HomeState>(
+          builder: (context, state) {
+            if (state is HomeLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.green),
+              );
             }
-            return _buildTeamList(state.teams);
-          }
 
-          if (state is HomeError) {
-            return Center(child: Text(state.message));
-          }
+            if (state is HomeLoaded) {
+              if (state.teams.isEmpty) {
+                return _buildEmptyState();
+              }
+              return _buildTeamList(state.teams);
+            }
 
-          return const SizedBox();
-        },
+            if (state is HomeError) {
+              return Center(child: Text(state.message));
+            }
+
+            return const SizedBox();
+          },
+        ),
       ),
     );
   }
@@ -106,10 +125,12 @@ class HomePage extends StatelessWidget {
               child: Icon(Icons.group, color: Colors.green),
             ),
             title: Text(
-              "Nombre del Equipo", // team.name
+              team.name,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: const Text("12 Jugadores"), // team.playersCount
+            subtitle: Text(
+              "${team.playersCount} Jugadores",
+            ), // team.playersCount
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               // Navegar al detalle del equipo
