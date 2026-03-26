@@ -11,5 +11,5 @@ abstract class IAuthRepository {
   );
   Future<Either<Failure, Unit>> signOut();
   Future<Either<Failure, bool>> isSignedIn();
-  Future<Either<Failure, AuthUser>> getAuthenticatedUser();
+  Future<Either<Failure, AuthUser?>> getAuthenticatedUser();
 }
