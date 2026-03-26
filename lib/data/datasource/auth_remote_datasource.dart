@@ -82,7 +82,6 @@ class AuthRemoteDatasource {
     } on AuthException catch (e) {
       throw AuthServerException('Sign up error: ${e.message}');
     } catch (e) {
-      print('Error desconocido: $e');
       throw UnknowException('Unexpected error: $e');
     }
   }

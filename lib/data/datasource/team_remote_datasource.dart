@@ -11,10 +11,23 @@ class TeamRemoteDatasource {
   Future<void> createTeam(TeamModel teamData) async {
     try {
       final response = await _supabase
+          .from('team_members')
+          .insert(
+            {
+              'user_id': _supabase.auth.currentUser?.id,
+              'team_id': teamData.id,
+              'role': 'admin',
+            },
+          )
+          .select();
+      if (response.isEmpty) {
+        throw ServerException(message: 'Failed to create team', code: '500');
+      }
+      final response2 = await _supabase
           .from('teams')
           .insert(teamData.toJson())
           .select();
-      if (response.isEmpty) {
+      if (response2.isEmpty) {
         throw ServerException(message: 'Failed to create team', code: '500');
       }
     } on PostgrestException catch (e) {

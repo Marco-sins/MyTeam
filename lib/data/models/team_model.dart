@@ -13,12 +13,12 @@ class TeamModel extends Team {
       id: json['id'],
       name: json['name'],
       category: json['category'],
-      logoUrl: json['logoUrl'],
+      logoUrl: json['logo_url'],
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, 'category': category, 'logoUrl': logoUrl};
+    return {'id': id, 'name': name, 'category': category, 'logo_url': logoUrl};
   }
 
   TeamModel copyWith({
