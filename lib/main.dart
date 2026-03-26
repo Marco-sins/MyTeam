@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:tfg1/data/datasource/auth_remote_datasource.dart';
 import 'package:tfg1/data/repositories/auth_repository.dart';
@@ -24,11 +25,13 @@ void main() async {
   // 1. Inicialización de Flutter
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Cargar variables de entorno desde .env
+  await dotenv.load(fileName: '.env');
+
   // 2. Inicialización de Supabase
   await Supabase.initialize(
-    url: 'https://vdwiwfzgyjaxolbllhms.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZkd2l3ZnpneWpheG9sYmxsaG1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMjUzNzQsImV4cCI6MjA4ODgwMTM3NH0.F0E4CiFrPsqw7HTV9GL33x07X59rrA9boV8IvaUnVwI',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   runApp(const MyApp());
