@@ -86,4 +86,39 @@ class AuthRemoteDatasource {
       throw UnknowException('Unexpected error: $e');
     }
   }
+
+  Future<AuthUserModel?> getCurrentUser() async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        return null;
+      }
+      return AuthUserModel(
+        id: user.id,
+        email: user.email ?? '',
+        name: user.userMetadata?['name'] ?? '',
+        teamRoles:
+            (Map<String, dynamic>.from(
+              user.userMetadata?['teamRoles'] ?? {},
+            )).map(
+              (key, value) =>
+                  MapEntry(int.parse(key), UserRole.fromString(value)),
+            ),
+      );
+    } on AuthException catch (e) {
+      throw AuthServerException('Authentication error: ${e.message}');
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<bool> isSignedIn() async {
+    try {
+      return _supabase.auth.currentUser != null;
+    } on AuthException catch (e) {
+      throw AuthServerException('Authentication error: ${e.message}');
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
 }

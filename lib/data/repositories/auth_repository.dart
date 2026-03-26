@@ -15,14 +15,31 @@ class AuthRepository implements IAuthRepository {
   AuthRepository(this._datasource);
 
   @override
-  Future<Either<Failure, AuthUser>> getAuthenticatedUser() {
-    throw UnimplementedError();
+  Future<Either<Failure, AuthUser?>> getAuthenticatedUser() async {
+    try {
+      final userModel = await _datasource.getCurrentUser();
+      if (userModel == null) {
+        return const Right(null);
+      }
+      final user = AuthUserMapper.toEntity(userModel);
+      return Right(user);
+    } on AuthServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure(e.message));
+    }
   }
 
   @override
-  Future<Either<Failure, bool>> isSignedIn() {
-    // TODO: implement isSignedIn
-    throw UnimplementedError();
+  Future<Either<Failure, bool>> isSignedIn() async {
+    try {
+      final signedIn = await _datasource.isSignedIn();
+      return Right(signedIn);
+    } on AuthServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure(e.message));
+    }
   }
 
   @override
