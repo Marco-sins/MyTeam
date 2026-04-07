@@ -14,15 +14,13 @@ class CreateTeamCubit extends Cubit<CreateTeamState> {
     String? logoUrl,
   ]) async {
     emit(CreateTeamLoading());
-    try {
-      await createTeamUseCase(
-        Team(name: teamName, category: category, logoUrl: logoUrl),
-      );
+    final result = await createTeamUseCase(
+      Team(name: teamName, category: category, logoUrl: logoUrl),
+    );
 
-      emit(CreateTeamSuccess());
-    } catch (e) {
-      // If there's an error, emit error state with message
-      emit(CreateTeamError(e.toString()));
-    }
+    result.fold(
+      (failure) => emit(CreateTeamError(failure.message)),
+      (_) => emit(CreateTeamSuccess()),
+    );
   }
 }

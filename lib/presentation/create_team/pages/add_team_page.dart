@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../create_team/bloc/create_team_cubit.dart';
@@ -14,7 +15,21 @@ class _AddTeamPageState extends State<AddTeamPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _logoController = TextEditingController();
+  String? _selectedLogoPath;
   String _selectedCategory = 'Senior';
+
+  Future<void> _pickLogo() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+
+      setState(() {
+        _selectedLogoPath = file.path ?? file.name;
+        _logoController.text = file.name;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +111,6 @@ class _AddTeamPageState extends State<AddTeamPage> {
                     const SizedBox(height: 16),
                     // Categoría
                     DropdownButtonFormField<String>(
-                      value: _selectedCategory,
                       decoration: InputDecoration(
                         labelText: 'Categoría',
                         filled: true,
@@ -125,63 +139,71 @@ class _AddTeamPageState extends State<AddTeamPage> {
                           setState(() => _selectedCategory = value!),
                     ),
                     const SizedBox(height: 16),
-                    // Logo URL (opcional)
-                    TextFormField(
-                      controller: _logoController,
-                      decoration: InputDecoration(
-                        labelText: 'URL del Logo (opcional)',
-                        prefixIcon: const Icon(Icons.image_outlined),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
+                    // Logo (opcional) - selector de imagen
+                    Text(
+                      'Logo del equipo (opcional)',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.image_outlined),
+                      label: Text(
+                        _selectedLogoPath == null
+                            ? 'Seleccionar imagen'
+                            : _logoController.text,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      onPressed: _pickLogo,
                     ),
                     const SizedBox(height: 24),
                     BlocBuilder<CreateTeamCubit, CreateTeamState>(
                       builder: (context, state) {
-                        return SizedBox.expand(
-                          child: SizedBox(
-                            height: 55,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[800],
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                elevation: 4,
+                        return SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[800],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              onPressed: state is CreateTeamLoading
-                                  ? null
-                                  : () {
-                                      if (_formKey.currentState!.validate()) {
-                                        context
-                                            .read<CreateTeamCubit>()
-                                            .createTeam(
-                                              _nameController.text.trim(),
-                                              _selectedCategory,
-                                              _logoController.text
-                                                      .trim()
-                                                      .isEmpty
-                                                  ? null
-                                                  : _logoController.text.trim(),
-                                            );
-                                      }
-                                    },
-                              child: state is CreateTeamLoading
-                                  ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                  : const Text(
-                                      'GUARDAR EQUIPO',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                              elevation: 4,
                             ),
+                            onPressed: state is CreateTeamLoading
+                                ? null
+                                : () {
+                                    if (_formKey.currentState!.validate()) {
+                                      context
+                                          .read<CreateTeamCubit>()
+                                          .createTeam(
+                                            _nameController.text.trim(),
+                                            _selectedCategory,
+                                            _selectedLogoPath,
+                                          );
+                                    }
+                                  },
+                            child: state is CreateTeamLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Text(
+                                    'GUARDAR EQUIPO',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         );
                       },
