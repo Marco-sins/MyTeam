@@ -8,27 +8,31 @@ class PlayerStatsModel extends PlayerStats {
     super.assists,
     super.yellowCards,
     super.redCards,
+    super.matchesPlayed,
   });
 
   factory PlayerStatsModel.fromJson(Map<String, dynamic> json) {
     return PlayerStatsModel(
       id: json['id'],
-      playerId: json['playerId'],
+      // En base de datos la columna es "player_id"
+      playerId: json['player_id'] ?? json['playerId'],
       goals: json['goals'] ?? 0,
       assists: json['assists'] ?? 0,
       yellowCards: json['yellowCards'] ?? 0,
       redCards: json['redCards'] ?? 0,
+      matchesPlayed: json['matchesPlayed'] ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'playerId': playerId,
+      // Usamos siempre "player_id" para la persistencia
+      'player_id': playerId,
       'goals': goals,
-      'assists': assists,
-      'yellowCards': yellowCards,
-      'redCards': redCards,
+      'assistences': assists,
+      'yellow_cards': yellowCards,
+      'red_cards': redCards,
+      'matches_played': matchesPlayed,
     };
   }
 
@@ -39,6 +43,7 @@ class PlayerStatsModel extends PlayerStats {
     int? assists,
     int? yellowCards,
     int? redCards,
+    int? matchesPlayed,
   }) {
     return PlayerStatsModel(
       id: id ?? this.id,
@@ -47,6 +52,7 @@ class PlayerStatsModel extends PlayerStats {
       assists: assists ?? this.assists,
       yellowCards: yellowCards ?? this.yellowCards,
       redCards: redCards ?? this.redCards,
+      matchesPlayed: matchesPlayed ?? this.matchesPlayed,
     );
   }
 }

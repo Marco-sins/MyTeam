@@ -12,6 +12,7 @@ import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
 import 'package:tfg1/data/datasource/team_remote_datasource.dart';
 import 'package:tfg1/data/repositories/team_repository.dart';
 import 'package:tfg1/domain/usecase/team/create_team_use_case.dart';
+import 'package:tfg1/domain/usecase/team/get_teams_use_case.dart';
 import 'package:tfg1/presentation/create_team/bloc/create_team_cubit.dart';
 import 'package:tfg1/presentation/home/pages/home_page.dart';
 
@@ -45,6 +46,8 @@ class MyApp extends StatelessWidget {
     // 3. Creamos el cliente de Supabase una sola vez
     final supabaseClient = Supabase.instance.client;
     final authRepository = AuthRepository(AuthRemoteDatasource(supabaseClient));
+    final teamRepository = TeamRepository(TeamRemoteDatasource(supabaseClient));
+    final getTeamsUseCase = GetTeamsUseCase(teamRepository);
 
     return MultiBlocProvider(
       providers: [
@@ -57,16 +60,10 @@ class MyApp extends StatelessWidget {
             getUserSessionUseCase: GetUserSessionUseCase(authRepository),
           )..checkUserSession(),
         ),
+        BlocProvider(create: (context) => HomeCubit(getTeamsUseCase)),
         BlocProvider(
           create: (context) =>
-              HomeCubit()..fetchTeams(), // Carga equipos al iniciar
-        ),
-        BlocProvider(
-          create: (context) => CreateTeamCubit(
-            CreateTeamUseCase(
-              TeamRepository(TeamRemoteDatasource(supabaseClient)),
-            ),
-          ),
+              CreateTeamCubit(CreateTeamUseCase(teamRepository)),
         ),
       ],
       child: MaterialApp(

@@ -10,8 +10,20 @@ import '../widgets/home_app_bar.dart';
 import '../widgets/home_empty.dart';
 import '../widgets/team_card.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Siempre que se construye HomePage, cargamos los equipos
+    context.read<HomeCubit>().fetchTeams();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +42,7 @@ class HomePage extends StatelessWidget {
         floatingActionButton: const AddTeam(),
         body: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
-            if (state is HomeLoading) {
+            if (state is HomeLoading || state is HomeInitial) {
               return const Center(
                 child: CircularProgressIndicator(color: Colors.green),
               );

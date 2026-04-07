@@ -10,24 +10,19 @@ class TeamRemoteDatasource {
 
   Future<void> createTeam(TeamModel teamData) async {
     try {
-      final response = await _supabase
-          .from('team_members')
-          .insert(
-            {
-              'user_id': _supabase.auth.currentUser?.id,
-              'team_id': teamData.id,
-              'role': 'admin',
-            },
-          )
-          .select();
-      if (response.isEmpty) {
-        throw ServerException(message: 'Failed to create team', code: '500');
-      }
       final response2 = await _supabase
           .from('teams')
           .insert(teamData.toJson())
-          .select();
+          .select('id');
       if (response2.isEmpty) {
+        throw ServerException(message: 'Failed to create team', code: '500');
+      }
+      final response = await _supabase.from('team_members').insert({
+        'id_user': _supabase.auth.currentUser?.id,
+        'id_team': response2[0]['id'],
+        'role': 'admin',
+      }).select();
+      if (response.isEmpty) {
         throw ServerException(message: 'Failed to create team', code: '500');
       }
     } on PostgrestException catch (e) {
@@ -74,8 +69,35 @@ class TeamRemoteDatasource {
 
   Future<List<TeamModel>> getTeams() async {
     try {
-      final result = await _supabase.from('teams').select();
-      return result.map((e) => TeamModel.fromJson(e)).toList();
+      final currentUserId = _supabase.auth.currentUser?.id;
+      if (currentUserId == null) {
+        throw ServerException(message: 'User not authenticated', code: '401');
+      }
+      print(
+        'Current user ID: $currentUserId',
+      ); // Debug: Verificar ID del usuario actual
+
+      // 1) Obtenemos los IDs de equipos asociados al usuario actual
+      final memberRows = await _supabase
+          .from('team_members')
+          .select('id_team')
+          .eq('id_user', currentUserId);
+
+      if (memberRows.isEmpty) {
+        return [];
+      }
+
+      final teamIds = memberRows
+          .map<int>((row) => row['id_team'] as int)
+          .toList();
+
+      // 2) Obtenemos sólo esos equipos
+      final result = await _supabase
+          .from('teams')
+          .select()
+          .inFilter('id', teamIds);
+
+      return result.map<TeamModel>((e) => TeamModel.fromJson(e)).toList();
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

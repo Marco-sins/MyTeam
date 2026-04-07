@@ -18,9 +18,9 @@ class PlayerModel extends Player {
   factory PlayerModel.fromJson(Map<String, dynamic> json) {
     return PlayerModel(
       id: json['id'],
-      teamId: json['teamId'],
-      firstName: json['firstName'],
-      lastName: json['lastName'] ?? '',
+      teamId: json['team_id'],
+      firstName: json['firstname'],
+      lastName: json['lastname'] ?? '',
       number: json['number'] ?? 0,
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
@@ -36,19 +36,25 @@ class PlayerModel extends Player {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'teamId': teamId,
-      'firstName': firstName,
-      'lastName': lastName,
+    final map = <String, dynamic>{
+      'team_id': teamId,
+      'firstname': firstName,
+      'lastname': lastName,
       'number': number,
       'phone': phone,
       'email': email,
       'positions': positions
           ?.map((position) => position.toString().split('.').last)
           .toList(),
-      'stats': (stats as PlayerStatsModel).toJson(),
     };
+
+    // No enviamos stats si es null; las estadísticas se gestionan
+    // en la tabla player_stats de forma separada.
+    if (stats != null) {
+      map['stats'] = (stats as PlayerStatsModel).toJson();
+    }
+
+    return map;
   }
 
   PlayerModel copyWith({

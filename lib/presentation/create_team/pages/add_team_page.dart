@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
+import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
 import '../../create_team/bloc/create_team_cubit.dart';
 import '../../create_team/bloc/create_team_state.dart';
 
@@ -38,6 +40,11 @@ class _AddTeamPageState extends State<AddTeamPage> {
       body: BlocListener<CreateTeamCubit, CreateTeamState>(
         listener: (context, state) {
           if (state is CreateTeamSuccess) {
+            // Refrescar lista de equipos del Home al crear uno nuevo
+            context.read<HomeCubit>().fetchTeams();
+            // Refrescar también los teamRoles del usuario para que sea admin
+            // del nuevo equipo (y pueda, por ejemplo, borrarlo o gestionarlo).
+            context.read<AuthCubit>().checkUserSession();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Equipo creado con éxito'),

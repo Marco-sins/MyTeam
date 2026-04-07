@@ -1,23 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/team.dart';
+import 'package:tfg1/domain/usecase/team/get_teams_use_case.dart';
 import 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {
-  HomeCubit() : super(HomeInitial());
+  final GetTeamsUseCase _getTeamsUseCase;
 
-  // Función para cargar equipos
+  HomeCubit(this._getTeamsUseCase) : super(HomeInitial());
+
   Future<void> fetchTeams() async {
     emit(HomeLoading());
-    try {
-      // AQUÍ IRÍA TU LLAMADA A SUPABASE:
-      // final teams = await repository.getTeams();
-      
-      await Future.delayed(const Duration(seconds: 1)); // Simulación
-      final List<Team> mockTeams = []; // Cambia a [Team(...)] para probar la lista
-      
-      emit(HomeLoaded(mockTeams));
-    } catch (e) {
-      emit(HomeError("No se pudieron cargar los equipos"));
-    }
+    final result = await _getTeamsUseCase();
+    result.fold(
+      (failure) => emit(HomeError(failure.message)),
+      (teams) => emit(HomeLoaded(teams)),
+    );
   }
 }

@@ -36,7 +36,7 @@ class AuthCubit extends Cubit<AuthState> {
     // Simulate a successful login after a delay
     final result = await signInUseCase(username, password);
     result.fold(
-      (failure) => emit(AuthError(failure.toString())),
+      (failure) => emit(AuthError(failure.message)),
       (user) => emit(Authenticated(user: user)),
     );
   }
@@ -45,7 +45,7 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     final result = await signOutUseCase();
     result.fold(
-      (failure) => emit(AuthError(failure.toString())),
+      (failure) => emit(AuthError(failure.message)),
       (_) => emit(AuthInitial()),
     );
   }
@@ -60,7 +60,7 @@ class AuthCubit extends Cubit<AuthState> {
       password,
     ); // You should replace this with a proper registration use case
     result.fold(
-      (failure) => emit(AuthError(failure.toString())),
+      (failure) => emit(AuthError(failure.message)),
       (user) => emit(Authenticated(user: user)),
     );
   }

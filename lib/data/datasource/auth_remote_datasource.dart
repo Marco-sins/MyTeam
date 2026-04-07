@@ -10,6 +10,30 @@ class AuthRemoteDatasource {
 
   AuthRemoteDatasource(this._supabase);
 
+  Future<Map<int, UserRole>> _getTeamRolesForUser(String userId) async {
+    try {
+      final List<dynamic> rows = await _supabase
+          .from('team_members')
+          .select('id_team, role')
+          .eq('id_user', userId);
+
+      final Map<int, UserRole> roles = {};
+      for (final row in rows) {
+        final int teamId = row['id_team'] as int;
+        final String roleStr = (row['role'] as String?) ?? 'external';
+        try {
+          roles[teamId] = UserRole.fromString(roleStr);
+        } catch (_) {
+          // Ignorar roles no válidos en la base de datos
+        }
+      }
+      return roles;
+    } catch (_) {
+      // Si algo falla al cargar los roles, devolvemos un mapa vacío
+      return {};
+    }
+  }
+
   Future<AuthUserModel> signIn(String email, String password) async {
     try {
       final response = await _supabase.auth.signInWithPassword(
@@ -20,17 +44,12 @@ class AuthRemoteDatasource {
       if (response.session == null || user == null) {
         throw Exception('Failed to sign in');
       }
+      final teamRoles = await _getTeamRolesForUser(user.id);
       return AuthUserModel(
         id: user.id,
         email: user.email ?? '',
         name: user.userMetadata?['name'] ?? '',
-        teamRoles:
-            (Map<String, dynamic>.from(
-              user.userMetadata?['teamRoles'] ?? {},
-            )).map(
-              (key, value) =>
-                  MapEntry(int.parse(key), UserRole.fromString(value)),
-            ),
+        teamRoles: teamRoles,
       );
     } on AuthException catch (e) {
       throw AuthServerException('Authentication error: ${e.message}');
@@ -67,17 +86,12 @@ class AuthRemoteDatasource {
       if (response.session == null || user == null) {
         throw ServerException(message: 'Failed to sign up');
       }
+      final teamRoles = await _getTeamRolesForUser(user.id);
       return AuthUserModel(
         id: user.id,
         email: user.email ?? '',
         name: user.userMetadata?['name'] ?? '',
-        teamRoles:
-            (Map<String, dynamic>.from(
-              user.userMetadata?['teamRoles'] ?? {},
-            )).map(
-              (key, value) =>
-                  MapEntry(int.parse(key), UserRole.fromString(value)),
-            ),
+        teamRoles: teamRoles,
       );
     } on AuthException catch (e) {
       throw AuthServerException('Sign up error: ${e.message}');
@@ -92,17 +106,12 @@ class AuthRemoteDatasource {
       if (user == null) {
         return null;
       }
+      final teamRoles = await _getTeamRolesForUser(user.id);
       return AuthUserModel(
         id: user.id,
         email: user.email ?? '',
         name: user.userMetadata?['name'] ?? '',
-        teamRoles:
-            (Map<String, dynamic>.from(
-              user.userMetadata?['teamRoles'] ?? {},
-            )).map(
-              (key, value) =>
-                  MapEntry(int.parse(key), UserRole.fromString(value)),
-            ),
+        teamRoles: teamRoles,
       );
     } on AuthException catch (e) {
       throw AuthServerException('Authentication error: ${e.message}');
