@@ -54,13 +54,62 @@ void main() async {
 
   // Cargar variables de entorno desde .env
   await dotenv.load(fileName: '.env');
+
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  final hasValidSupabaseConfig =
+      supabaseUrl.isNotEmpty &&
+      supabaseAnonKey.isNotEmpty &&
+      !supabaseUrl.contains('your-project-id') &&
+      !supabaseAnonKey.contains('your-anon-key-here');
+
+  if (!hasValidSupabaseConfig) {
+    runApp(const SupabaseConfigErrorApp());
+    return;
+  }
+
   // 2. Inicialización de Supabase
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
   );
 
   runApp(const MyApp());
+}
+
+class SupabaseConfigErrorApp extends StatelessWidget {
+  const SupabaseConfigErrorApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                SizedBox(height: 16),
+                Text(
+                  'Configuracion de Supabase invalida',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 12),
+                Text(
+                  'Actualiza el archivo .env con valores reales en SUPABASE_URL y SUPABASE_ANON_KEY, luego reinicia la app.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {

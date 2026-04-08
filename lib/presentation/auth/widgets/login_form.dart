@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:tfg1/presentation/auth/pages/forgot_password_page.dart';
 import '../bloc/auth_cubit.dart';
 
 class LoginForm extends StatefulWidget {
@@ -63,6 +64,17 @@ class _LoginFormState extends State<LoginForm> {
               onPressed: _submit,
               child: const Text('Iniciar Sesión'),
             ),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ForgotPasswordPage(),
+                ),
+              );
+            },
+            child: const Text('Olvidé mi contraseña'),
           ),
         ],
       ),
