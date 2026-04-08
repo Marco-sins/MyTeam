@@ -17,17 +17,20 @@ class _AddTeamPageState extends State<AddTeamPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _logoController = TextEditingController();
-  String? _selectedLogoPath;
+  PlatformFile? _selectedLogoFile;
   String _selectedCategory = 'Senior';
 
   Future<void> _pickLogo() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
 
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
 
       setState(() {
-        _selectedLogoPath = file.path ?? file.name;
+        _selectedLogoFile = file;
         _logoController.text = file.name;
       });
     }
@@ -157,7 +160,7 @@ class _AddTeamPageState extends State<AddTeamPage> {
                     OutlinedButton.icon(
                       icon: const Icon(Icons.image_outlined),
                       label: Text(
-                        _selectedLogoPath == null
+                        _selectedLogoFile == null
                             ? 'Seleccionar imagen'
                             : _logoController.text,
                       ),
@@ -188,15 +191,16 @@ class _AddTeamPageState extends State<AddTeamPage> {
                             ),
                             onPressed: state is CreateTeamLoading
                                 ? null
-                                : () {
+                                : () async {
                                     if (_formKey.currentState!.validate()) {
-                                      context
-                                          .read<CreateTeamCubit>()
-                                          .createTeam(
-                                            _nameController.text.trim(),
-                                            _selectedCategory,
-                                            _selectedLogoPath,
-                                          );
+                                      if (mounted) {
+                                        context
+                                            .read<CreateTeamCubit>()
+                                            .createTeam(
+                                              _nameController.text.trim(),
+                                              _selectedCategory,
+                                            );
+                                      }
                                     }
                                   },
                             child: state is CreateTeamLoading

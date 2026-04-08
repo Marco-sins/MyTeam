@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tfg1/domain/entities/auth_user.dart';
+import 'package:tfg1/domain/entities/enum/player_position.dart';
 import 'package:tfg1/domain/entities/team.dart';
 import 'package:tfg1/domain/usecase/player/add_new_player_use_case.dart';
 import 'package:tfg1/presentation/player/bloc/create_player_cubit.dart';
@@ -30,6 +31,9 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
 
+  final List<PlayerPosition> _selectedPositions = [];
+  PlayerPosition? _positionToAdd;
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -58,7 +62,51 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
         email: _emailController.text.trim().isEmpty
             ? null
             : _emailController.text.trim(),
+        positions: _selectedPositions.isEmpty
+            ? null
+            : List.of(_selectedPositions),
       );
+    }
+  }
+
+  String _positionLabel(PlayerPosition position) {
+    switch (position) {
+      case PlayerPosition.portero:
+        return 'Portero';
+      case PlayerPosition.central:
+        return 'Central';
+      case PlayerPosition.centralDerecho:
+        return 'Central derecho';
+      case PlayerPosition.centralIzquierdo:
+        return 'Central izquierdo';
+      case PlayerPosition.lateralIzquierdo:
+        return 'Lateral izquierdo';
+      case PlayerPosition.lateralDerecho:
+        return 'Lateral derecho';
+      case PlayerPosition.mediocentro:
+        return 'Mediocentro';
+      case PlayerPosition.mediocentroDerecho:
+        return 'Mediocentro derecho';
+      case PlayerPosition.mediocentroIzquierdo:
+        return 'Mediocentro izquierdo';
+      case PlayerPosition.mediocentroDefensivo:
+        return 'Mediocentro defensivo';
+      case PlayerPosition.mediocentroOfensivo:
+        return 'Mediocentro ofensivo';
+      case PlayerPosition.extremoDerecho:
+        return 'Extremo derecho';
+      case PlayerPosition.extremoIzquierdo:
+        return 'Extremo izquierdo';
+      case PlayerPosition.interiorDerecho:
+        return 'Interior derecho';
+      case PlayerPosition.interiorIzquierdo:
+        return 'Interior izquierdo';
+      case PlayerPosition.pivote:
+        return 'Pivote';
+      case PlayerPosition.delanteroCentro:
+        return 'Delantero centro';
+      case PlayerPosition.mediapunta:
+        return 'Mediapunta';
     }
   }
 
@@ -179,6 +227,54 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                           }
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Posiciones',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<PlayerPosition>(
+                        decoration: const InputDecoration(
+                          labelText: 'Seleccionar posición',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: null,
+                        items: PlayerPosition.values
+                            .map(
+                              (p) => DropdownMenuItem<PlayerPosition>(
+                                value: p,
+                                child: Text(_positionLabel(p)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          if (_selectedPositions.contains(value)) return;
+                          setState(() {
+                            _selectedPositions.add(value);
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final pos in _selectedPositions)
+                            Chip(
+                              label: Text(_positionLabel(pos)),
+                              deleteIcon: const Icon(Icons.close),
+                              onDeleted: () {
+                                setState(() {
+                                  _selectedPositions.remove(pos);
+                                });
+                              },
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 24),
                       BlocBuilder<CreatePlayerCubit, CreatePlayerState>(

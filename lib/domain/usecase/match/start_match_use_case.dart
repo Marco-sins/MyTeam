@@ -18,13 +18,17 @@ class StartMatchUseCase {
         PermissionFailure('You do not have permission to start this match.'),
       );
     }
+    final startTime = DateTime.now();
+    final startHour =
+        '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
     Match updatedMatch = Match(
       id: match.id,
       teamId: match.teamId,
       opponent: match.opponent,
       goalsScored: match.goalsScored,
       goalsConceded: match.goalsConceded,
-      date: match.date,
+      date: startTime,
+      hour: startHour,
       status: MatchStatus.inProgress,
       lineups: match.lineups,
     );

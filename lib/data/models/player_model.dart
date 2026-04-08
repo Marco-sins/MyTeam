@@ -16,6 +16,17 @@ class PlayerModel extends Player {
   });
 
   factory PlayerModel.fromJson(Map<String, dynamic> json) {
+    final rawPositions = json['positions'] as String?;
+    List<PlayerPosition> positions = [];
+    if (rawPositions != null && rawPositions.trim().isNotEmpty) {
+      positions = rawPositions
+          .split(',')
+          .map((p) => p.trim())
+          .where((p) => p.isNotEmpty)
+          .map((p) => PlayerPosition.values.byName(p))
+          .toList();
+    }
+
     return PlayerModel(
       id: json['id'],
       teamId: json['team_id'],
@@ -24,11 +35,7 @@ class PlayerModel extends Player {
       number: json['number'] ?? 0,
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
-      positions:
-          (json['positions'] as List?)
-              ?.map((p) => PlayerPosition.values.byName(p.toString()))
-              .toList() ??
-          [],
+      positions: positions,
       stats: json['stats'] != null
           ? PlayerStatsModel.fromJson(json['stats'])
           : const PlayerStatsModel(),
@@ -36,6 +43,12 @@ class PlayerModel extends Player {
   }
 
   Map<String, dynamic> toJson() {
+    final String? positionsString = positions == null || positions!.isEmpty
+        ? null
+        : positions!
+              .map((position) => position.toString().split('.').last)
+              .join(',');
+
     final map = <String, dynamic>{
       'team_id': teamId,
       'firstname': firstName,
@@ -43,16 +56,8 @@ class PlayerModel extends Player {
       'number': number,
       'phone': phone,
       'email': email,
-      'positions': positions
-          ?.map((position) => position.toString().split('.').last)
-          .toList(),
+      'positions': positionsString,
     };
-
-    // No enviamos stats si es null; las estadísticas se gestionan
-    // en la tabla player_stats de forma separada.
-    if (stats != null) {
-      map['stats'] = (stats as PlayerStatsModel).toJson();
-    }
 
     return map;
   }

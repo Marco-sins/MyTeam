@@ -19,15 +19,21 @@ class PlayerRemoteDatasource {
           .from('players')
           .insert(playerData.toJson())
           .select();
-      if (response.isEmpty) {
+      if (response == null ||
+          (response is List && response.isEmpty) ||
+          (response is Map && response.isEmpty)) {
         throw ServerException(message: 'Failed to create player', code: '500');
       }
-      final int playerId = response[0]['id'];
+      final int playerId = (response as List).isNotEmpty
+          ? response[0]['id'] as int
+          : 0;
       final statsResponse = await _supabase
           .from('player_stats')
           .insert(playerStatsData.copyWith(playerId: playerId).toJson())
           .select();
-      if (statsResponse.isEmpty) {
+      if (statsResponse == null ||
+          (statsResponse is List && statsResponse.isEmpty) ||
+          (statsResponse is Map && statsResponse.isEmpty)) {
         throw ServerException(
           message: 'Failed to create player stats',
           code: '500',
@@ -42,28 +48,13 @@ class PlayerRemoteDatasource {
 
   Future<void> deletePlayer(int id) async {
     try {
-      final response = await _supabase
-          .from('players')
-          .delete()
-          .eq('id', id)
-          .select();
-      if (response.isEmpty) {
-        throw ServerException(
-          message: 'Player with id $id not found',
-          code: '404',
-        );
-      }
-      final statsResponse = await _supabase
-          .from('player_stats')
-          .delete()
-          .eq('player_id', id)
-          .select();
-      if (statsResponse.isEmpty) {
-        throw ServerException(
-          message: 'Player stats for player id $id not found',
-          code: '404',
-        );
-      }
+      // Borramos primero el jugador; si no existe, Supabase lanzará
+      // PostgrestException y la propagaremos como ServerException.
+      await _supabase.from('players').delete().eq('id', id);
+
+      // Borramos sus estadísticas si existen, pero no consideramos error
+      // el hecho de que no haya fila en player_stats (puede ser opcional).
+      await _supabase.from('player_stats').delete().eq('player_id', id);
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -168,7 +159,7 @@ class PlayerRemoteDatasource {
           .from('players')
           .select()
           .eq('team_id', teamId)
-          .eq('position', position.name);
+          .ilike('positions', '%${position.name}%');
       List<PlayerModel> players = result
           .map((e) => PlayerModel.fromJson(e))
           .toList();
@@ -199,16 +190,10 @@ class PlayerRemoteDatasource {
 
   Future<void> updatePlayer(PlayerModel player) async {
     try {
-      final response = await _supabase
+      await _supabase
           .from('players')
           .update(player.toJson())
           .eq('id', player.id);
-      if (response.isEmpty) {
-        throw ServerException(
-          message: 'Player with id ${player.id} not found',
-          code: '404',
-        );
-      }
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -221,16 +206,10 @@ class PlayerRemoteDatasource {
     PlayerStatsModel playerStats,
   ) async {
     try {
-      final response = await _supabase
+      await _supabase
           .from('player_stats')
           .update(playerStats.toJson())
           .eq('player_id', playerId);
-      if (response.isEmpty) {
-        throw ServerException(
-          message: 'Player stats for player id $playerId not found',
-          code: '404',
-        );
-      }
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

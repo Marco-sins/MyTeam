@@ -58,6 +58,7 @@ class FinishMatchUseCase {
       goalsScored: goalsScored,
       goalsConceded: goalsConceded,
       date: match.date,
+      hour: match.hour,
       status: MatchStatus
           .finished, // Set status to finished to indicate the match is finished
       lineups: match.lineups,

@@ -12,14 +12,15 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         icon: const Icon(Icons.logout),
         onPressed: () => context.read<AuthCubit>().logout(),
       ),
-      title: const Text(
-        "Mis Equipos",
-        style: TextStyle(fontWeight: FontWeight.bold),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.sports_soccer, size: 22),
+          SizedBox(width: 8),
+          Text("Team Manager", style: TextStyle(fontWeight: FontWeight.bold)),
+        ],
       ),
       centerTitle: true,
-      elevation: 0,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
     );
   }
 

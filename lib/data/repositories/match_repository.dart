@@ -29,10 +29,12 @@ class MatchRepository implements IMatchRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> createMatch(Match match) async {
+  Future<Either<Failure, Match>> createMatch(Match match) async {
     try {
-      await _remoteDatasource.createMatch(MatchMapper.toModel(match));
-      return const Right(unit);
+      final created = await _remoteDatasource.createMatch(
+        MatchMapper.toModel(match),
+      );
+      return Right(MatchMapper.toEntity(created));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on UnknowException catch (e) {
@@ -56,7 +58,7 @@ class MatchRepository implements IMatchRepository {
   Future<Either<Failure, Match>> getMatchById(int id) async {
     try {
       final match = await _remoteDatasource.getMatchById(id);
-      return Right(MatchMapper.toModel(match));
+      return Right(MatchMapper.toEntity(match));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on UnknowException catch (e) {
@@ -68,7 +70,7 @@ class MatchRepository implements IMatchRepository {
   Future<Either<Failure, List<Match>>> getMatches() async {
     try {
       final result = await _remoteDatasource.getMatches();
-      List<Match> matches = result.map((e) => MatchMapper.toModel(e)).toList();
+      List<Match> matches = result.map((e) => MatchMapper.toEntity(e)).toList();
       return Right(matches);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
@@ -81,7 +83,7 @@ class MatchRepository implements IMatchRepository {
   Future<Either<Failure, List<Match>>> getMatchesByTeamId(int teamId) async {
     try {
       final result = await _remoteDatasource.getMatchesByTeamId(teamId);
-      List<Match> matches = result.map((e) => MatchMapper.toModel(e)).toList();
+      List<Match> matches = result.map((e) => MatchMapper.toEntity(e)).toList();
       return Right(matches);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));

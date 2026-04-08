@@ -1,19 +1,18 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/data/datasource/player_remote_datasource.dart';
-import 'package:tfg1/data/repositories/player_repository.dart';
-import 'package:tfg1/data/datasource/team_remote_datasource.dart';
-import 'package:tfg1/data/repositories/team_repository.dart';
 import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/player/add_new_player_use_case.dart';
 import 'package:tfg1/domain/usecase/team/delete_team_use_case.dart';
+import 'package:tfg1/domain/usecase/team/update_team_use_case.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
-import 'package:tfg1/presentation/player/pages/add_player_page.dart';
 import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_state.dart';
+import 'package:tfg1/presentation/match/pages/match_delete_page.dart';
+import 'package:tfg1/presentation/attendance/pages/attendance_delete_page.dart';
+import 'package:tfg1/presentation/team/pages/team_roster_page.dart';
+import 'package:tfg1/presentation/team/widgets/team_management_header_row.dart';
+import 'package:tfg1/presentation/team/widgets/team_bottom_bar.dart';
 
 class TeamManagementPage extends StatefulWidget {
   final Team team;
@@ -26,6 +25,8 @@ class TeamManagementPage extends StatefulWidget {
 
 class _TeamManagementPageState extends State<TeamManagementPage> {
   late final TextEditingController _nameController;
+  String? _selectedLogoPath;
+  PlatformFile? _selectedLogoFile;
 
   @override
   void initState() {
@@ -41,6 +42,21 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
     super.dispose();
   }
 
+  void _onLogoTap() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      setState(() {
+        _selectedLogoFile = file;
+        _selectedLogoPath = file.path; // para previsualizar en el header
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,109 +66,16 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                // Escudo actual (si existe) con opción a cambiarlo en el futuro
-                InkWell(
-                  onTap: () {
-                    // TODO: Implementar cambio de escudo
-                  },
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.grey.shade200,
-                    backgroundImage: widget.team.logoUrl != null
-                        ? NetworkImage(widget.team.logoUrl!)
-                        : null,
-                    child: widget.team.logoUrl == null
-                        ? const Icon(Icons.shield_outlined)
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre del equipo',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
+            TeamManagementHeaderRow(
+              nameController: _nameController,
+              selectedLogoPath: _selectedLogoPath,
+              logoUrl: widget.team.logoUrl,
+              onLogoTap: _onLogoTap,
             ),
             const SizedBox(height: 16),
             // TODO: Botón para guardar cambios de nombre/escudo cuando conectes el use case de updateTeam
             Align(
               alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Conectar con UpdateTeamUseCase
-                },
-                icon: const Icon(Icons.save),
-                label: const Text('Guardar cambios'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Plantilla',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: BlocBuilder<TeamDetailCubit, TeamDetailState>(
-                builder: (context, state) {
-                  if (state is TeamDetailLoading ||
-                      state is TeamDetailInitial) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (state is TeamDetailError) {
-                    return Center(child: Text(state.message));
-                  }
-                  if (state is TeamDetailLoaded) {
-                    if (state.players.isEmpty) {
-                      return const Center(
-                        child: Text('No hay jugadores en la plantilla'),
-                      );
-                    }
-                    return ListView.separated(
-                      itemCount: state.players.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final player = state.players[index];
-                        return ListTile(
-                          leading: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () {
-                                  // TODO: Navegar a pantalla de edición de jugador
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, size: 20),
-                                onPressed: () {
-                                  // TODO: Confirmar y borrar jugador
-                                },
-                              ),
-                            ],
-                          ),
-                          title: Text(player.fullName),
-                          subtitle: Text(
-                            'Dorsal: ${player.number?.toString() ?? '-'}  ·  Tel: ${player.phone ?? '-'}',
-                          ),
-                        );
-                      },
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
               child: ElevatedButton.icon(
                 onPressed: () async {
                   final authState = context.read<AuthCubit>().state;
@@ -160,7 +83,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'Debes iniciar sesión para añadir jugadores',
+                          'Debes iniciar sesión para guardar cambios',
                         ),
                         backgroundColor: Colors.red,
                       ),
@@ -168,34 +91,108 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     return;
                   }
 
-                  final supabase = Supabase.instance.client;
-                  final playerRepository = PlayerRepository(
-                    PlayerRemoteDatasource(supabase),
-                  );
-                  final addNewPlayerUseCase = AddNewPlayerUseCase(
-                    playerRepository,
+                  final updateTeamUseCase = context.read<UpdateTeamUseCase>();
+
+                  // Por ahora no guardamos cambios de logo en base de datos,
+                  // sólo permitimos seleccionar imagen para previsualizar.
+                  final String? newLogoUrl = widget.team.logoUrl;
+
+                  final newName = _nameController.text.trim();
+                  final updatedTeam = Team(
+                    id: widget.team.id,
+                    name: newName,
+                    category: widget.team.category,
+                    logoUrl: newLogoUrl,
                   );
 
-                  await Navigator.push(
+                  final updateResult = await updateTeamUseCase(
+                    updatedTeam,
+                    authState.user,
+                  );
+
+                  updateResult.fold(
+                    (failure) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(failure.message),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    },
+                    (_) {
+                      context.read<HomeCubit>().fetchTeams();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cambios guardados correctamente'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                  );
+                },
+                icon: const Icon(Icons.save),
+                label: const Text('Guardar cambios'),
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AddPlayerPage(
-                        team: widget.team,
-                        currentUser: authState.user,
-                        addNewPlayerUseCase: addNewPlayerUseCase,
+                      builder: (_) => BlocProvider.value(
+                        value: context.read<TeamDetailCubit>(),
+                        child: TeamRosterPage(team: widget.team),
                       ),
                     ),
                   );
-
-                  // Al volver de crear un jugador, recargamos la plantilla
-                  if (!mounted) return;
-                  context.read<TeamDetailCubit>().loadTeam(widget.team.id);
                 },
-                icon: const Icon(Icons.person_add),
-                label: const Text('Añadir jugador'),
+                icon: const Icon(Icons.groups),
+                label: const Text('Modificar plantilla'),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MatchDeletePage(team: widget.team),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.sports_soccer, color: Colors.red),
+                label: const Text('Eliminar partido'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AttendanceDeletePage(team: widget.team),
+                    ),
+                  ).then((result) {
+                    if (result == true) {
+                      Navigator.of(context).pop(true);
+                    }
+                  });
+                },
+                icon: const Icon(Icons.event_busy, color: Colors.red),
+                label: const Text('Eliminar asistencia'),
+              ),
+            ),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -242,13 +239,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   );
 
                   if (confirm != true) return;
-
-                  final supabase = Supabase.instance.client;
-                  final teamRepository = TeamRepository(
-                    TeamRemoteDatasource(supabase),
-                  );
-                  final deleteTeamUseCase = DeleteTeamUseCase(teamRepository);
-
+                  final deleteTeamUseCase = context.read<DeleteTeamUseCase>();
                   final result = await deleteTeamUseCase(
                     widget.team,
                     authState.user,
@@ -283,6 +274,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
           ],
         ),
       ),
+      bottomNavigationBar: TeamBottomBar(team: widget.team),
     );
   }
 }

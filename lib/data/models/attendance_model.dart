@@ -12,8 +12,8 @@ class AttendanceModel extends Attendance {
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
       id: json['id'],
-      teamId: json['teamId'],
-      playerId: json['playerId'],
+      teamId: json['team_id'],
+      playerId: json['player_id'],
       date: DateTime.parse(json['date']),
       attended: json['attended'],
     );
@@ -21,9 +21,8 @@ class AttendanceModel extends Attendance {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'teamId': teamId,
-      'playerId': playerId,
+      'team_id': teamId,
+      'player_id': playerId,
       'date': date.toIso8601String(),
       'attended': attended,
     };

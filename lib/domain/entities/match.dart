@@ -8,8 +8,9 @@ class Match {
   final int goalsScored;
   final int goalsConceded;
   final DateTime date;
+  final String hour;
   final MatchStatus status;
-  final List<MatchLineup> lineups;  
+  final List<MatchLineup> lineups;
 
   const Match({
     required this.id,
@@ -18,7 +19,8 @@ class Match {
     required this.goalsScored,
     required this.goalsConceded,
     required this.date,
-    required this.status, 
+    required this.hour,
+    required this.status,
     required this.lineups,
   });
 }

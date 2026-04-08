@@ -15,10 +15,15 @@ class MatchEventModel extends MatchEvent {
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
     return MatchEventModel(
       id: json['id'],
-      matchId: json['matchId'],
-      playerId1: json['playerId1'],
-      playerId2: json['playerId2'],
-      type: json['eventType'],
+      matchId: json['match_id'],
+      playerId1: json['player_id_1'],
+      playerId2: json['player_id_2'],
+      type: json['event_type'] != null
+          ? MatchEventEnum.values.firstWhere(
+              (e) => e.toString() == 'MatchEventEnum.${json['event_type']}',
+            )
+          : MatchEventEnum
+                .scoreGoal, // Valor por defecto si no se encuentra el tipo
       minute: json['minute'],
       note: json['note'],
     );
@@ -26,12 +31,11 @@ class MatchEventModel extends MatchEvent {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'matchId': matchId,
-      'playerId1': playerId1,
-      'playerId2': playerId2,
+      'match_id': matchId,
+      'player_id_1': playerId1,
+      'player_id_2': playerId2,
       'minute': minute,
-      'eventType': type,
+      'event_type': type,
       'note': note,
     };
   }

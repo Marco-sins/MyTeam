@@ -3,29 +3,45 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tfg1/domain/entities/team.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_state.dart';
+import 'package:tfg1/presentation/attendance/pages/attendance_page.dart';
+import 'package:tfg1/presentation/convocation/pages/convocation_page.dart';
 import 'package:tfg1/presentation/team/pages/team_management_page.dart';
+import 'package:tfg1/presentation/team/widgets/team_detail_header.dart';
+import 'package:tfg1/presentation/team/widgets/team_attendance_section.dart';
+import 'package:tfg1/presentation/match/pages/match_list_page.dart';
+import 'package:tfg1/presentation/team/widgets/team_bottom_bar.dart';
 
-class TeamDetailPage extends StatelessWidget {
+class TeamDetailPage extends StatefulWidget {
   final Team team;
 
   const TeamDetailPage({super.key, required this.team});
 
   @override
+  State<TeamDetailPage> createState() => _TeamDetailPageState();
+}
+
+class _TeamDetailPageState extends State<TeamDetailPage> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: Text(team.name),
+        // Nombre fijo de la aplicación en el menú de equipo
+        title: const Text('Football TFG'),
         actions: [
-          if (team.logoUrl != null)
+          if (widget.team.logoUrl != null &&
+              (widget.team.logoUrl!.startsWith('http://') ||
+                  widget.team.logoUrl!.startsWith('https://')))
             Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: CircleAvatar(backgroundImage: NetworkImage(team.logoUrl!)),
+              child: CircleAvatar(
+                backgroundImage: NetworkImage(widget.team.logoUrl!),
+              ),
             ),
         ],
       ),
       body: Column(
         children: [
+          TeamDetailHeader(team: widget.team),
           Expanded(
             child: BlocBuilder<TeamDetailCubit, TeamDetailState>(
               builder: (context, state) {
@@ -41,20 +57,9 @@ class TeamDetailPage extends StatelessWidget {
                       child: Text('No hay jugadores en la plantilla'),
                     );
                   }
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.players.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final player = state.players[index];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          child: Text(player.number?.toString() ?? '-'),
-                        ),
-                        title: Text(player.fullName),
-                        subtitle: Text('Tel: ${player.phone ?? '-'}'),
-                      );
-                    },
+                  return TeamAttendanceSection(
+                    team: widget.team,
+                    players: state.players,
                   );
                 }
                 return const SizedBox.shrink();
@@ -63,70 +68,7 @@ class TeamDetailPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: BottomAppBar(
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              const _BottomBarButton(
-                label: 'Asistencia',
-                icon: Icons.check_circle_outline,
-              ),
-              const _BottomBarButton(
-                label: 'Convocatoria',
-                icon: Icons.list_alt,
-              ),
-              const _BottomBarButton(
-                label: 'Partido',
-                icon: Icons.sports_soccer,
-              ),
-              _BottomBarButton(
-                label: 'Gestión',
-                icon: Icons.settings,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider.value(
-                        value: context.read<TeamDetailCubit>(),
-                        child: TeamManagementPage(team: team),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const _BottomBarButton(
-                label: 'Ver partido',
-                icon: Icons.visibility,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BottomBarButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _BottomBarButton({required this.label, required this.icon, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 22),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 11)),
-        ],
-      ),
+      bottomNavigationBar: TeamBottomBar(team: widget.team),
     );
   }
 }

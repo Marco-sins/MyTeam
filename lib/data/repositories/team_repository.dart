@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:tfg1/core/errors/exception/server_exception.dart';
 import 'package:tfg1/core/errors/exception/unknow_exception.dart';
@@ -68,6 +70,21 @@ class TeamRepository implements ITeamRepository {
     try {
       await _datasource.updateTeam(TeamMapper.toModel(team));
       return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(ServerFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadLogo(
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    try {
+      final url = await _datasource.uploadLogo(bytes, fileName);
+      return Right(url);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on UnknowException catch (e) {

@@ -10,42 +10,63 @@ class MatchModel extends Match {
     required super.goalsScored,
     required super.goalsConceded,
     required super.date,
+    required super.hour,
     required super.status,
     required super.lineups,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
+    final rawLineups = json['lineups'];
+    final List<MatchLineupModel> parsedLineups;
+
+    if (rawLineups is List) {
+      parsedLineups = rawLineups
+          .map((lineupJson) => MatchLineupModel.fromJson(lineupJson))
+          .toList();
+    } else {
+      // Si no viene el campo lineups en la consulta (select solo sobre matches),
+      // usamos una lista vacía.
+      parsedLineups = const [];
+    }
+
+    final parsedDate = DateTime.parse(json['date']);
+    final rawHour = json['hour'];
+    final String parsedHour;
+    if (rawHour is String && rawHour.isNotEmpty) {
+      parsedHour = rawHour;
+    } else {
+      final h = parsedDate.hour.toString().padLeft(2, '0');
+      final m = parsedDate.minute.toString().padLeft(2, '0');
+      parsedHour = '$h:$m';
+    }
+
     return MatchModel(
       id: json['id'],
-      teamId: json['teamId'],
+      teamId: json['team_id'],
       opponent: json['opponent'],
-      goalsScored: json['goalsScored'],
-      goalsConceded: json['goalsConceded'],
-      date: DateTime.parse(json['date']),
+      goalsScored: json['goals_scored'],
+      goalsConceded: json['goals_conceded'],
+      date: parsedDate,
+      hour: parsedHour,
       status: MatchStatus.values.firstWhere(
         (e) => e.toString() == 'MatchStatus.${json['status']}',
       ),
-      lineups: (json['lineups'] as List)
-          .map((lineupJson) => MatchLineupModel.fromJson(lineupJson))
-          .toList(),
+      lineups: parsedLineups,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'teamId': teamId,
+      'team_id': teamId,
       'opponent': opponent,
-      'goalsScored': goalsScored,
-      'goalsConceded': goalsConceded,
+      'goals_scored': goalsScored,
+      'goals_conceded': goalsConceded,
       'date': date.toIso8601String(),
+      'hour': hour,
       'status': status
           .toString()
           .split('.')
           .last, // Store only the enum value as a string
-      'lineups': lineups
-          .map((lineup) => (lineup as MatchLineupModel).toJson())
-          .toList(),
     };
   }
 
@@ -56,6 +77,7 @@ class MatchModel extends Match {
     int? goalsScored,
     int? goalsConceded,
     DateTime? date,
+    String? hour,
     MatchStatus? status,
     List<MatchLineupModel>? lineups,
   }) {
@@ -66,6 +88,7 @@ class MatchModel extends Match {
       goalsScored: goalsScored ?? this.goalsScored,
       goalsConceded: goalsConceded ?? this.goalsConceded,
       date: date ?? this.date,
+      hour: hour ?? this.hour,
       status: status ?? this.status,
       lineups: lineups ?? this.lineups,
     );

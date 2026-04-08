@@ -9,15 +9,25 @@ class MatchRemoteDatasource {
 
   MatchRemoteDatasource(this._supabase);
 
-  Future<void> createMatch(MatchModel matchData) async {
+  Future<MatchModel> createMatch(MatchModel matchData) async {
     try {
+      // Dejamos que la BD genere el id del partido y
+      // devolvemos la fila creada para conocer su id real.
       final response = await _supabase
           .from('matches')
-          .insert(matchData.toJson())
-          .select();
-      if (response.isEmpty) {
-        throw ServerException(message: 'Failed to create match', code: '500');
-      }
+          .insert({
+            'team_id': matchData.teamId,
+            'opponent': matchData.opponent,
+            'goals_scored': matchData.goalsScored,
+            'goals_conceded': matchData.goalsConceded,
+            'date': matchData.date.toIso8601String(),
+            'hour': matchData.hour,
+            'status': matchData.status.toString().split('.').last,
+          })
+          .select()
+          .single();
+
+      return MatchModel.fromJson(response);
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -76,7 +86,7 @@ class MatchRemoteDatasource {
       final result = await _supabase
           .from('matches')
           .select()
-          .or('home_team_id.eq.$teamId,away_team_id.eq.$teamId');
+          .eq('team_id', teamId);
       return result.map((e) => MatchModel.fromJson(e)).toList();
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
@@ -108,7 +118,8 @@ class MatchRemoteDatasource {
   Future<void> addMatchLineup(MatchLineupModel lineup) async {
     try {
       final response = await _supabase
-          .from('match_lineups')
+          // La tabla real en Supabase es 'match_lineup' (en singular)
+          .from('match_lineup')
           .insert(lineup.toJson())
           .select();
       if (response.isEmpty) {

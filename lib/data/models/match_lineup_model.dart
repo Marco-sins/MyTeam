@@ -13,22 +13,22 @@ class MatchLineupModel extends MatchLineup {
   factory MatchLineupModel.fromJson(Map<String, dynamic> json) {
     return MatchLineupModel(
       id: json['id'],
-      playerId: json['playerId'],
-      matchId: json['matchId'],
-      isStarting: json['isStarting'],
-      minutesPlayed: json['minutesPlayed'] ?? 0,
-      rating: json['rating'] ?? 5,
+      playerId: json['player_id'],
+      matchId: json['match_id'],
+      isStarting: json['is_start'],
+      minutesPlayed: json['minutes_played'] ?? 0,
+      rating: (json['rating'] as num?)?.toDouble() ?? 5,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'playerId': playerId,
-      'matchId': matchId,
-      'isStarting': isStarting,
-      'minutesPlayed': minutesPlayed,
-      'rating': rating,
+      'player_id': playerId,
+      'match_id': matchId,
+      'is_start': isStarting,
+      'minutes_played': minutesPlayed,
+      // La columna rating es smallint en BD, enviamos entero
+      'rating': rating.toInt(),
     };
   }
 

@@ -52,11 +52,16 @@ class _HomePageState extends State<HomePage> {
               if (state.teams.isEmpty) {
                 return const HomeEmpty();
               }
-              return ListView.builder(
+              return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                itemCount: state.teams.length,
-                itemBuilder: (context, index) =>
-                    TeamCard(team: state.teams[index]),
+                child: Wrap(
+                  alignment: WrapAlignment.start,
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    for (final team in state.teams) TeamCard(team: team),
+                  ],
+                ),
               );
             }
 

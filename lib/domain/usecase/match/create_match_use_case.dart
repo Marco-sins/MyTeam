@@ -26,6 +26,7 @@ class CreateMatchUseCase {
       goalsScored: 0,
       goalsConceded: 0,
       date: match.date,
+      hour: match.hour,
       status: MatchStatus
           .notStarted, // Set status to notStarted to indicate the match is not yet started
       lineups: match.lineups, // Initialize lineups with the provided lineups
@@ -34,23 +35,26 @@ class CreateMatchUseCase {
     if (result.isLeft()) {
       return result;
     }
+
+    final createdMatch = result.getOrElse(() => newMatch);
+    final createdMatchId = createdMatch.id;
     List<MatchLineup> lineups = newMatch.lineups;
-    return await result.fold((failure) => Left(failure), (_) async {
-      for (var lineup in lineups) {
-        MatchLineup matchLineup = MatchLineup(
-          id: lineup.id,
-          playerId: lineup.playerId,
-          matchId: newMatch.id,
-          isStarting: lineup.isStarting,
-          minutesPlayed: lineup.minutesPlayed,
-          rating: lineup.rating,
-        );
-        final lineupResult = await _matchRepository.addMatchLineup(matchLineup);
-        if (lineupResult.isLeft()) {
-          return lineupResult;
-        }
+
+    for (var lineup in lineups) {
+      final matchLineup = MatchLineup(
+        id: lineup.id,
+        playerId: lineup.playerId,
+        matchId: createdMatchId,
+        isStarting: lineup.isStarting,
+        minutesPlayed: lineup.minutesPlayed,
+        rating: lineup.rating,
+      );
+      final lineupResult = await _matchRepository.addMatchLineup(matchLineup);
+      if (lineupResult.isLeft()) {
+        return lineupResult;
       }
-      return const Right(null);
-    });
+    }
+
+    return const Right(null);
   }
 }

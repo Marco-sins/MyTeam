@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tfg1/core/errors/exception/server_exception.dart';
 import 'package:tfg1/core/errors/exception/unknow_exception.dart';
@@ -7,6 +9,22 @@ class TeamRemoteDatasource {
   final SupabaseClient _supabase;
 
   TeamRemoteDatasource(this._supabase);
+
+  static const String _logoBucket = 'team-logos';
+
+  String? _extractStoragePathFromPublicUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final segments = uri.pathSegments;
+      final bucketIndex = segments.indexOf(_logoBucket);
+      if (bucketIndex == -1 || bucketIndex == segments.length - 1) {
+        return null;
+      }
+      return segments.sublist(bucketIndex + 1).join('/');
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> createTeam(TeamModel teamData) async {
     try {
@@ -32,8 +50,46 @@ class TeamRemoteDatasource {
     }
   }
 
+  Future<String> uploadLogo(Uint8List bytes, String fileName) async {
+    try {
+      final sanitizedFileName = fileName.replaceAll(' ', '_');
+      final path =
+          'logos/${DateTime.now().millisecondsSinceEpoch}_$sanitizedFileName';
+
+      await _supabase.storage
+          .from(_logoBucket)
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(cacheControl: '3600'),
+          );
+
+      final publicUrl = _supabase.storage.from(_logoBucket).getPublicUrl(path);
+      return publicUrl;
+    } on StorageException catch (e) {
+      throw ServerException(message: e.message, code: e.statusCode.toString());
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
   Future<void> deleteTeam(int id) async {
     try {
+      // Obtener el logo actual para poder eliminarlo del storage si existe
+      final existing = await _supabase
+          .from('teams')
+          .select('logo_url')
+          .eq('id', id)
+          .maybeSingle();
+
+      final logoUrl = existing != null ? existing['logo_url'] as String? : null;
+      if (logoUrl != null) {
+        final path = _extractStoragePathFromPublicUrl(logoUrl);
+        if (path != null) {
+          await _supabase.storage.from(_logoBucket).remove([path]);
+        }
+      }
+
       final response = await _supabase
           .from('teams')
           .delete()
@@ -107,6 +163,23 @@ class TeamRemoteDatasource {
 
   Future<void> updateTeam(TeamModel teamData) async {
     try {
+      // Si se cambia el logo, eliminamos el anterior del storage
+      final existing = await _supabase
+          .from('teams')
+          .select('logo_url')
+          .eq('id', teamData.id)
+          .maybeSingle();
+
+      final oldLogoUrl = existing != null
+          ? existing['logo_url'] as String?
+          : null;
+      if (oldLogoUrl != null && oldLogoUrl != teamData.logoUrl) {
+        final path = _extractStoragePathFromPublicUrl(oldLogoUrl);
+        if (path != null) {
+          await _supabase.storage.from(_logoBucket).remove([path]);
+        }
+      }
+
       final response = await _supabase
           .from('teams')
           .update(teamData.toJson())

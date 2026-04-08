@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tfg1/domain/entities/auth_user.dart';
 import 'package:tfg1/domain/entities/player.dart';
+import 'package:tfg1/domain/entities/enum/player_position.dart';
 import 'package:tfg1/domain/usecase/player/add_new_player_use_case.dart';
 import 'create_player_state.dart';
 
@@ -18,6 +19,7 @@ class CreatePlayerCubit extends Cubit<CreatePlayerState> {
     int? number,
     String? phone,
     String? email,
+    List<PlayerPosition>? positions,
   }) async {
     emit(CreatePlayerLoading());
     final player = Player(
@@ -27,6 +29,7 @@ class CreatePlayerCubit extends Cubit<CreatePlayerState> {
       number: number,
       phone: phone,
       email: email,
+      positions: positions,
     );
     final result = await addNewPlayerUseCase(player, currentUser);
     result.fold(
