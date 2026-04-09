@@ -29,6 +29,10 @@ class TeamRosterWidget extends StatelessWidget {
           width: double.infinity,
           height: 50,
           child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               final authState = context.read<AuthCubit>().state;
               if (authState is! Authenticated) {

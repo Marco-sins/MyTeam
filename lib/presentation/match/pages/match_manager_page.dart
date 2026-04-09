@@ -50,12 +50,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   bool _loadingPlayers = true;
   String? _loadError;
 
-  // Formaciones disponibles (solo líneas de jugadores de campo: defensa → delantero)
-  final Map<String, List<int>> _formationOptions = {
-    '3-2-1': [3, 2, 1],
-    '2-3-1': [2, 3, 1],
-    '2-2-2': [2, 2, 2],
-  };
+  // Formaciones disponibles (solo líneas de jugadores de campo: defensa → delantero).
+  // El contenido real depende de la categoría del equipo (fútbol 7 vs fútbol 11).
+  late Map<String, List<int>> _formationOptions;
 
   // Incluye portero (1) + líneas de jugadores de campo
   late List<int> _formationLines;
@@ -74,12 +71,14 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   void initState() {
     super.initState();
     _match = widget.match;
+    _initializeFormationOptions();
     final saved = _savedLineups[_match.id];
     if (saved != null && _formationOptions.containsKey(saved.formationKey)) {
       _selectedFormation = saved.formationKey;
       _pendingPositionPlayerIds = saved.playerIds;
     } else {
-      _selectedFormation = '3-2-1';
+      // Primera formación disponible según categoría
+      _selectedFormation = _formationOptions.keys.first;
       _pendingPositionPlayerIds = null;
     }
 
@@ -125,6 +124,43 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         _elapsedSeconds++;
       });
     });
+  }
+
+  bool _isSmallSideCategory() {
+    final cat = widget.team.category.toLowerCase();
+
+    if (cat.contains('prebenjamin') || cat.contains('prebenjamín')) {
+      return true;
+    }
+    if (cat.contains('benjamin') || cat.contains('benjamín')) {
+      return true;
+    }
+    if (cat.contains('alevin') || cat.contains('alevín')) {
+      return true;
+    }
+
+    return false;
+  }
+
+  void _initializeFormationOptions() {
+    if (_isSmallSideCategory()) {
+      // Categorías pequeñas (fútbol 7): mantenemos las formaciones actuales.
+      _formationOptions = {
+        '3-2-1': [3, 2, 1],
+        '2-3-1': [2, 3, 1],
+        '2-2-2': [2, 2, 2],
+      };
+    } else {
+      // Infantil, cadete, juvenil, senior (fútbol 11) con nuevas formaciones.
+      _formationOptions = {
+        '4-4-2': [4, 4, 2],
+        '4-3-3': [4, 3, 3],
+        '4-2-3-1': [4, 2, 3, 1],
+        '3-5-2': [3, 5, 2],
+        '4-1-4-1': [4, 1, 4, 1],
+        '3-4-3': [3, 4, 3],
+      };
+    }
   }
 
   void _initializeTimer() {
