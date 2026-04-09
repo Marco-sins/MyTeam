@@ -68,10 +68,12 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                     switch (match.status) {
                       case MatchStatus.notStarted:
                         return 'Pendiente';
-                      case MatchStatus.inProgress:
-                        return 'En juego';
-                      case MatchStatus.paused:
-                        return 'Pausado';
+                      case MatchStatus.firstHalf:
+                        return '1ª parte';
+                      case MatchStatus.halfTime:
+                        return 'Descanso';
+                      case MatchStatus.secondHalf:
+                        return '2ª parte';
                       case MatchStatus.finished:
                         return 'Finalizado';
                     }

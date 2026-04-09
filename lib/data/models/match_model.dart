@@ -30,15 +30,34 @@ class MatchModel extends Match {
     }
 
     final parsedDate = DateTime.parse(json['date']);
+
+    // Si existe columna "hour" (timestamp), derivamos la hora desde ahí;
+    // si no, usamos el campo "date" como respaldo.
     final rawHour = json['hour'];
-    final String parsedHour;
+    DateTime? hourDateTime;
     if (rawHour is String && rawHour.isNotEmpty) {
-      parsedHour = rawHour;
-    } else {
-      final h = parsedDate.hour.toString().padLeft(2, '0');
-      final m = parsedDate.minute.toString().padLeft(2, '0');
-      parsedHour = '$h:$m';
+      try {
+        hourDateTime = DateTime.parse(rawHour);
+      } catch (_) {
+        hourDateTime = null;
+      }
     }
+
+    final timeSource = hourDateTime ?? parsedDate;
+    // Combinamos la fecha (día) con la hora proveniente de "hour" para que
+    // el DateTime completo tenga la hora correcta.
+    final combinedDateTime = DateTime(
+      parsedDate.year,
+      parsedDate.month,
+      parsedDate.day,
+      timeSource.hour,
+      timeSource.minute,
+      timeSource.second,
+    );
+
+    final h = combinedDateTime.hour.toString().padLeft(2, '0');
+    final m = combinedDateTime.minute.toString().padLeft(2, '0');
+    final String parsedHour = '$h:$m';
 
     return MatchModel(
       id: json['id'],
@@ -46,7 +65,7 @@ class MatchModel extends Match {
       opponent: json['opponent'],
       goalsScored: json['goals_scored'],
       goalsConceded: json['goals_conceded'],
-      date: parsedDate,
+      date: combinedDateTime,
       hour: parsedHour,
       status: MatchStatus.values.firstWhere(
         (e) => e.toString() == 'MatchStatus.${json['status']}',
@@ -62,7 +81,9 @@ class MatchModel extends Match {
       'goals_scored': goalsScored,
       'goals_conceded': goalsConceded,
       'date': date.toIso8601String(),
-      'hour': hour,
+      // Guardamos la hora como timestamp completo para que encaje
+      // con una columna "timestamp with time zone" en la BD.
+      'hour': date.toIso8601String(),
       'status': status
           .toString()
           .split('.')

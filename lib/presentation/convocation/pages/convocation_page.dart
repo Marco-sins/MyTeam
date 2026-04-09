@@ -6,11 +6,13 @@ import 'package:tfg1/domain/entities/enum/match_status.dart';
 import 'package:tfg1/domain/entities/match.dart';
 import 'package:tfg1/domain/entities/match_lineup.dart';
 import 'package:tfg1/domain/usecase/match/create_match_use_case.dart';
+import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
 import 'package:tfg1/presentation/common/loading_cubit.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_state.dart';
+import 'package:tfg1/presentation/team/pages/team_detail_page.dart';
 import 'package:tfg1/presentation/team/widgets/team_bottom_bar.dart';
 
 class ConvocationPage extends StatefulWidget {
@@ -160,7 +162,9 @@ class _ConvocationPageState extends State<ConvocationPage> {
             id: 0,
             playerId: player.id,
             matchId: tempMatchId,
-            isStarting: true,
+            // En la convocatoria solo marcamos quién está citado;
+            // los titulares reales se marcarán al empezar el partido.
+            isStarting: false,
           ),
         )
         .toList();
@@ -207,79 +211,103 @@ class _ConvocationPageState extends State<ConvocationPage> {
     final String formattedTime = _formattedTime(_selectedTime);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Convocatoria')),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: TextFormField(
-              controller: _rivalController,
-              decoration: const InputDecoration(
-                labelText: 'Rival',
-                border: OutlineInputBorder(),
+      appBar: AppBar(
+        title: const Text('Convocatoria'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            final getPlayersByTeamUseCase = context
+                .read<GetPlayersByTeamUseCase>();
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => BlocProvider(
+                  create: (_) =>
+                      TeamDetailCubit(getPlayersByTeamUseCase)
+                        ..loadTeam(widget.team.id),
+                  child: TeamDetailPage(team: widget.team),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Text(
-                  formattedDate,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+              (route) => route.isFirst,
+            );
+          },
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: TextFormField(
+                  controller: _rivalController,
+                  decoration: const InputDecoration(
+                    labelText: 'Rival',
+                    border: OutlineInputBorder(),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: _pickDate,
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    Text(
+                      formattedDate,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: _pickDate,
+                    ),
+                    const Spacer(),
+                    Text(
+                      formattedTime,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.access_time),
+                      onPressed: _pickTime,
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Text(
-                  formattedTime,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.access_time),
-                  onPressed: _pickTime,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          Expanded(
-            child: BlocBuilder<TeamDetailCubit, TeamDetailState>(
-              builder: (context, state) {
-                if (state is TeamDetailLoading || state is TeamDetailInitial) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state is TeamDetailError) {
-                  return Center(child: Text(state.message));
-                }
-                if (state is TeamDetailLoaded) {
-                  final players = List<Player>.from(state.players)
-                    ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
-
-                  if (players.isEmpty) {
-                    return const Center(
-                      child: Text('No hay jugadores en la plantilla'),
-                    );
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              BlocBuilder<TeamDetailCubit, TeamDetailState>(
+                builder: (context, state) {
+                  if (state is TeamDetailLoading ||
+                      state is TeamDetailInitial) {
+                    return const Center(child: CircularProgressIndicator());
                   }
+                  if (state is TeamDetailError) {
+                    return Center(child: Text(state.message));
+                  }
+                  if (state is TeamDetailLoaded) {
+                    final players = List<Player>.from(
+                      state.players,
+                    )..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
 
-                  final calledCount = _calledUpCount(players);
+                    if (players.isEmpty) {
+                      return const Center(
+                        child: Text('No hay jugadores en la plantilla'),
+                      );
+                    }
 
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: ListView.separated(
+                    final calledCount = _calledUpCount(players);
+
+                    return Column(
+                      children: [
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
                           itemCount: players.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (context, index) {
@@ -337,94 +365,98 @@ class _ConvocationPageState extends State<ConvocationPage> {
                             );
                           },
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 12,
-                        ),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Jugadores convocados: $calledCount',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 12,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Jugadores convocados: $calledCount',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-            child: TextFormField(
-              controller: _notesController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Observaciones',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Cancelar'),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12,
+                ),
+                child: TextFormField(
+                  controller: _notesController,
+                  minLines: 2,
+                  maxLines: null,
+                  decoration: const InputDecoration(
+                    labelText: 'Observaciones',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: BlocBuilder<LoadingCubit, bool>(
-                    builder: (context, isLoading) {
-                      return ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
                         ),
-                        onPressed: isLoading ? null : _onSavePressed,
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: BlocBuilder<LoadingCubit, bool>(
+                        builder: (context, isLoading) {
+                          return ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                            onPressed: isLoading ? null : _onSavePressed,
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Guardar',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                              )
-                            : const Text(
-                                'Guardar',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       bottomNavigationBar: TeamBottomBar(team: widget.team),
     );

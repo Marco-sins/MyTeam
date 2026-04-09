@@ -1,6 +1,7 @@
 enum MatchStatus {
   notStarted,
-  inProgress,
-  paused,
+  firstHalf,
+  halfTime,
+  secondHalf,
   finished,
 }

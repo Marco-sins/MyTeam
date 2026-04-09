@@ -13,17 +13,23 @@ class MatchEventModel extends MatchEvent {
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
+    // En la BD solo hay un campo de tipo ("type"), lo normalizamos
+    // para aceptar tanto "scoreGoal" como "MatchEventEnum.scoreGoal".
+    final rawType = json['type'];
+    final String? typeString = rawType?.toString().split('.').last;
+    final MatchEventEnum parsedType = typeString != null
+        ? MatchEventEnum.values.firstWhere(
+            (e) => e.toString().split('.').last == typeString,
+            orElse: () => MatchEventEnum.scoreGoal,
+          )
+        : MatchEventEnum.scoreGoal;
+
     return MatchEventModel(
       id: json['id'],
       matchId: json['match_id'],
-      playerId1: json['player_id_1'],
-      playerId2: json['player_id_2'],
-      type: json['event_type'] != null
-          ? MatchEventEnum.values.firstWhere(
-              (e) => e.toString() == 'MatchEventEnum.${json['event_type']}',
-            )
-          : MatchEventEnum
-                .scoreGoal, // Valor por defecto si no se encuentra el tipo
+      playerId1: json['player_id1'],
+      playerId2: json['player_id2'],
+      type: parsedType,
       minute: json['minute'],
       note: json['note'],
     );
@@ -32,10 +38,11 @@ class MatchEventModel extends MatchEvent {
   Map<String, dynamic> toJson() {
     return {
       'match_id': matchId,
-      'player_id_1': playerId1,
-      'player_id_2': playerId2,
+      'player_id1': playerId1,
+      'player_id2': playerId2,
       'minute': minute,
-      'event_type': type,
+      // Guardamos solo el nombre del enum ("scoreGoal", "concedeGoal", etc.)
+      'type': type.toString().split('.').last,
       'note': note,
     };
   }

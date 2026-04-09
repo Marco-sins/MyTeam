@@ -10,4 +10,6 @@ enum MatchEventEnum {
   keyPass,
   goodSave,
   substitution,
+  formation,
+  statusChange,
 }

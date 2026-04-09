@@ -29,7 +29,7 @@ class StartMatchUseCase {
       goalsConceded: match.goalsConceded,
       date: startTime,
       hour: startHour,
-      status: MatchStatus.inProgress,
+      status: MatchStatus.firstHalf,
       lineups: match.lineups,
     );
     final response = await _matchRepository.updateMatch(updatedMatch);

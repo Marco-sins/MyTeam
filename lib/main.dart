@@ -38,6 +38,8 @@ import 'package:tfg1/domain/usecase/match/get_matches_by_team_use_case.dart';
 import 'package:tfg1/domain/usecase/match/delete_match_use_case.dart';
 import 'package:tfg1/domain/usecase/match/start_match_use_case.dart';
 import 'package:tfg1/domain/usecase/match/finish_match_use_case.dart';
+import 'package:tfg1/domain/usecase/match_event/save_match_event_use_case.dart';
+import 'package:tfg1/domain/usecase/match_event/delete_match_event_use_case.dart';
 import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
 import 'package:tfg1/presentation/create_team/bloc/create_team_cubit.dart';
 import 'package:tfg1/presentation/home/pages/home_page.dart';
@@ -69,10 +71,7 @@ void main() async {
   }
 
   // 2. Inicialización de Supabase
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
-  );
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
   runApp(const MyApp());
 }
@@ -169,6 +168,11 @@ class MyApp extends StatelessWidget {
       playerRepository,
     );
 
+    final saveMatchEventUseCase = SaveMatchEventUseCase(matchEventRepository);
+    final deleteMatchEventUseCase = DeleteMatchEventUseCase(
+      matchEventRepository,
+    );
+
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: addNewPlayerUseCase),
@@ -189,6 +193,8 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: deleteMatchUseCase),
         RepositoryProvider.value(value: startMatchUseCase),
         RepositoryProvider.value(value: finishMatchUseCase),
+        RepositoryProvider.value(value: saveMatchEventUseCase),
+        RepositoryProvider.value(value: deleteMatchEventUseCase),
       ],
       child: MultiBlocProvider(
         providers: [

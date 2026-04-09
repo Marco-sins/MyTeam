@@ -21,7 +21,9 @@ class MatchRemoteDatasource {
             'goals_scored': matchData.goalsScored,
             'goals_conceded': matchData.goalsConceded,
             'date': matchData.date.toIso8601String(),
-            'hour': matchData.hour,
+            // Para evitar errores de formato, almacenamos "hour" también
+            // como timestamp completo (mismo valor que date).
+            'hour': matchData.date.toIso8601String(),
             'status': matchData.status.toString().split('.').last,
           })
           .select()

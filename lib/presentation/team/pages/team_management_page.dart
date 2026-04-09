@@ -7,11 +7,13 @@ import 'package:tfg1/domain/usecase/team/update_team_use_case.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
 import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
+import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
 import 'package:tfg1/presentation/match/pages/match_delete_page.dart';
 import 'package:tfg1/presentation/attendance/pages/attendance_delete_page.dart';
 import 'package:tfg1/presentation/team/pages/team_roster_page.dart';
 import 'package:tfg1/presentation/team/widgets/team_management_header_row.dart';
+import 'package:tfg1/presentation/team/pages/team_detail_page.dart';
 import 'package:tfg1/presentation/team/widgets/team_bottom_bar.dart';
 
 class TeamManagementPage extends StatefulWidget {
@@ -60,7 +62,28 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Gestión de equipo'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Gestión de equipo'),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            final getPlayersByTeamUseCase = context
+                .read<GetPlayersByTeamUseCase>();
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => BlocProvider(
+                  create: (_) =>
+                      TeamDetailCubit(getPlayersByTeamUseCase)
+                        ..loadTeam(widget.team.id),
+                  child: TeamDetailPage(team: widget.team),
+                ),
+              ),
+              (route) => route.isFirst,
+            );
+          },
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

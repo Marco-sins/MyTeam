@@ -88,10 +88,6 @@ class TeamBottomBar extends StatelessWidget {
                 );
               },
             ),
-            const _BottomBarButton(
-              label: 'Ver partido',
-              icon: Icons.visibility,
-            ),
           ],
         ),
       ),
