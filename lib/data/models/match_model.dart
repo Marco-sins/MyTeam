@@ -13,6 +13,7 @@ class MatchModel extends Match {
     required super.hour,
     required super.status,
     required super.lineups,
+    required super.isHome,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
@@ -59,6 +60,8 @@ class MatchModel extends Match {
     final m = combinedDateTime.minute.toString().padLeft(2, '0');
     final String parsedHour = '$h:$m';
 
+    final bool parsedIsHome = (json['is_home'] as bool?) ?? true;
+
     return MatchModel(
       id: json['id'],
       teamId: json['team_id'],
@@ -71,6 +74,7 @@ class MatchModel extends Match {
         (e) => e.toString() == 'MatchStatus.${json['status']}',
       ),
       lineups: parsedLineups,
+      isHome: parsedIsHome,
     );
   }
 
@@ -88,6 +92,7 @@ class MatchModel extends Match {
           .toString()
           .split('.')
           .last, // Store only the enum value as a string
+      'is_home': isHome,
     };
   }
 
@@ -101,6 +106,7 @@ class MatchModel extends Match {
     String? hour,
     MatchStatus? status,
     List<MatchLineupModel>? lineups,
+    bool? isHome,
   }) {
     return MatchModel(
       id: id ?? this.id,
@@ -112,6 +118,7 @@ class MatchModel extends Match {
       hour: hour ?? this.hour,
       status: status ?? this.status,
       lineups: lineups ?? this.lineups,
+      isHome: isHome ?? this.isHome,
     );
   }
 }

@@ -424,6 +424,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           hour: _match.hour,
           status: _match.status,
           lineups: _match.lineups,
+          isHome: _match.isHome,
         );
       });
     } catch (_) {
@@ -1261,6 +1262,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                   '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
               status: MatchStatus.firstHalf,
               lineups: _match.lineups,
+              isHome: _match.isHome,
             );
             _phase = _MatchPhase.firstHalf;
             _elapsedSeconds = 0;
@@ -1292,6 +1294,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           hour: _match.hour,
           status: MatchStatus.halfTime,
           lineups: _match.lineups,
+          isHome: _match.isHome,
         );
       });
       // Actualizar estado en BD a "halfTime"
@@ -1346,6 +1349,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
               '${secondHalfStart.hour.toString().padLeft(2, '0')}:${secondHalfStart.minute.toString().padLeft(2, '0')}',
           status: MatchStatus.secondHalf,
           lineups: _match.lineups,
+          isHome: _match.isHome,
         );
       });
       _startTimer();
@@ -1469,6 +1473,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             hour: _match.hour,
             status: MatchStatus.finished,
             lineups: _match.lineups,
+            isHome: _match.isHome,
           );
 
           Navigator.of(context).pushReplacement(

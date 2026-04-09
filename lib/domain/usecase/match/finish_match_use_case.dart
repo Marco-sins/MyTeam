@@ -65,6 +65,7 @@ class FinishMatchUseCase {
       status: MatchStatus
           .finished, // Set status to finished to indicate the match is finished
       lineups: match.lineups,
+      isHome: match.isHome,
     );
     Either<Failure, void> result = await _matchRepository.updateMatch(
       updatedMatch,

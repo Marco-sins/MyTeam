@@ -30,6 +30,7 @@ class CreateMatchUseCase {
       status: MatchStatus
           .notStarted, // Set status to notStarted to indicate the match is not yet started
       lineups: match.lineups, // Initialize lineups with the provided lineups
+      isHome: match.isHome,
     );
     final result = await _matchRepository.createMatch(newMatch);
     if (result.isLeft()) {

@@ -17,6 +17,7 @@ class MatchMapper {
       lineups: match.lineups
           .map((lineup) => MatchLineupMapper.toModel(lineup))
           .toList(),
+      isHome: match.isHome,
     );
   }
 
@@ -31,6 +32,7 @@ class MatchMapper {
       hour: matchModel.hour,
       status: matchModel.status,
       lineups: matchModel.lineups,
+      isHome: matchModel.isHome,
     );
   }
 }

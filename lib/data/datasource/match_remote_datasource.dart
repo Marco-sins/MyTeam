@@ -25,6 +25,7 @@ class MatchRemoteDatasource {
             // como timestamp completo (mismo valor que date).
             'hour': matchData.date.toIso8601String(),
             'status': matchData.status.toString().split('.').last,
+            'is_home': matchData.isHome,
           })
           .select()
           .single();

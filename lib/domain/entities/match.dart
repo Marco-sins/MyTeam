@@ -11,6 +11,7 @@ class Match {
   final String hour;
   final MatchStatus status;
   final List<MatchLineup> lineups;
+  final bool isHome;
 
   const Match({
     required this.id,
@@ -22,5 +23,6 @@ class Match {
     required this.hour,
     required this.status,
     required this.lineups,
+    required this.isHome,
   });
 }

@@ -31,6 +31,7 @@ class StartMatchUseCase {
       hour: startHour,
       status: MatchStatus.firstHalf,
       lineups: match.lineups,
+      isHome: match.isHome,
     );
     final response = await _matchRepository.updateMatch(updatedMatch);
     if (response.isLeft()) {
