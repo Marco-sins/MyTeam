@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:tfg1/domain/entities/auth_user.dart';
+import 'package:football_manager/domain/entities/auth_user.dart';
 
 abstract class AuthState extends Equatable {
   const AuthState();

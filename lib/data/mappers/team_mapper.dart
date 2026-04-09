@@ -1,5 +1,5 @@
-import 'package:tfg1/data/models/team_model.dart';
-import 'package:tfg1/domain/entities/team.dart';
+import 'package:football_manager/data/models/team_model.dart';
+import 'package:football_manager/domain/entities/team.dart';
 
 class TeamMapper {
   static TeamModel toModel(Team team) {

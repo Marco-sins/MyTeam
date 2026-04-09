@@ -1,20 +1,20 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/team/delete_team_use_case.dart';
-import 'package:tfg1/domain/usecase/team/update_team_use_case.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
-import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
-import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/match/pages/match_delete_page.dart';
-import 'package:tfg1/presentation/attendance/pages/attendance_delete_page.dart';
-import 'package:tfg1/presentation/team/pages/team_roster_page.dart';
-import 'package:tfg1/presentation/team/widgets/team_management_header_row.dart';
-import 'package:tfg1/presentation/team/pages/team_detail_page.dart';
-import 'package:tfg1/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/team/delete_team_use_case.dart';
+import 'package:football_manager/domain/usecase/team/update_team_use_case.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
+import 'package:football_manager/presentation/home/bloc/home_cubit.dart';
+import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/match/pages/match_delete_page.dart';
+import 'package:football_manager/presentation/attendance/pages/attendance_delete_page.dart';
+import 'package:football_manager/presentation/team/pages/team_roster_page.dart';
+import 'package:football_manager/presentation/team/widgets/team_management_header_row.dart';
+import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 
 class TeamManagementPage extends StatefulWidget {
   final Team team;

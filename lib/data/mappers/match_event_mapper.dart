@@ -1,5 +1,5 @@
-import 'package:tfg1/data/models/match_event_model.dart';
-import 'package:tfg1/domain/entities/match_event.dart';
+import 'package:football_manager/data/models/match_event_model.dart';
+import 'package:football_manager/domain/entities/match_event.dart';
 
 class MatchEventMapper {
   static MatchEventModel toModel(MatchEvent matchEvent) {

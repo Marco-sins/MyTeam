@@ -1,6 +1,6 @@
-import 'package:tfg1/data/models/match_lineup_model.dart';
-import 'package:tfg1/domain/entities/enum/match_status.dart';
-import 'package:tfg1/domain/entities/match.dart';
+import 'package:football_manager/data/models/match_lineup_model.dart';
+import 'package:football_manager/domain/entities/enum/match_status.dart';
+import 'package:football_manager/domain/entities/match.dart';
 
 class MatchModel extends Match {
   const MatchModel({

@@ -1,9 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/core/errors/exception/server_exception.dart';
-import 'package:tfg1/core/errors/exception/unknow_exception.dart';
-import 'package:tfg1/data/models/player_model.dart';
-import 'package:tfg1/data/models/player_stats_model.dart';
-import 'package:tfg1/domain/entities/enum/player_position.dart';
+import 'package:football_manager/core/errors/exception/server_exception.dart';
+import 'package:football_manager/core/errors/exception/unknow_exception.dart';
+import 'package:football_manager/data/models/player_model.dart';
+import 'package:football_manager/data/models/player_stats_model.dart';
+import 'package:football_manager/domain/entities/enum/player_position.dart';
 
 class PlayerRemoteDatasource {
   final SupabaseClient _supabase;

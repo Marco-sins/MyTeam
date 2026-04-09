@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'team_detail_state.dart';
 
 class TeamDetailCubit extends Cubit<TeamDetailState> {

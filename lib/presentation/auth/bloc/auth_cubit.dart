@@ -1,9 +1,9 @@
 import 'package:bloc/bloc.dart';
-import 'package:tfg1/domain/usecase/auth/get_user_session_use_case.dart';
-import 'package:tfg1/domain/usecase/auth/sign_in_use_case.dart';
-import 'package:tfg1/domain/usecase/auth/sign_up_use_case.dart';
-import 'package:tfg1/domain/usecase/auth/sign_out_use_case.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
+import 'package:football_manager/domain/usecase/auth/get_user_session_use_case.dart';
+import 'package:football_manager/domain/usecase/auth/sign_in_use_case.dart';
+import 'package:football_manager/domain/usecase/auth/sign_up_use_case.dart';
+import 'package:football_manager/domain/usecase/auth/sign_out_use_case.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final SignInUseCase signInUseCase;

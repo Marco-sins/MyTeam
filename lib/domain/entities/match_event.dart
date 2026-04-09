@@ -1,4 +1,4 @@
-import 'package:tfg1/domain/entities/enum/match_event_enum.dart';
+import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 
 class MatchEvent {
   final int id;

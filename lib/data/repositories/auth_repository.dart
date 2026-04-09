@@ -1,13 +1,13 @@
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/exception/auth_server_exception.dart';
-import 'package:tfg1/core/errors/exception/unknow_exception.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/core/errors/failure/server_failure.dart';
-import 'package:tfg1/core/errors/failure/unknow_failure.dart';
-import 'package:tfg1/data/datasource/auth_remote_datasource.dart';
-import 'package:tfg1/data/mappers/auth_user_mapper.dart';
-import 'package:tfg1/domain/entities/auth_user.dart';
-import 'package:tfg1/domain/i_repositories/i_auth_repository.dart';
+import 'package:football_manager/core/errors/exception/auth_server_exception.dart';
+import 'package:football_manager/core/errors/exception/unknow_exception.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/core/errors/failure/server_failure.dart';
+import 'package:football_manager/core/errors/failure/unknow_failure.dart';
+import 'package:football_manager/data/datasource/auth_remote_datasource.dart';
+import 'package:football_manager/data/mappers/auth_user_mapper.dart';
+import 'package:football_manager/domain/entities/auth_user.dart';
+import 'package:football_manager/domain/i_repositories/i_auth_repository.dart';
 
 class AuthRepository implements IAuthRepository {
   final AuthRemoteDatasource _datasource;

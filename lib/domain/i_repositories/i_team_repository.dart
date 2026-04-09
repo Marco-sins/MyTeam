@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/domain/entities/team.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/entities/team.dart';
 
 abstract class ITeamRepository {
   Future<Either<Failure, List<Team>>> getTeams();

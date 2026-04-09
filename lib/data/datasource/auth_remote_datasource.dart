@@ -1,9 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/core/errors/exception/auth_server_exception.dart';
-import 'package:tfg1/core/errors/exception/server_exception.dart';
-import 'package:tfg1/core/errors/exception/unknow_exception.dart';
-import 'package:tfg1/data/models/auth_user_model.dart';
-import 'package:tfg1/domain/entities/enum/user_role.dart';
+import 'package:football_manager/core/errors/exception/auth_server_exception.dart';
+import 'package:football_manager/core/errors/exception/server_exception.dart';
+import 'package:football_manager/core/errors/exception/unknow_exception.dart';
+import 'package:football_manager/data/models/auth_user_model.dart';
+import 'package:football_manager/domain/entities/enum/user_role.dart';
 
 class AuthRemoteDatasource {
   final SupabaseClient _supabase;

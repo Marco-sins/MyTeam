@@ -1,14 +1,14 @@
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/exception/server_exception.dart';
-import 'package:tfg1/core/errors/exception/unknow_exception.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/core/errors/failure/server_failure.dart';
-import 'package:tfg1/data/datasource/team_remote_datasource.dart';
-import 'package:tfg1/data/mappers/team_mapper.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/i_repositories/i_team_repository.dart';
+import 'package:football_manager/core/errors/exception/server_exception.dart';
+import 'package:football_manager/core/errors/exception/unknow_exception.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/core/errors/failure/server_failure.dart';
+import 'package:football_manager/data/datasource/team_remote_datasource.dart';
+import 'package:football_manager/data/mappers/team_mapper.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/i_repositories/i_team_repository.dart';
 
 class TeamRepository implements ITeamRepository {
   final TeamRemoteDatasource _datasource;

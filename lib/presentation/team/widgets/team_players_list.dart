@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/player/delete_player_use_case.dart';
-import 'package:tfg1/domain/usecase/player/update_player_use_case.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
-import 'package:tfg1/presentation/player/pages/edit_player_page.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_state.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/player/delete_player_use_case.dart';
+import 'package:football_manager/domain/usecase/player/update_player_use_case.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
+import 'package:football_manager/presentation/player/pages/edit_player_page.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
 
 class TeamPlayersList extends StatelessWidget {
   final Team team;

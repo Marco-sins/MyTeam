@@ -1,9 +1,9 @@
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/exception/server_exception.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/domain/entities/player.dart';
-import 'package:tfg1/domain/entities/enum/player_position.dart';
-import 'package:tfg1/domain/i_repositories/i_player_repository.dart';
+import 'package:football_manager/core/errors/exception/server_exception.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/entities/enum/player_position.dart';
+import 'package:football_manager/domain/i_repositories/i_player_repository.dart';
 
 class GetPlayersByPositionUseCase {
   final IPlayerRepository _playerRepository;

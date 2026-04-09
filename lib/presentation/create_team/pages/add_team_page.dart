@@ -1,8 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/presentation/home/bloc/home_cubit.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
+import 'package:football_manager/presentation/home/bloc/home_cubit.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
 import '../../create_team/bloc/create_team_cubit.dart';
 import '../../create_team/bloc/create_team_state.dart';
 

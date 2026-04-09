@@ -1,4 +1,4 @@
-import 'package:tfg1/domain/entities/team.dart';
+import 'package:football_manager/domain/entities/team.dart';
 
 class TeamModel extends Team {
   const TeamModel({

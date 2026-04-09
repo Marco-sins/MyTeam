@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/auth_user.dart';
-import 'package:tfg1/domain/entities/enum/player_position.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/player/add_new_player_use_case.dart';
-import 'package:tfg1/presentation/player/bloc/create_player_cubit.dart';
-import 'package:tfg1/presentation/player/bloc/create_player_state.dart';
+import 'package:football_manager/domain/entities/auth_user.dart';
+import 'package:football_manager/domain/entities/enum/player_position.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/player/add_new_player_use_case.dart';
+import 'package:football_manager/presentation/player/bloc/create_player_cubit.dart';
+import 'package:football_manager/presentation/player/bloc/create_player_state.dart';
 
 class AddPlayerPage extends StatefulWidget {
   final Team team;

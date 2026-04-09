@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/usecase/team/get_teams_use_case.dart';
+import 'package:football_manager/domain/usecase/team/get_teams_use_case.dart';
 import 'home_state.dart';
 
 class HomeCubit extends Cubit<HomeState> {

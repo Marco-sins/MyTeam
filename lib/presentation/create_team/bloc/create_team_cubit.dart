@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/team/create_team_use_case.dart';
-import 'package:tfg1/domain/usecase/team/upload_team_logo_use_case.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/team/create_team_use_case.dart';
+import 'package:football_manager/domain/usecase/team/upload_team_logo_use_case.dart';
 import 'create_team_state.dart';
 
 class CreateTeamCubit extends Cubit<CreateTeamState> {

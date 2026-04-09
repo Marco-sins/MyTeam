@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:tfg1/domain/entities/player.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/presentation/attendance/widgets/attendance_summary_table.dart';
+import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/presentation/attendance/widgets/attendance_summary_table.dart';
 
 class TeamAttendanceSection extends StatelessWidget {
   final Team team;

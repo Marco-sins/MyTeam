@@ -1,4 +1,4 @@
-import 'package:tfg1/domain/entities/attendance.dart';
+import 'package:football_manager/domain/entities/attendance.dart';
 
 class AttendanceModel extends Attendance {
   const AttendanceModel({

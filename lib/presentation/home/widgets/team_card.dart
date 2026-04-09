@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
 
 class TeamCard extends StatelessWidget {
   final Team team;

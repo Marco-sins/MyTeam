@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/presentation/auth/pages/forgot_password_page.dart';
+import 'package:football_manager/presentation/auth/pages/forgot_password_page.dart';
 import '../bloc/auth_cubit.dart';
 
 class LoginForm extends StatefulWidget {

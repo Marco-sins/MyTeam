@@ -3,22 +3,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/domain/entities/enum/match_status.dart';
-import 'package:tfg1/domain/entities/enum/match_event_enum.dart';
-import 'package:tfg1/domain/entities/auth_user.dart' as tfg_auth;
-import 'package:tfg1/domain/entities/match.dart';
-import 'package:tfg1/domain/entities/match_event.dart';
-import 'package:tfg1/domain/entities/player.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/match/finish_match_use_case.dart';
-import 'package:tfg1/domain/usecase/match/start_match_use_case.dart';
-import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:tfg1/domain/usecase/match_event/save_match_event_use_case.dart';
-import 'package:tfg1/domain/usecase/match_event/delete_match_event_use_case.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
-import 'package:tfg1/presentation/common/loading_cubit.dart';
-import 'package:tfg1/presentation/match/pages/match_stats_page.dart';
+import 'package:football_manager/domain/entities/enum/match_status.dart';
+import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
+import 'package:football_manager/domain/entities/auth_user.dart' as tfg_auth;
+import 'package:football_manager/domain/entities/match.dart';
+import 'package:football_manager/domain/entities/match_event.dart';
+import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
+import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
+import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
 
 enum _MatchPhase { notStarted, firstHalf, halfTime, secondHalf }
 
@@ -1572,11 +1572,22 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // Campo con la formación. Damos una altura fija razonable
-                // dentro del scroll para que quepa en móviles pequeños.
-                SizedBox(
-                  height: 260,
-                  child: Center(child: _buildFieldWithFormation()),
+                // Campo con la formación. Usamos un AspectRatio para que
+                // imagen y posiciones escalen juntas, pero limitamos el
+                // tamaño máximo para que no se haga demasiado grande.
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 420,
+                      maxHeight: 320,
+                    ),
+                    child: AspectRatio(
+                      // Relación alto/ancho aproximada del png de campo.
+                      // Si cambias la imagen, puedes ajustar este valor.
+                      aspectRatio: 4 / 3,
+                      child: _buildFieldWithFormation(),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 // Tabla de convocatoria embebida en el scroll

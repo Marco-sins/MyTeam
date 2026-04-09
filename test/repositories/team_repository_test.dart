@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:tfg1/data/datasource/team_remote_datasource.dart';
-import 'package:tfg1/data/repositories/team_repository.dart';
-import 'package:tfg1/domain/entities/team.dart';
+import 'package:football_manager/data/datasource/team_remote_datasource.dart';
+import 'package:football_manager/data/repositories/team_repository.dart';
+import 'package:football_manager/domain/entities/team.dart';
 import 'package:mock_supabase_http_client/mock_supabase_http_client.dart';
 
 void main() async {

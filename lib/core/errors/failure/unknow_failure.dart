@@ -1,4 +1,4 @@
-import 'package:tfg1/core/errors/failure/failure.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
 
 class UnknowFailure extends Failure {
   UnknowFailure(super.message);

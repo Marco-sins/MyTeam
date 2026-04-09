@@ -1,4 +1,4 @@
-import 'package:tfg1/domain/entities/enum/user_role.dart';
+import 'package:football_manager/domain/entities/enum/user_role.dart';
 
 class AuthUser {
   final String id;

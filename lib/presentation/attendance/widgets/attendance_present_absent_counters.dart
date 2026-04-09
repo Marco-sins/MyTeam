@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/player.dart';
-import 'package:tfg1/presentation/attendance/attendance_status.dart';
-import 'package:tfg1/presentation/attendance/bloc/attendance_cubit.dart';
-import 'package:tfg1/presentation/attendance/bloc/attendance_state.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_state.dart';
+import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/attendance/attendance_status.dart';
+import 'package:football_manager/presentation/attendance/bloc/attendance_cubit.dart';
+import 'package:football_manager/presentation/attendance/bloc/attendance_state.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
 
 class AttendancePresentAbsentCounters extends StatelessWidget {
   const AttendancePresentAbsentCounters({super.key});

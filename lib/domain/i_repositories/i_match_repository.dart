@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/domain/entities/match.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/domain/entities/match_lineup.dart';
+import 'package:football_manager/domain/entities/match.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/entities/match_lineup.dart';
 
 abstract class IMatchRepository {
   Future<Either<Failure, List<Match>>> getMatches();

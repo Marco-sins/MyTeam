@@ -1,4 +1,4 @@
-import 'package:tfg1/domain/entities/match_lineup.dart';
+import 'package:football_manager/domain/entities/match_lineup.dart';
 
 class MatchLineupModel extends MatchLineup {
   const MatchLineupModel({

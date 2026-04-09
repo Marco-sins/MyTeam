@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/presentation/home/widgets/add_team.dart';
+import 'package:football_manager/presentation/home/widgets/add_team.dart';
 import '../../auth/bloc/auth_cubit.dart';
 import '../../auth/bloc/auth_state.dart';
 import '../../auth/pages/login_page.dart';

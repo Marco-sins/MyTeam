@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/attendance/create_attendance_use_case.dart';
-import 'package:tfg1/domain/usecase/attendance/get_attendance_by_date_use_case.dart';
-import 'package:tfg1/domain/usecase/attendance/update_attendance_use_case.dart';
-import 'package:tfg1/presentation/attendance/bloc/attendance_cubit.dart';
-import 'package:tfg1/presentation/attendance/pages/attendance_page.dart';
-import 'package:tfg1/presentation/common/loading_cubit.dart';
-import 'package:tfg1/presentation/convocation/pages/convocation_page.dart';
-import 'package:tfg1/presentation/match/pages/match_list_page.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/team/pages/team_management_page.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
+import 'package:football_manager/domain/usecase/attendance/get_attendance_by_date_use_case.dart';
+import 'package:football_manager/domain/usecase/attendance/update_attendance_use_case.dart';
+import 'package:football_manager/presentation/attendance/bloc/attendance_cubit.dart';
+import 'package:football_manager/presentation/attendance/pages/attendance_page.dart';
+import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/convocation/pages/convocation_page.dart';
+import 'package:football_manager/presentation/match/pages/match_list_page.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/pages/team_management_page.dart';
 
 class TeamBottomBar extends StatelessWidget {
   final Team team;

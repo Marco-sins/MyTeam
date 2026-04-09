@@ -1,5 +1,5 @@
-import 'package:tfg1/domain/entities/enum/match_event_enum.dart';
-import 'package:tfg1/domain/entities/match_event.dart';
+import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
+import 'package:football_manager/domain/entities/match_event.dart';
 
 class MatchEventModel extends MatchEvent {
   const MatchEventModel({

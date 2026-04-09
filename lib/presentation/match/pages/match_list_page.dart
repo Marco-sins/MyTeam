@@ -2,17 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/domain/entities/enum/match_status.dart';
-import 'package:tfg1/domain/entities/match.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/match/get_matches_by_team_use_case.dart';
-import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:tfg1/presentation/common/loading_cubit.dart';
-import 'package:tfg1/presentation/match/pages/match_stats_page.dart';
-import 'package:tfg1/presentation/match/pages/match_manager_page.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/team/pages/team_detail_page.dart';
-import 'package:tfg1/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/domain/entities/enum/match_status.dart';
+import 'package:football_manager/domain/entities/match.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
+import 'package:football_manager/presentation/match/pages/match_manager_page.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 
 class MatchListPage extends StatefulWidget {
   final Team team;

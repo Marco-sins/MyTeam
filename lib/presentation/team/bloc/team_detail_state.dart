@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:tfg1/domain/entities/player.dart';
+import 'package:football_manager/domain/entities/player.dart';
 
 abstract class TeamDetailState extends Equatable {
   const TeamDetailState();

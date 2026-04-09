@@ -1,5 +1,5 @@
-import 'package:tfg1/domain/entities/enum/match_status.dart';
-import 'package:tfg1/domain/entities/match_lineup.dart';
+import 'package:football_manager/domain/entities/enum/match_status.dart';
+import 'package:football_manager/domain/entities/match_lineup.dart';
 
 class Match {
   final int id;

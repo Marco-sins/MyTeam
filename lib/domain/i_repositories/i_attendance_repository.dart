@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/domain/entities/attendance.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/entities/attendance.dart';
 
 abstract class IAttendanceRepository {
   Future<Either<Failure, List<Attendance>>> getAttendances();

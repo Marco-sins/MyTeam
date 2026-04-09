@@ -1,6 +1,6 @@
-import 'package:tfg1/data/mappers/match_lineup_mapper.dart';
-import 'package:tfg1/data/models/match_model.dart';
-import 'package:tfg1/domain/entities/match.dart';
+import 'package:football_manager/data/mappers/match_lineup_mapper.dart';
+import 'package:football_manager/data/models/match_model.dart';
+import 'package:football_manager/domain/entities/match.dart';
 
 class MatchMapper {
   static MatchModel toModel(Match match) {

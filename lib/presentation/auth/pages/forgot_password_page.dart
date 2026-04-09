@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/presentation/auth/widgets/auth_background.dart';
-import 'package:tfg1/presentation/auth/widgets/auth_header.dart';
+import 'package:football_manager/presentation/auth/widgets/auth_background.dart';
+import 'package:football_manager/presentation/auth/widgets/auth_header.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});

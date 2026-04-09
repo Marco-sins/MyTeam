@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tfg1/presentation/home/widgets/team_card.dart';
+import 'package:football_manager/presentation/home/widgets/team_card.dart';
 
 class TeamList extends StatelessWidget {
   final List<dynamic> teams; // Idealmente usa tu Entity: List<Team>

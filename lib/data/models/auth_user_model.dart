@@ -1,5 +1,5 @@
-import 'package:tfg1/domain/entities/auth_user.dart';
-import 'package:tfg1/domain/entities/enum/user_role.dart';
+import 'package:football_manager/domain/entities/auth_user.dart';
+import 'package:football_manager/domain/entities/enum/user_role.dart';
 
 class AuthUserModel extends AuthUser {
   AuthUserModel({

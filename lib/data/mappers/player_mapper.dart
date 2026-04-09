@@ -1,7 +1,7 @@
-import 'package:tfg1/data/mappers/player_stats_mapper.dart';
-import 'package:tfg1/data/models/player_model.dart';
-import 'package:tfg1/data/models/player_stats_model.dart';
-import 'package:tfg1/domain/entities/player.dart';
+import 'package:football_manager/data/mappers/player_stats_mapper.dart';
+import 'package:football_manager/data/models/player_model.dart';
+import 'package:football_manager/data/models/player_stats_model.dart';
+import 'package:football_manager/domain/entities/player.dart';
 
 class PlayerMapper {
   static PlayerModel toModel(Player player) {

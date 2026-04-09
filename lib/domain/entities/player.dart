@@ -1,5 +1,5 @@
-import 'package:tfg1/domain/entities/enum/player_position.dart';
-import 'package:tfg1/domain/entities/player_stats.dart';
+import 'package:football_manager/domain/entities/enum/player_position.dart';
+import 'package:football_manager/domain/entities/player_stats.dart';
 
 class Player {
   final int id;

@@ -1,5 +1,5 @@
-import 'package:tfg1/data/models/auth_user_model.dart';
-import 'package:tfg1/domain/entities/auth_user.dart';
+import 'package:football_manager/data/models/auth_user_model.dart';
+import 'package:football_manager/domain/entities/auth_user.dart';
 
 class AuthUserMapper {
   static AuthUserModel toModel(AuthUser user) {

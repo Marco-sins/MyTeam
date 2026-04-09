@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:tfg1/data/datasource/attendance_remote_datasource.dart';
-import 'package:tfg1/data/repositories/attendance_repository.dart';
-import 'package:tfg1/domain/entities/attendance.dart';
-import 'package:tfg1/domain/entities/player.dart';
-import 'package:tfg1/domain/entities/team.dart';
+import 'package:football_manager/data/datasource/attendance_remote_datasource.dart';
+import 'package:football_manager/data/repositories/attendance_repository.dart';
+import 'package:football_manager/domain/entities/attendance.dart';
+import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/entities/team.dart';
 
 class AttendanceSummaryTable extends StatelessWidget {
   final Team team;

@@ -1,4 +1,4 @@
-import 'package:tfg1/domain/entities/player_stats.dart';
+import 'package:football_manager/domain/entities/player_stats.dart';
 
 class PlayerStatsModel extends PlayerStats {
   const PlayerStatsModel({

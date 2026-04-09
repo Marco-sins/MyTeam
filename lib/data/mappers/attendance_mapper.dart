@@ -1,5 +1,5 @@
-import 'package:tfg1/data/models/attendance_model.dart';
-import 'package:tfg1/domain/entities/attendance.dart';
+import 'package:football_manager/data/models/attendance_model.dart';
+import 'package:football_manager/domain/entities/attendance.dart';
 
 class AttendanceMapper {
   static AttendanceModel toModel(Attendance attendance) {

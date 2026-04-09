@@ -1,14 +1,14 @@
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/exception/server_exception.dart';
-import 'package:tfg1/core/errors/exception/unknow_exception.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/core/errors/failure/server_failure.dart';
-import 'package:tfg1/core/errors/failure/unknow_failure.dart';
-import 'package:tfg1/data/datasource/attendance_remote_datasource.dart';
-import 'package:tfg1/data/mappers/attendance_mapper.dart';
-import 'package:tfg1/data/models/attendance_model.dart';
-import 'package:tfg1/domain/entities/attendance.dart';
-import 'package:tfg1/domain/i_repositories/i_attendance_repository.dart';
+import 'package:football_manager/core/errors/exception/server_exception.dart';
+import 'package:football_manager/core/errors/exception/unknow_exception.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/core/errors/failure/server_failure.dart';
+import 'package:football_manager/core/errors/failure/unknow_failure.dart';
+import 'package:football_manager/data/datasource/attendance_remote_datasource.dart';
+import 'package:football_manager/data/mappers/attendance_mapper.dart';
+import 'package:football_manager/data/models/attendance_model.dart';
+import 'package:football_manager/domain/entities/attendance.dart';
+import 'package:football_manager/domain/i_repositories/i_attendance_repository.dart';
 
 class AttendanceRepository implements IAttendanceRepository {
   final AttendanceRemoteDatasource _remoteDatasource;

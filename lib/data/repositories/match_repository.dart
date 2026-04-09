@@ -1,15 +1,15 @@
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/exception/server_exception.dart';
-import 'package:tfg1/core/errors/exception/unknow_exception.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/core/errors/failure/server_failure.dart';
-import 'package:tfg1/core/errors/failure/unknow_failure.dart';
-import 'package:tfg1/data/datasource/match_remote_datasource.dart';
-import 'package:tfg1/data/mappers/match_lineup_mapper.dart';
-import 'package:tfg1/data/mappers/match_mapper.dart';
-import 'package:tfg1/domain/entities/match.dart';
-import 'package:tfg1/domain/entities/match_lineup.dart';
-import 'package:tfg1/domain/i_repositories/i_match_repository.dart';
+import 'package:football_manager/core/errors/exception/server_exception.dart';
+import 'package:football_manager/core/errors/exception/unknow_exception.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/core/errors/failure/server_failure.dart';
+import 'package:football_manager/core/errors/failure/unknow_failure.dart';
+import 'package:football_manager/data/datasource/match_remote_datasource.dart';
+import 'package:football_manager/data/mappers/match_lineup_mapper.dart';
+import 'package:football_manager/data/mappers/match_mapper.dart';
+import 'package:football_manager/domain/entities/match.dart';
+import 'package:football_manager/domain/entities/match_lineup.dart';
+import 'package:football_manager/domain/i_repositories/i_match_repository.dart';
 
 class MatchRepository implements IMatchRepository {
   final MatchRemoteDatasource _remoteDatasource;

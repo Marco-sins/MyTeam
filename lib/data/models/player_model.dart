@@ -1,6 +1,6 @@
-import 'package:tfg1/data/models/player_stats_model.dart';
-import 'package:tfg1/domain/entities/enum/player_position.dart';
-import 'package:tfg1/domain/entities/player.dart';
+import 'package:football_manager/data/models/player_stats_model.dart';
+import 'package:football_manager/domain/entities/enum/player_position.dart';
+import 'package:football_manager/domain/entities/player.dart';
 
 class PlayerModel extends Player {
   const PlayerModel({

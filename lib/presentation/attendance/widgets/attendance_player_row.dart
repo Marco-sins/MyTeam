@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:tfg1/domain/entities/player.dart';
-import 'package:tfg1/presentation/attendance/attendance_status.dart';
-import 'package:tfg1/presentation/attendance/widgets/attendance_status_option_chip.dart';
+import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/attendance/attendance_status.dart';
+import 'package:football_manager/presentation/attendance/widgets/attendance_status_option_chip.dart';
 
 class AttendancePlayerRow extends StatelessWidget {
   final Player player;

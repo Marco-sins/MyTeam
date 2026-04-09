@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:tfg1/domain/entities/team.dart';
-import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
-import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
-import 'package:tfg1/presentation/attendance/bloc/attendance_cubit.dart';
-import 'package:tfg1/presentation/attendance/widgets/attendance_date_bar.dart';
-import 'package:tfg1/presentation/attendance/widgets/attendance_header.dart';
-import 'package:tfg1/presentation/attendance/widgets/attendance_player_list.dart';
-import 'package:tfg1/presentation/attendance/widgets/attendance_table_header.dart';
-import 'package:tfg1/presentation/attendance/widgets/attendance_save_button.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:tfg1/presentation/team/bloc/team_detail_state.dart';
-import 'package:tfg1/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
+import 'package:football_manager/presentation/attendance/bloc/attendance_cubit.dart';
+import 'package:football_manager/presentation/attendance/widgets/attendance_date_bar.dart';
+import 'package:football_manager/presentation/attendance/widgets/attendance_header.dart';
+import 'package:football_manager/presentation/attendance/widgets/attendance_player_list.dart';
+import 'package:football_manager/presentation/attendance/widgets/attendance_table_header.dart';
+import 'package:football_manager/presentation/attendance/widgets/attendance_save_button.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
+import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
 
 class AttendancePage extends StatefulWidget {
   final Team team;

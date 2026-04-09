@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:tfg1/core/errors/failure/failure.dart';
-import 'package:tfg1/domain/entities/auth_user.dart';
+import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/entities/auth_user.dart';
 
 abstract class IAuthRepository {
   Future<Either<Failure, AuthUser>> signIn(String email, String password);
