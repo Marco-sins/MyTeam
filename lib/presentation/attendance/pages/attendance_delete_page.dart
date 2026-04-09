@@ -3,8 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tfg1/domain/entities/team.dart';
 import 'package:tfg1/domain/usecase/attendance/delete_attendance_day_use_case.dart';
 import 'package:tfg1/domain/usecase/attendance/get_attendance_days_by_team_use_case.dart';
+import 'package:tfg1/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
+import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:tfg1/presentation/team/pages/team_detail_page.dart';
 
 class AttendanceDeletePage extends StatefulWidget {
   final Team team;
@@ -118,6 +121,15 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
 
                           if (confirm != true) return;
 
+                          // Modal de cargando mientras se elimina la asistencia
+                          showDialog<void>(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (ctx) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
                           final deleteAttendanceDayUseCase = context
                               .read<DeleteAttendanceDayUseCase>();
                           final result = await deleteAttendanceDayUseCase(
@@ -128,6 +140,7 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
 
                           result.fold(
                             (failure) {
+                              Navigator.of(context, rootNavigator: true).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(failure.message),
@@ -136,6 +149,7 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
                               );
                             },
                             (_) {
+                              Navigator.of(context, rootNavigator: true).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -144,7 +158,21 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
                                   backgroundColor: Colors.green,
                                 ),
                               );
-                              Navigator.of(context).pop(true);
+
+                              // Volvemos al home del equipo
+                              final getPlayersByTeamUseCase = context
+                                  .read<GetPlayersByTeamUseCase>();
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (_) => BlocProvider(
+                                    create: (_) =>
+                                        TeamDetailCubit(getPlayersByTeamUseCase)
+                                          ..loadTeam(widget.team.id),
+                                    child: TeamDetailPage(team: widget.team),
+                                  ),
+                                ),
+                                (route) => route.isFirst,
+                              );
                             },
                           );
                         },

@@ -86,8 +86,7 @@ class AttendanceSummaryTable extends StatelessWidget {
           builder: (context, constraints) {
             // Ancho mínimo de la tabla adaptable al tamaño de pantalla
             // (más estrecha en móviles, más ancha en pantallas grandes).
-            final double tableMinWidth =
-                constraints.maxWidth.clamp(0.0, 700.0) as double;
+            final double tableMinWidth = constraints.maxWidth.clamp(0.0, 700.0);
 
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -279,20 +278,6 @@ class AttendanceSummaryTable extends StatelessWidget {
                         'Posición: ${player.positions!.map((p) => p.name).join(', ')}',
                         style: const TextStyle(fontSize: 14),
                       ),
-                    if (player.phone != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Teléfono: ${player.phone}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                    if (player.email != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Email: ${player.email}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
                     const SizedBox(height: 16),
                     const Text(
                       'Estadísticas',

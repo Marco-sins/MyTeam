@@ -14,8 +14,8 @@ class TeamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final getPlayersByTeamUseCase = context.read<GetPlayersByTeamUseCase>();
     final size = MediaQuery.of(context).size;
-    final cardWidth = size.width * 0.35;
-    final cardHeight = size.height * 0.4;
+    final cardWidth = size.width * 0.45;
+    final cardHeight = size.height * 0.3;
 
     return SizedBox(
       width: cardWidth,

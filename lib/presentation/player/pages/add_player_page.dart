@@ -32,7 +32,6 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
   final _emailController = TextEditingController();
 
   final List<PlayerPosition> _selectedPositions = [];
-  PlayerPosition? _positionToAdd;
 
   @override
   void dispose() {
@@ -242,7 +241,7 @@ class _AddPlayerPageState extends State<AddPlayerPage> {
                           labelText: 'Seleccionar posición',
                           border: OutlineInputBorder(),
                         ),
-                        value: null,
+                        initialValue: null,
                         items: PlayerPosition.values
                             .map(
                               (p) => DropdownMenuItem<PlayerPosition>(

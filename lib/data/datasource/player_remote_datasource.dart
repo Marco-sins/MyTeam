@@ -19,9 +19,7 @@ class PlayerRemoteDatasource {
           .from('players')
           .insert(playerData.toJson())
           .select();
-      if (response == null ||
-          (response is List && response.isEmpty) ||
-          (response is Map && response.isEmpty)) {
+      if (response.isEmpty) {
         throw ServerException(message: 'Failed to create player', code: '500');
       }
       final int playerId = (response as List).isNotEmpty
@@ -31,9 +29,7 @@ class PlayerRemoteDatasource {
           .from('player_stats')
           .insert(playerStatsData.copyWith(playerId: playerId).toJson())
           .select();
-      if (statsResponse == null ||
-          (statsResponse is List && statsResponse.isEmpty) ||
-          (statsResponse is Map && statsResponse.isEmpty)) {
+      if (statsResponse.isEmpty) {
         throw ServerException(
           message: 'Failed to create player stats',
           code: '500',

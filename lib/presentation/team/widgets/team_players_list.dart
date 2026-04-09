@@ -34,7 +34,7 @@ class TeamPlayersList extends StatelessWidget {
             ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
           return ListView.separated(
             itemCount: players.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final player = players[index];
               return ListTile(

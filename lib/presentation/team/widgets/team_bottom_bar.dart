@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tfg1/domain/entities/team.dart';
+import 'package:tfg1/domain/usecase/attendance/create_attendance_use_case.dart';
+import 'package:tfg1/domain/usecase/attendance/get_attendance_by_date_use_case.dart';
+import 'package:tfg1/domain/usecase/attendance/update_attendance_use_case.dart';
+import 'package:tfg1/presentation/attendance/bloc/attendance_cubit.dart';
 import 'package:tfg1/presentation/attendance/pages/attendance_page.dart';
 import 'package:tfg1/presentation/common/loading_cubit.dart';
 import 'package:tfg1/presentation/convocation/pages/convocation_page.dart';
@@ -28,8 +32,21 @@ class TeamBottomBar extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => BlocProvider.value(
-                      value: context.read<TeamDetailCubit>(),
+                    builder: (_) => MultiBlocProvider(
+                      providers: [
+                        BlocProvider.value(
+                          value: context.read<TeamDetailCubit>(),
+                        ),
+                        BlocProvider<AttendanceCubit>(
+                          create: (ctx) => AttendanceCubit(
+                            ctx.read<GetAttendanceByDateUseCase>(),
+                            ctx.read<CreateAttendanceUseCase>(),
+                            ctx.read<UpdateAttendanceUseCase>(),
+                            initialDate: DateTime.now(),
+                            teamId: team.id,
+                          ),
+                        ),
+                      ],
                       child: AttendancePage(team: team),
                     ),
                   ),

@@ -34,7 +34,7 @@ class DeleteAttendanceDayUseCase {
           attendance.id,
         );
         if (deleteResponse.isLeft()) {
-          return deleteResponse.map((_) => null);
+          return deleteResponse.map((_) {});
         }
       }
       return const Right(null);

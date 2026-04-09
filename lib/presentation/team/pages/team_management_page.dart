@@ -28,7 +28,6 @@ class TeamManagementPage extends StatefulWidget {
 class _TeamManagementPageState extends State<TeamManagementPage> {
   late final TextEditingController _nameController;
   String? _selectedLogoPath;
-  PlatformFile? _selectedLogoFile;
 
   @override
   void initState() {
@@ -53,7 +52,6 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
       setState(() {
-        _selectedLogoFile = file;
         _selectedLogoPath = file.path; // para previsualizar en el header
       });
     }

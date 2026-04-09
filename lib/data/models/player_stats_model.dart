@@ -17,10 +17,11 @@ class PlayerStatsModel extends PlayerStats {
       // En base de datos la columna es "player_id"
       playerId: json['player_id'] ?? json['playerId'],
       goals: json['goals'] ?? 0,
-      assists: json['assists'] ?? 0,
-      yellowCards: json['yellowCards'] ?? 0,
-      redCards: json['redCards'] ?? 0,
-      matchesPlayed: json['matchesPlayed'] ?? 0,
+      // En BD la columna es "assistences"; aceptamos también "assists" por compatibilidad.
+      assists: json['assistences'] ?? json['assists'] ?? 0,
+      yellowCards: json['yellow_cards'] ?? json['yellowCards'] ?? 0,
+      redCards: json['red_cards'] ?? json['redCards'] ?? 0,
+      matchesPlayed: json['matches_played'] ?? json['matchesPlayed'] ?? 0,
     );
   }
 

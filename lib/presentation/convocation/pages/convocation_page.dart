@@ -200,7 +200,20 @@ class _ConvocationPageState extends State<ConvocationPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.of(context).pop(true);
+
+        // Volvemos al home del equipo tras crear la convocatoria
+        final getPlayersByTeamUseCase = context.read<GetPlayersByTeamUseCase>();
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider(
+              create: (_) =>
+                  TeamDetailCubit(getPlayersByTeamUseCase)
+                    ..loadTeam(widget.team.id),
+              child: TeamDetailPage(team: widget.team),
+            ),
+          ),
+          (route) => route.isFirst,
+        );
       },
     );
   }
@@ -309,7 +322,7 @@ class _ConvocationPageState extends State<ConvocationPage> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: players.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          separatorBuilder: (_, _) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final player = players[index];
                             final isCalled = _calledUp[player.id] ?? false;

@@ -3,12 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tfg1/domain/entities/team.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_cubit.dart';
 import 'package:tfg1/presentation/team/bloc/team_detail_state.dart';
-import 'package:tfg1/presentation/attendance/pages/attendance_page.dart';
-import 'package:tfg1/presentation/convocation/pages/convocation_page.dart';
-import 'package:tfg1/presentation/team/pages/team_management_page.dart';
 import 'package:tfg1/presentation/team/widgets/team_detail_header.dart';
 import 'package:tfg1/presentation/team/widgets/team_attendance_section.dart';
-import 'package:tfg1/presentation/match/pages/match_list_page.dart';
 import 'package:tfg1/presentation/team/widgets/team_bottom_bar.dart';
 
 class TeamDetailPage extends StatefulWidget {

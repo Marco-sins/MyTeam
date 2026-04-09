@@ -32,7 +32,6 @@ class _EditPlayerPageState extends State<EditPlayerPage> {
   late final TextEditingController _emailController;
 
   late List<PlayerPosition> _selectedPositions;
-  PlayerPosition? _positionToAdd;
   bool _isLoading = false;
 
   @override
@@ -266,7 +265,7 @@ class _EditPlayerPageState extends State<EditPlayerPage> {
                       labelText: 'Seleccionar posición',
                       border: OutlineInputBorder(),
                     ),
-                    value: null,
+                    initialValue: null,
                     items: PlayerPosition.values
                         .map(
                           (p) => DropdownMenuItem<PlayerPosition>(

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:tfg1/domain/entities/enum/match_status.dart';
 import 'package:tfg1/domain/entities/enum/match_event_enum.dart';
+import 'package:tfg1/domain/entities/auth_user.dart' as tfg_auth;
 import 'package:tfg1/domain/entities/match.dart';
 import 'package:tfg1/domain/entities/match_event.dart';
 import 'package:tfg1/domain/entities/player.dart';
@@ -17,6 +18,7 @@ import 'package:tfg1/domain/usecase/match_event/delete_match_event_use_case.dart
 import 'package:tfg1/presentation/auth/bloc/auth_cubit.dart';
 import 'package:tfg1/presentation/auth/bloc/auth_state.dart';
 import 'package:tfg1/presentation/common/loading_cubit.dart';
+import 'package:tfg1/presentation/match/pages/match_stats_page.dart';
 
 enum _MatchPhase { notStarted, firstHalf, halfTime, secondHalf }
 
@@ -65,7 +67,6 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
   Timer? _timer;
   int _elapsedSeconds = 0;
-  Duration _firstHalfDuration = Duration.zero;
   _MatchPhase _phase = _MatchPhase.notStarted;
   bool _isTimerRunning = false;
 
@@ -222,7 +223,15 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                 top: top - 16,
                 child: GestureDetector(
                   onTap: () {
-                    if (_selectedPlayer == null) {
+                    // Si no hay jugador seleccionado desde la lista y
+                    // esta posición tiene jugador en el campo, abrimos
+                    // el modal de acciones para ese jugador.
+                    if (_selectedPlayer == null && assignedPlayer != null) {
+                      _showPlayerActionModal(assignedPlayer);
+                      return;
+                    }
+
+                    if (_selectedPlayer == null && assignedPlayer == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -238,7 +247,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                     // la posición destino también tiene jugador, hacemos
                     // un intercambio de posiciones sin registrar sustitución.
                     final existingIndex = _positionPlayers.indexWhere(
-                      (p) => p != null && p!.id == _selectedPlayer!.id,
+                      (p) => p != null && p.id == _selectedPlayer!.id,
                     );
 
                     if (existingIndex != -1 && assignedPlayer != null) {
@@ -299,11 +308,40 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     return '$minutes:$seconds';
   }
 
+  int _firstHalfDurationMinutesForCategory() {
+    final cat = widget.team.category.toLowerCase();
+
+    if (cat.contains('prebenjamin') || cat.contains('prebenjamín')) {
+      return 25;
+    }
+
+    if (cat.contains('benjamin') || cat.contains('benjamín')) {
+      return 30;
+    }
+
+    if (cat.contains('alevin') || cat.contains('alevín')) {
+      return 35;
+    }
+
+    if (cat.contains('infantil')) {
+      return 40;
+    }
+
+    if (cat.contains('cadete') ||
+        cat.contains('juvenil') ||
+        cat.contains('senior')) {
+      return 45;
+    }
+
+    // Valor por defecto razonable si la categoría no coincide
+    return 35;
+  }
+
   int _currentMatchMinute() {
     final baseMinutes = _elapsedSeconds ~/ 60;
     if (_phase == _MatchPhase.secondHalf) {
-      // Por ahora sumamos 35 minutos en la segunda parte
-      return baseMinutes + 35;
+      // Sumamos la duración de la 1ª parte según categoría
+      return baseMinutes + _firstHalfDurationMinutesForCategory();
     }
     return baseMinutes;
   }
@@ -406,7 +444,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
       if (result.isEmpty) return;
 
-      final row = result.first as Map<String, dynamic>;
+      final row = result.first;
       final formation = (row['note'] as String?)?.trim();
       if (formation == null || !_formationOptions.containsKey(formation)) {
         return;
@@ -569,6 +607,15 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     if (!confirmed) return;
 
     try {
+      // Solo permitimos registrar goles del rival desde este botón.
+      if (ourTeam) {
+        _showSnack(
+          'Los goles de tu equipo se registran desde un jugador en el campo',
+          error: true,
+        );
+        return;
+      }
+
       final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
       final minute = _currentMatchMinute();
       final event = MatchEvent(
@@ -577,8 +624,8 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         playerId1: null,
         playerId2: null,
         minute: minute,
-        type: ourTeam ? MatchEventEnum.scoreGoal : MatchEventEnum.concedeGoal,
-        note: ourTeam ? 'Gol de nuestro equipo' : 'Gol del rival',
+        type: MatchEventEnum.concedeGoal,
+        note: 'Gol del rival',
       );
 
       final result = await saveMatchEventUseCase(
@@ -589,7 +636,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
       result.fold((failure) => _showSnack(failure.message, error: true), (_) {
         _reloadScoreFromEvents();
-        _showSnack('Gol registrado correctamente');
+        _showSnack('Gol del rival registrado correctamente');
       });
     } catch (e) {
       _showSnack('No se ha podido registrar el gol', error: true);
@@ -638,12 +685,12 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         return;
       }
 
-      final row = result.first as Map<String, dynamic>;
+      final row = result.first;
 
       final String? eventTypeString = row['type'] as String?;
       final MatchEventEnum eventType = eventTypeString != null
           ? MatchEventEnum.values.firstWhere(
-              (e) => e.toString() == 'MatchEventEnum.' + eventTypeString,
+              (e) => e.toString() == 'MatchEventEnum.$eventTypeString',
               orElse: () => MatchEventEnum.scoreGoal,
             )
           : MatchEventEnum.scoreGoal;
@@ -674,10 +721,6 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     } catch (e) {
       _showSnack('No se ha podido quitar el gol', error: true);
     }
-  }
-
-  Future<void> _persistPositions(String reason) async {
-    // Método legado: ya no se usa para guardar posiciones.
   }
 
   Future<void> _loadConvocationPlayers() async {
@@ -815,6 +858,335 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     }
   }
 
+  Future<void> _showPlayerActionModal(Player player) async {
+    final action = await showDialog<_PlayerActionType>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420, minWidth: 280),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          player.fullName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Cerrar',
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        _PlayerActionButton(
+                          label: 'Gol',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.goal),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Buen pase',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.goodPass),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Mal pase',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.badPass),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Mala jugada',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.badPlay),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Pierde marca',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.loseMark),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Recupera posesión',
+                          onTap: () => Navigator.of(
+                            ctx,
+                          ).pop(_PlayerActionType.recoverPossession),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Buen tiro',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.goodShot),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Falta',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.foul),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Tarjeta amarilla',
+                          onTap: () => Navigator.of(
+                            ctx,
+                          ).pop(_PlayerActionType.yellowCard),
+                        ),
+                        _PlayerActionButton(
+                          label: 'Tarjeta roja',
+                          onTap: () =>
+                              Navigator.of(ctx).pop(_PlayerActionType.redCard),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (action == null) return;
+
+    final label = _playerActionLabel(action);
+    final confirmed = await _confirmAction(
+      'Confirmar acción',
+      '¿Seguro que quieres registrar "$label" para ${player.fullName}?',
+    );
+    if (!confirmed) return;
+
+    await _savePlayerActionEvent(player, action);
+  }
+
+  String _playerActionLabel(_PlayerActionType action) {
+    switch (action) {
+      case _PlayerActionType.goal:
+        return 'Gol';
+      case _PlayerActionType.goodPass:
+        return 'Buen pase';
+      case _PlayerActionType.badPass:
+        return 'Mal pase';
+      case _PlayerActionType.badPlay:
+        return 'Mala jugada';
+      case _PlayerActionType.loseMark:
+        return 'Pierde marca';
+      case _PlayerActionType.recoverPossession:
+        return 'Recupera posesión';
+      case _PlayerActionType.goodShot:
+        return 'Buen tiro';
+      case _PlayerActionType.foul:
+        return 'Falta';
+      case _PlayerActionType.yellowCard:
+        return 'Tarjeta amarilla';
+      case _PlayerActionType.redCard:
+        return 'Tarjeta roja';
+    }
+  }
+
+  Future<void> _savePlayerActionEvent(
+    Player player,
+    _PlayerActionType action,
+  ) async {
+    try {
+      final authState = context.read<AuthCubit>().state;
+      if (authState is! Authenticated) {
+        _showSnack('Debes iniciar sesión para registrar acciones', error: true);
+        return;
+      }
+
+      final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
+      final minute = _currentMatchMinute();
+
+      // Caso especial: gol con posible asistente y gol de equipo
+      if (action == _PlayerActionType.goal) {
+        await _savePlayerGoalWithAssist(
+          player: player,
+          minute: minute,
+          authUser: authState.user,
+          saveMatchEventUseCase: saveMatchEventUseCase,
+        );
+        return;
+      }
+
+      late MatchEventEnum type;
+      late String note;
+
+      switch (action) {
+        case _PlayerActionType.goal:
+          // El caso de gol se maneja antes con _savePlayerGoalWithAssist.
+          return;
+        case _PlayerActionType.goodPass:
+          type = MatchEventEnum.keyPass;
+          note = 'Buen pase';
+          break;
+        case _PlayerActionType.badPass:
+          type = MatchEventEnum.statusChange;
+          note = 'Mal pase';
+          break;
+        case _PlayerActionType.badPlay:
+          type = MatchEventEnum.statusChange;
+          note = 'Mala jugada';
+          break;
+        case _PlayerActionType.loseMark:
+          type = MatchEventEnum.statusChange;
+          note = 'Pierde marca';
+          break;
+        case _PlayerActionType.recoverPossession:
+          type = MatchEventEnum.statusChange;
+          note = 'Recupera posesión';
+          break;
+        case _PlayerActionType.goodShot:
+          type = MatchEventEnum.keyPass;
+          note = 'Buen tiro';
+          break;
+        case _PlayerActionType.foul:
+          type = MatchEventEnum.penalty;
+          note = 'Falta';
+          break;
+        case _PlayerActionType.yellowCard:
+          type = MatchEventEnum.yellowCard;
+          note = 'Tarjeta amarilla';
+          break;
+        case _PlayerActionType.redCard:
+          type = MatchEventEnum.redCard;
+          note = 'Tarjeta roja';
+          break;
+      }
+
+      final event = MatchEvent(
+        id: 0,
+        matchId: _match.id,
+        playerId1: player.id,
+        playerId2: null,
+        minute: minute,
+        type: type,
+        note: note,
+      );
+
+      final result = await saveMatchEventUseCase(
+        event,
+        authState.user,
+        widget.team.id,
+      );
+
+      result.fold(
+        (failure) => _showSnack(failure.message, error: true),
+        (_) => _showSnack('Acción registrada para ${player.fullName}'),
+      );
+    } catch (e) {
+      _showSnack('No se ha podido registrar la acción', error: true);
+    }
+  }
+
+  Future<Player?> _selectAssistPlayer(Player scorer) async {
+    return showDialog<Player?>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        final assistCandidates = _convokedPlayers
+            .where((p) => p.id != scorer.id)
+            .toList();
+
+        return AlertDialog(
+          title: const Text('Seleccionar asistente'),
+          content: SizedBox(
+            width: 320,
+            height: 320,
+            child: Column(
+              children: [
+                ListTile(
+                  title: const Text('Sin asistencia'),
+                  onTap: () => Navigator.of(ctx).pop(null),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: assistCandidates.length,
+                    itemBuilder: (context, index) {
+                      final p = assistCandidates[index];
+                      final dorsal = p.number?.toString() ?? '-';
+                      return ListTile(
+                        title: Text('$dorsal  ${p.fullName}'),
+                        onTap: () => Navigator.of(ctx).pop(p),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _savePlayerGoalWithAssist({
+    required Player player,
+    required int minute,
+    required tfg_auth.AuthUser authUser,
+    required SaveMatchEventUseCase saveMatchEventUseCase,
+  }) async {
+    try {
+      final assistPlayer = await _selectAssistPlayer(player);
+
+      // Un solo evento de gol con goleador (playerId1) y, si aplica,
+      // asistente (playerId2).
+      final goalEvent = MatchEvent(
+        id: 0,
+        matchId: _match.id,
+        playerId1: player.id,
+        playerId2: assistPlayer?.id,
+        minute: minute,
+        type: MatchEventEnum.scoreGoal,
+        note: 'Gol',
+      );
+
+      final goalResult = await saveMatchEventUseCase(
+        goalEvent,
+        authUser,
+        widget.team.id,
+      );
+
+      goalResult.fold(
+        (failure) {
+          _showSnack('No se ha podido registrar el gol', error: true);
+        },
+        (_) {
+          _reloadScoreFromEvents();
+          _showSnack('Gol registrado para ${player.fullName}');
+        },
+      );
+    } catch (e) {
+      _showSnack('No se ha podido registrar el gol', error: true);
+    }
+  }
+
   Future<void> _onBottomButtonPressed() async {
     final loadingCubit = context.read<LoadingCubit>();
 
@@ -902,10 +1274,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         '¿Seguro que quieres pasar al descanso?',
       );
       if (!confirmed) return;
-      // Pasar a descanso: guardamos duración de la primera parte
+      // Pasar a descanso: paramos el cronómetro y cambiamos de fase
       _isTimerRunning = false;
       _timer?.cancel();
-      _firstHalfDuration = Duration(seconds: _elapsedSeconds);
       final minute = _currentMatchMinute();
       // Guardamos evento de cambio de estado a descanso
       _saveStatusChangeEvent(MatchStatus.halfTime, minute);
@@ -1084,7 +1455,27 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
               backgroundColor: Colors.green,
             ),
           );
-          Navigator.of(context).pop(true);
+
+          // Navegamos directamente a la pantalla de estadísticas del partido
+          // y reemplazamos el gestor actual. Al volver, se regresa al menú
+          // del equipo (pantalla anterior a este gestor).
+          final finishedMatch = Match(
+            id: _match.id,
+            teamId: _match.teamId,
+            opponent: _match.opponent,
+            goalsScored: _match.goalsScored,
+            goalsConceded: _match.goalsConceded,
+            date: _match.date,
+            hour: _match.hour,
+            status: MatchStatus.finished,
+            lineups: _match.lineups,
+          );
+
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (ctx) => MatchStatsPage(match: finishedMatch),
+            ),
+          );
         },
       );
     }
@@ -1129,16 +1520,6 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                      ),
-                      onPressed: () => _onAddGoal(ourTeam: true),
-                      child: const Text(
-                        '+ Gol mi equipo',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
@@ -1255,7 +1636,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       shrinkWrap: scrollingChild,
       physics: scrollingChild ? const ClampingScrollPhysics() : null,
       itemCount: _convokedPlayers.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final player = _convokedPlayers[index];
         final dorsal = player.number?.toString() ?? '-';
@@ -1265,7 +1646,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             ? '$dorsal  $name $lastName,'
             : '$dorsal  $name,';
         final assignedIndex = _positionPlayers.indexWhere(
-          (p) => p != null && p!.id == player.id,
+          (p) => p != null && p.id == player.id,
         );
         final isAssigned = assignedIndex != -1;
 
@@ -1297,5 +1678,44 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       },
     );
     return listView;
+  }
+}
+
+enum _PlayerActionType {
+  goal,
+  goodPass,
+  badPass,
+  badPlay,
+  loseMark,
+  recoverPossession,
+  goodShot,
+  foul,
+  yellowCard,
+  redCard,
+}
+
+class _PlayerActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _PlayerActionButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        onPressed: onTap,
+        child: Align(alignment: Alignment.centerLeft, child: Text(label)),
+      ),
+    );
   }
 }
