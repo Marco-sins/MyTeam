@@ -24,7 +24,7 @@ class CreateTeamCubit extends Cubit<CreateTeamState> {
     String? logoUrl;
     if (logoBytes != null && logoFileName != null) {
       final uploadResult = await uploadTeamLogoUseCase(logoBytes, logoFileName);
-      if (uploadResult.isLeft()) {
+      if (!isClosed && uploadResult.isLeft()) {
         emit(
           CreateTeamError(
             uploadResult
@@ -44,6 +44,7 @@ class CreateTeamCubit extends Cubit<CreateTeamState> {
       Team(name: teamName, category: category, logoUrl: logoUrl),
     );
 
+    if (isClosed) return;
     result.fold(
       (failure) => emit(CreateTeamError(failure.message)),
       (_) => emit(CreateTeamSuccess()),

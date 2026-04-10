@@ -81,25 +81,29 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
         playerRatings[entry.key] = calculatePlayerRating(entry.key, events);
       }
 
-      emit(
-        state.copyWith(
-          isLoading: false,
-          error: null,
-          events: events,
-          playersById: playersById,
-          startingPlayers: starting,
-          substitutePlayers: subs,
-          isStarterById: isStarterById,
-          playerRatings: playerRatings,
-        ),
-      );
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            isLoading: false,
+            error: null,
+            events: events,
+            playersById: playersById,
+            startingPlayers: starting,
+            substitutePlayers: subs,
+            isStarterById: isStarterById,
+            playerRatings: playerRatings,
+          ),
+        );
+      }
     } catch (_) {
-      emit(
-        state.copyWith(
-          isLoading: false,
-          error: 'No se han podido cargar los eventos del partido',
-        ),
-      );
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            isLoading: false,
+            error: 'No se han podido cargar los eventos del partido',
+          ),
+        );
+      }
     }
   }
 }

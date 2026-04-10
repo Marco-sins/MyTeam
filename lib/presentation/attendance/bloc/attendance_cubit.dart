@@ -32,6 +32,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
 
     final result = await _getAttendanceByDateUseCase(date, user, teamId);
 
+    if (isClosed) return;
+
     if (result.isLeft()) {
       final failure = result.fold((f) => f, (_) => null);
       emit(state.copyWith(loading: false, error: failure?.message));
@@ -81,6 +83,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       teamId,
     );
 
+    if (isClosed) return null;
+
     if (existingResult.isLeft()) {
       final failure = existingResult.fold((f) => f, (_) => null);
       emit(state.copyWith(saving: false, error: failure?.message));
@@ -109,6 +113,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           attended: attended,
         );
         final res = await _createAttendanceUseCase(newAttendance, user);
+        if (isClosed) return null;
         if (res.isLeft()) {
           final failure = res.fold((f) => f, (_) => null);
           emit(state.copyWith(saving: false, error: failure?.message));
@@ -124,6 +129,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           attended: attended,
         );
         final res = await _updateAttendanceUseCase(updated, user);
+        if (isClosed) return null;
         if (res.isLeft()) {
           final failure = res.fold((f) => f, (_) => null);
           emit(state.copyWith(saving: false, error: failure?.message));
@@ -132,6 +138,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       }
     }
 
+    if (isClosed) return null;
     emit(state.copyWith(saving: false, error: null));
     return null;
   }

@@ -10,6 +10,7 @@ class TeamDetailCubit extends Cubit<TeamDetailState> {
   Future<void> loadTeam(int teamId) async {
     emit(TeamDetailLoading());
     final result = await _getPlayersByTeamUseCase(teamId);
+    if (isClosed) return;
     result.fold(
       (failure) => emit(TeamDetailError(failure.message)),
       (players) => emit(TeamDetailLoaded(players)),

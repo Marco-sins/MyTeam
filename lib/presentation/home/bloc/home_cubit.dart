@@ -10,6 +10,7 @@ class HomeCubit extends Cubit<HomeState> {
   Future<void> fetchTeams() async {
     emit(HomeLoading());
     final result = await _getTeamsUseCase();
+    if (isClosed) return;
     result.fold(
       (failure) => emit(HomeError(failure.message)),
       (teams) => emit(HomeLoaded(teams)),
