@@ -86,6 +86,19 @@ class AuthRemoteDatasource {
       if (response.session == null || user == null) {
         throw ServerException(message: 'Failed to sign up');
       }
+
+      // Crear también la fila en la tabla de perfiles con el mismo id
+      try {
+        await _supabase.from('profiles').insert({
+          'id': user.id,
+          'username': name,
+          'email': user.email ?? email,
+        });
+      } on PostgrestException catch (e) {
+        // Si falla la creación del perfil, consideramos que es un error de servidor
+        throw ServerException(message: e.message, code: e.code);
+      }
+
       final teamRoles = await _getTeamRolesForUser(user.id);
       return AuthUserModel(
         id: user.id,

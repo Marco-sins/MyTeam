@@ -86,6 +86,7 @@ class AttendanceSaveButton extends StatelessWidget {
             const SnackBar(
               content: Text('Asistencia guardada correctamente'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
             ),
           );
 

@@ -9,6 +9,7 @@ class MatchLineupMapper {
       matchId: matchLineup.matchId,
       isStarting: matchLineup.isStarting,
       minutesPlayed: matchLineup.minutesPlayed,
+      position: matchLineup.position,
       rating: matchLineup.rating,
     );
   }
@@ -20,6 +21,7 @@ class MatchLineupMapper {
       matchId: matchLineupModel.matchId,
       isStarting: matchLineupModel.isStarting,
       minutesPlayed: matchLineupModel.minutesPlayed,
+      position: matchLineupModel.position,
       rating: matchLineupModel.rating,
     );
   }

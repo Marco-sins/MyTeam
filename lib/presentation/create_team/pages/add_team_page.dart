@@ -52,6 +52,7 @@ class _AddTeamPageState extends State<AddTeamPage> {
               const SnackBar(
                 content: Text('Equipo creado con éxito'),
                 backgroundColor: Colors.green,
+                duration: Duration(seconds: 1),
               ),
             );
             Navigator.pop(context);

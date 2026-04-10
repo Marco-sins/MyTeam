@@ -63,8 +63,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Te hemos enviado un correo para restablecer tu contraseña.'),
+          content: Text(
+            'Te hemos enviado un correo para restablecer tu contraseña.',
+          ),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 1),
         ),
       );
       Navigator.of(context).pop();
@@ -85,10 +88,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message),
-          backgroundColor: Colors.redAccent,
-        ),
+        SnackBar(content: Text(e.message), backgroundColor: Colors.redAccent),
       );
     } catch (_) {
       if (!mounted) {
@@ -177,9 +177,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : const Text(
-                                      'Enviar correo de recuperación',
-                                    ),
+                                  : const Text('Enviar correo de recuperación'),
                             ),
                           ),
                           const SizedBox(height: 8),

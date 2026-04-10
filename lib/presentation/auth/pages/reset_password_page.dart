@@ -42,6 +42,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         const SnackBar(
           content: Text('Contraseña actualizada correctamente.'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 1),
         ),
       );
       Navigator.of(context).pop();
@@ -50,10 +51,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message),
-          backgroundColor: Colors.redAccent,
-        ),
+        SnackBar(content: Text(e.message), backgroundColor: Colors.redAccent),
       );
     } catch (_) {
       if (!mounted) {

@@ -8,6 +8,7 @@ import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
 import 'package:football_manager/presentation/match/pages/match_manager_page.dart';
 import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
@@ -243,10 +244,19 @@ class _MatchListPageState extends State<MatchListPage> {
                             }
                           });
                         } else if (match.status == MatchStatus.finished) {
+                          final getPlayersByTeamUseCase = context
+                              .read<GetPlayersByTeamUseCase>();
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => MatchStatsPage(match: match),
+                              builder: (_) => BlocProvider(
+                                create: (ctx) => MatchStatsCubit(
+                                  match: match,
+                                  getPlayersByTeamUseCase:
+                                      getPlayersByTeamUseCase,
+                                )..load(),
+                                child: MatchStatsPage(match: match),
+                              ),
                             ),
                           );
                         }

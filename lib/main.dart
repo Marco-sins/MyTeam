@@ -12,12 +12,17 @@ import 'package:football_manager/data/datasource/match_remote_datasource.dart';
 import 'package:football_manager/data/repositories/match_repository.dart';
 import 'package:football_manager/data/datasource/match_event_remote_datasource.dart';
 import 'package:football_manager/data/repositories/match_event_repository.dart';
+import 'package:football_manager/data/datasource/profile_remote_datasource.dart';
+import 'package:football_manager/data/repositories/profile_repository.dart';
+import 'package:football_manager/data/datasource/invitation_remote_datasource.dart';
+import 'package:football_manager/data/repositories/invitation_repository.dart';
 import 'package:football_manager/domain/usecase/auth/get_user_session_use_case.dart';
 import 'package:football_manager/domain/usecase/auth/sign_in_use_case.dart';
 import 'package:football_manager/domain/usecase/auth/sign_up_use_case.dart';
 import 'package:football_manager/domain/usecase/auth/sign_out_use_case.dart';
 import 'package:football_manager/domain/usecase/team/create_team_use_case.dart';
 import 'package:football_manager/domain/usecase/team/get_teams_use_case.dart';
+import 'package:football_manager/domain/usecase/team/get_team_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/team/upload_team_logo_use_case.dart';
 import 'package:football_manager/domain/usecase/team/update_team_use_case.dart';
 import 'package:football_manager/data/datasource/player_remote_datasource.dart';
@@ -40,6 +45,11 @@ import 'package:football_manager/domain/usecase/match/start_match_use_case.dart'
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
+import 'package:football_manager/domain/usecase/profile/get_profiles_by_ids_use_case.dart';
+import 'package:football_manager/domain/usecase/invitation/create_invitation_use_case.dart';
+import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
+import 'package:football_manager/domain/usecase/invitation/accept_invitation_use_case.dart';
+import 'package:football_manager/domain/usecase/invitation/reject_invitation_use_case.dart';
 import 'package:football_manager/presentation/home/bloc/home_cubit.dart';
 import 'package:football_manager/presentation/create_team/bloc/create_team_cubit.dart';
 import 'package:football_manager/presentation/home/pages/home_page.dart';
@@ -121,6 +131,7 @@ class MyApp extends StatelessWidget {
     final authRepository = AuthRepository(AuthRemoteDatasource(supabaseClient));
     final teamRepository = TeamRepository(TeamRemoteDatasource(supabaseClient));
     final getTeamsUseCase = GetTeamsUseCase(teamRepository);
+    final getTeamByIdUseCase = GetTeamByIdUseCase(teamRepository);
     final uploadTeamLogoUseCase = UploadTeamLogoUseCase(teamRepository);
     final updateTeamUseCase = UpdateTeamUseCase(teamRepository);
     final playerRepository = PlayerRepository(
@@ -158,6 +169,12 @@ class MyApp extends StatelessWidget {
     final matchEventRepository = MatchEventRepository(
       MatchEventRemoteDatasource(supabaseClient),
     );
+    final profileRepository = ProfileRepository(
+      ProfileRemoteDatasource(supabaseClient),
+    );
+    final invitationRepository = InvitationRepository(
+      InvitationRemoteDatasource(supabaseClient),
+    );
     final createMatchUseCase = CreateMatchUseCase(matchRepository);
     final getMatchesByTeamUseCase = GetMatchesByTeamUseCase(matchRepository);
     final deleteMatchUseCase = DeleteMatchUseCase(matchRepository);
@@ -172,6 +189,19 @@ class MyApp extends StatelessWidget {
     final deleteMatchEventUseCase = DeleteMatchEventUseCase(
       matchEventRepository,
     );
+    final getProfilesByIdsUseCase = GetProfilesByIdsUseCase(profileRepository);
+    final createInvitationUseCase = CreateInvitationUseCase(
+      invitationRepository,
+    );
+    final getInvitationsByEmailUseCase = GetInvitationsByEmailUseCase(
+      invitationRepository,
+    );
+    final acceptInvitationUseCase = AcceptInvitationUseCase(
+      invitationRepository,
+    );
+    final rejectInvitationUseCase = RejectInvitationUseCase(
+      invitationRepository,
+    );
 
     return MultiRepositoryProvider(
       providers: [
@@ -182,6 +212,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: deleteTeamUseCase),
         RepositoryProvider.value(value: uploadTeamLogoUseCase),
         RepositoryProvider.value(value: updateTeamUseCase),
+        RepositoryProvider.value(value: getTeamByIdUseCase),
         RepositoryProvider.value(value: createAttendanceUseCase),
         RepositoryProvider.value(value: updateAttendanceUseCase),
         RepositoryProvider.value(value: deleteAttendanceUseCase),
@@ -195,6 +226,11 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: finishMatchUseCase),
         RepositoryProvider.value(value: saveMatchEventUseCase),
         RepositoryProvider.value(value: deleteMatchEventUseCase),
+        RepositoryProvider.value(value: getProfilesByIdsUseCase),
+        RepositoryProvider.value(value: createInvitationUseCase),
+        RepositoryProvider.value(value: getInvitationsByEmailUseCase),
+        RepositoryProvider.value(value: acceptInvitationUseCase),
+        RepositoryProvider.value(value: rejectInvitationUseCase),
       ],
       child: MultiBlocProvider(
         providers: [

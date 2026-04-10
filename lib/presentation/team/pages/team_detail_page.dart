@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/entities/enum/user_role.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
 import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
 import 'package:football_manager/presentation/team/widgets/team_detail_header.dart';
 import 'package:football_manager/presentation/team/widgets/team_attendance_section.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/presentation/team/widgets/team_roster_widget.dart';
 
 class TeamDetailPage extends StatefulWidget {
   final Team team;
@@ -53,6 +57,21 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
                       child: Text('No hay jugadores en la plantilla'),
                     );
                   }
+                  // Determinar si el usuario es "external" en este equipo
+                  final authState = context.read<AuthCubit>().state;
+                  bool isExternal = false;
+                  if (authState is Authenticated) {
+                    isExternal =
+                        authState.user.teamRoles[widget.team.id] ==
+                        UserRole.external;
+                  }
+
+                  if (isExternal) {
+                    // Para external: solo ver plantilla (sin asistencia)
+                    return TeamRosterWidget(team: widget.team);
+                  }
+
+                  // Para admin/jugador: vista original de asistencia
                   return TeamAttendanceSection(
                     team: widget.team,
                     players: state.players,

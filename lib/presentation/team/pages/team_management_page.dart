@@ -15,6 +15,7 @@ import 'package:football_manager/presentation/team/pages/team_roster_page.dart';
 import 'package:football_manager/presentation/team/widgets/team_management_header_row.dart';
 import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/presentation/team/pages/team_access_page.dart';
 
 class TeamManagementPage extends StatefulWidget {
   final Team team;
@@ -146,6 +147,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                         const SnackBar(
                           content: Text('Cambios guardados correctamente'),
                           backgroundColor: Colors.green,
+                          duration: Duration(seconds: 1),
                         ),
                       );
                     },
@@ -218,6 +220,23 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
               width: double.infinity,
               height: 50,
               child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TeamAccessPage(team: widget.team),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.lock_open),
+                label: const Text('Administrar acceso'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.red,
                   side: const BorderSide(color: Colors.red),
@@ -282,6 +301,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                         const SnackBar(
                           content: Text('Equipo borrado correctamente'),
                           backgroundColor: Colors.green,
+                          duration: Duration(seconds: 1),
                         ),
                       );
                       Navigator.of(context).popUntil((route) => route.isFirst);

@@ -10,6 +10,7 @@ import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
@@ -18,7 +19,12 @@ import 'package:football_manager/domain/usecase/match_event/delete_match_event_u
 import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
 import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
+import 'package:football_manager/presentation/match/widgets/match_convocation_table.dart';
+import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
+import 'package:football_manager/presentation/match/widgets/match_player_action_modal.dart';
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
+import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 
 enum _MatchPhase { notStarted, firstHalf, halfTime, secondHalf }
 
@@ -50,6 +56,12 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   bool _loadingPlayers = true;
   String? _loadError;
 
+  // Media en tiempo real por jugador (0-10, base 5).
+  Map<int, double> _playerRatings = {};
+
+  // Jugadores expulsados (roja o doble amarilla).
+  final Set<int> _sentOffPlayerIds = {};
+
   // Formaciones disponibles (solo líneas de jugadores de campo: defensa → delantero).
   // El contenido real depende de la categoría del equipo (fútbol 7 vs fútbol 11).
   late Map<String, List<int>> _formationOptions;
@@ -66,6 +78,12 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   int _elapsedSeconds = 0;
   _MatchPhase _phase = _MatchPhase.notStarted;
   bool _isTimerRunning = false;
+
+  bool get _isExternal {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) return false;
+    return authState.user.teamRoles[widget.team.id] == UserRole.external;
+  }
 
   @override
   void initState() {
@@ -175,12 +193,48 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       _positionPlayers.isNotEmpty &&
       _positionPlayers.every((player) => player != null);
 
+  int _currentPlayersOnField() {
+    return _positionPlayers.where((p) => p != null).length;
+  }
+
+  int _maxPlayersOnField() {
+    final totalPositions = _positionPlayers.length;
+    final expelledCount = _sentOffPlayerIds.length;
+    final maxAllowed = totalPositions - expelledCount;
+    return maxAllowed < 0 ? 0 : maxAllowed;
+  }
+
   void _saveCurrentLineup() {
     final playerIds = _positionPlayers.map((p) => p?.id).toList();
     _savedLineups[_match.id] = _SavedLineupState(
       formationKey: _selectedFormation,
       playerIds: playerIds,
     );
+  }
+
+  Future<void> _persistCurrentPositionsToMatchLineup() async {
+    try {
+      final supabase = Supabase.instance.client;
+
+      final Map<int, int> positionByPlayerId = {};
+      for (int i = 0; i < _positionPlayers.length; i++) {
+        final player = _positionPlayers[i];
+        if (player != null) {
+          positionByPlayerId[player.id] = i;
+        }
+      }
+
+      for (final player in _convokedPlayers) {
+        final int? pos = positionByPlayerId[player.id];
+        await supabase
+            .from('match_lineup')
+            .update({'position': pos})
+            .eq('match_id', _match.id)
+            .eq('player_id', player.id);
+      }
+    } catch (e) {
+      debugPrint('Error updating positions in match_lineup: $e');
+    }
   }
 
   void _changeFormation(String newKey) {
@@ -225,119 +279,6 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     });
   }
 
-  Widget _buildFieldWithFormation() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final fieldWidth = constraints.maxWidth;
-        final fieldHeight = constraints.maxHeight;
-        final rows = _formationLines.length;
-
-        final List<Widget> children = [
-          Positioned.fill(
-            child: Image.asset('media/campo.png', fit: BoxFit.contain),
-          ),
-        ];
-
-        int positionNumber = 1;
-        for (int row = 0; row < rows; row++) {
-          // Invertimos las filas para que el portero (primera línea) quede abajo
-          final displayRow = rows - 1 - row;
-          final countInRow = _formationLines[row];
-          final top = fieldHeight * ((displayRow + 1) / (rows + 1));
-
-          for (int col = 0; col < countInRow; col++) {
-            final left = fieldWidth * ((col + 1) / (countInRow + 1));
-            final index = positionNumber - 1;
-            final assignedPlayer = index < _positionPlayers.length
-                ? _positionPlayers[index]
-                : null;
-            final displayNumber = assignedPlayer?.number?.toString() ?? '';
-
-            children.add(
-              Positioned(
-                left: left - 16,
-                top: top - 16,
-                child: GestureDetector(
-                  onTap: () {
-                    // Si no hay jugador seleccionado desde la lista y
-                    // esta posición tiene jugador en el campo, abrimos
-                    // el modal de acciones para ese jugador.
-                    if (_selectedPlayer == null && assignedPlayer != null) {
-                      _showPlayerActionModal(assignedPlayer);
-                      return;
-                    }
-
-                    if (_selectedPlayer == null && assignedPlayer == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Selecciona primero un jugador en la lista',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Si el jugador seleccionado ya está en el campo y
-                    // la posición destino también tiene jugador, hacemos
-                    // un intercambio de posiciones sin registrar sustitución.
-                    final existingIndex = _positionPlayers.indexWhere(
-                      (p) => p != null && p.id == _selectedPlayer!.id,
-                    );
-
-                    if (existingIndex != -1 && assignedPlayer != null) {
-                      setState(() {
-                        _positionPlayers[existingIndex] = assignedPlayer;
-                        _positionPlayers[index] = _selectedPlayer;
-                        _selectedPlayer = null;
-                      });
-                      return;
-                    }
-
-                    // Sustitución normal: entra jugador (desde banquillo
-                    // o sin posición previa) y sale el que estaba en
-                    // esta posición.
-                    setState(() {
-                      if (existingIndex != -1) {
-                        _positionPlayers[existingIndex] = null;
-                      }
-
-                      _positionPlayers[index] = _selectedPlayer;
-                      _selectedPlayer = null;
-                    });
-                    _saveSubstitutionEvent(
-                      playerIn: _positionPlayers[index]!,
-                      playerOut: assignedPlayer,
-                    );
-                  },
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: assignedPlayer != null
-                        ? Colors.greenAccent
-                        : Colors.white.withOpacity(0.85),
-                    child: Text(
-                      displayNumber,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-
-            positionNumber++;
-          }
-        }
-
-        return Stack(children: children);
-      },
-    );
-  }
-
   String _formatTime(int totalSeconds) {
     final minutes = (totalSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (totalSeconds % 60).toString().padLeft(2, '0');
@@ -380,6 +321,20 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       return baseMinutes + _firstHalfDurationMinutesForCategory();
     }
     return baseMinutes;
+  }
+
+  int _halfDurationSeconds() => _firstHalfDurationMinutesForCategory() * 60;
+
+  int _mainClockSeconds() {
+    final limit = _halfDurationSeconds();
+    final value = _elapsedSeconds <= limit ? _elapsedSeconds : limit;
+    return value < 0 ? 0 : value;
+  }
+
+  int _extraClockSeconds() {
+    final limit = _halfDurationSeconds();
+    if (_elapsedSeconds <= limit) return 0;
+    return _elapsedSeconds - limit;
   }
 
   Future<void> _saveStatusChangeEvent(MatchStatus newStatus, int minute) async {
@@ -468,15 +423,42 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     }
   }
 
+  Future<void> _recalculatePlayerRatings() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final result = await supabase
+          .from('match_events')
+          .select('type, player_id1, player_id2, note')
+          .eq('match_id', _match.id);
+
+      final events = List<Map<String, dynamic>>.from(result as List);
+
+      final Map<int, double> newRatings = {};
+      for (final player in _convokedPlayers) {
+        newRatings[player.id] = calculatePlayerRating(player.id, events);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _playerRatings = newRatings;
+      });
+    } catch (e) {
+      debugPrint('Error calculating player ratings: $e');
+    }
+  }
+
   Future<void> _loadLastFormationFromEvents() async {
     try {
       final supabase = Supabase.instance.client;
       final result = await supabase
           .from('match_events')
-          .select('type, note, minute')
+          .select('id, type, note, minute')
           .eq('match_id', _match.id)
           .eq('type', 'formation')
-          .order('minute', ascending: false)
+          // Usamos el id descendente para asegurar que obtenemos
+          // siempre la última formación guardada, incluso si varias
+          // tienen el mismo minuto (0 antes de empezar el partido).
+          .order('id', ascending: false)
           .limit(1);
 
       if (result.isEmpty) return;
@@ -488,10 +470,19 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       }
 
       if (!mounted) return;
+      final outfieldLines = _formationOptions[formation]!;
+      final newFormationLines = [1, ...outfieldLines];
+      final totalPositions = newFormationLines.fold<int>(
+        0,
+        (sum, value) => sum + value,
+      );
+
       setState(() {
         _selectedFormation = formation;
-        final outfieldLines = _formationOptions[formation]!;
-        _formationLines = [1, ...outfieldLines];
+        _formationLines = newFormationLines;
+        if (_positionPlayers.length != totalPositions) {
+          _positionPlayers = List<Player?>.filled(totalPositions, null);
+        }
       });
     } catch (_) {
       // Si falla, mantenemos la formación actual
@@ -524,6 +515,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: error ? Colors.red : Colors.green,
+        duration: error
+            ? const Duration(seconds: 4)
+            : const Duration(seconds: 1),
       ),
     );
   }
@@ -753,6 +747,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         _,
       ) {
         _reloadScoreFromEvents();
+        _recalculatePlayerRatings();
         _showSnack('Gol eliminado correctamente');
       });
     } catch (e) {
@@ -777,7 +772,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           .map<int>((row) => row['player_id'] as int)
           .toSet();
 
-      final getPlayersByTeamUseCase = context.read<GetPlayersByTeamUseCase>();
+      final getPlayersByTeamUseCase = context.read() as GetPlayersByTeamUseCase;
       final playersResult = await getPlayersByTeamUseCase(widget.team.id);
 
       playersResult.fold(
@@ -801,7 +796,13 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           _restorePositionsIfSaved();
           // Una vez cargados los jugadores convocados, reconstruimos
           // quién está jugando según los eventos de sustitución.
-          _loadPositionsFromEvents();
+          _loadPositionsFromEvents().then((_) {
+            // Aplicamos expulsiones (rojas / dobles amarillas) y
+            // bloqueamos huecos correspondientes en el campo.
+            _loadDisciplineStateFromEvents();
+          });
+          // Y calculamos la media inicial de cada jugador.
+          _recalculatePlayerRatings();
         },
       );
     } catch (e) {
@@ -816,69 +817,93 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     try {
       final supabase = Supabase.instance.client;
 
-      // Obtenemos la información de titulares iniciales desde match_lineup
       final lineupRows = await supabase
           .from('match_lineup')
-          .select('player_id, is_start')
+          .select('player_id, position')
           .eq('match_id', _match.id);
 
-      final Set<int> onField = {};
-      for (final row in lineupRows) {
-        final int playerId = row['player_id'] as int;
-        final bool isStart = row['is_start'] as bool? ?? false;
-        if (isStart) {
-          onField.add(playerId);
-        }
-      }
-
-      // Aplicamos todas las sustituciones en orden de minuto para saber
-      // quién está en el campo al final.
-      final subsResult = await supabase
-          .from('match_events')
-          .select('type, player_id1, player_id2, minute')
-          .eq('match_id', _match.id)
-          .eq('type', 'substitution')
-          .order('minute', ascending: true);
-
-      for (final row in subsResult) {
-        final rawType = row['type'];
-        final typeString = rawType?.toString().split('.').last;
-        if (typeString != 'substitution') continue;
-
-        final int? inId = row['player_id1'] as int?;
-        final int? outId = row['player_id2'] as int?;
-
-        if (outId != null) {
-          onField.remove(outId);
-        }
-        if (inId != null) {
-          onField.add(inId);
-        }
-      }
-
       if (!mounted) return;
-
-      // Construimos la lista de jugadores que están en el campo
-      final List<Player> starters =
-          _convokedPlayers.where((p) => onField.contains(p.id)).toList()
-            ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
-
-      if (starters.isEmpty) return;
 
       final List<Player?> newPositions = List<Player?>.filled(
         _positionPlayers.length,
         null,
       );
 
-      for (int i = 0; i < starters.length && i < newPositions.length; i++) {
-        newPositions[i] = starters[i];
+      for (final row in lineupRows as List) {
+        final int? playerId = row['player_id'] as int?;
+        final int? pos = row['position'] as int?;
+        if (playerId == null || pos == null) continue;
+        if (pos < 0 || pos >= newPositions.length) continue;
+
+        final player = _convokedPlayers.firstWhere(
+          (p) => p.id == playerId,
+          orElse: () => const Player(teamId: 0, firstName: ''),
+        );
+
+        if (player.id != 0) {
+          newPositions[pos] = player;
+        }
       }
 
       setState(() {
         _positionPlayers = newPositions;
       });
     } catch (e) {
-      debugPrint('Error loading positions from events: $e');
+      debugPrint('Error loading positions from match_lineup: $e');
+    }
+  }
+
+  Future<void> _loadDisciplineStateFromEvents() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final result = await supabase
+          .from('match_events')
+          .select('type, player_id1')
+          .eq('match_id', _match.id);
+
+      final Map<int, int> yellowCounts = {};
+      final Set<int> sentOff = {};
+
+      for (final row in result) {
+        final raw = row['type'];
+        if (raw == null) continue;
+        final typeString = raw.toString().split('.').last;
+        final int? p1 = row['player_id1'] as int?;
+        if (p1 == null) continue;
+
+        if (typeString == 'redCard') {
+          sentOff.add(p1);
+        } else if (typeString == 'yellowCard') {
+          final current = yellowCounts[p1] ?? 0;
+          final next = current + 1;
+          yellowCounts[p1] = next;
+          if (next >= 2) {
+            sentOff.add(p1);
+          }
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _sentOffPlayerIds
+          ..clear()
+          ..addAll(sentOff);
+
+        for (int i = 0; i < _positionPlayers.length; i++) {
+          final p = _positionPlayers[i];
+          if (p != null && _sentOffPlayerIds.contains(p.id)) {
+            _positionPlayers[i] = null;
+          }
+        }
+
+        if (_selectedPlayer != null &&
+            _sentOffPlayerIds.contains(_selectedPlayer!.id)) {
+          _selectedPlayer = null;
+        }
+      });
+    } catch (e) {
+      debugPrint('Error loading discipline state from events: $e');
     }
   }
 
@@ -895,154 +920,68 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     }
   }
 
-  Future<void> _showPlayerActionModal(Player player) async {
-    final action = await showDialog<_PlayerActionType>(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 420, minWidth: 280),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          player.fullName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Cerrar',
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        _PlayerActionButton(
-                          label: 'Gol',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.goal),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Buen pase',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.goodPass),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Mal pase',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.badPass),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Mala jugada',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.badPlay),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Pierde marca',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.loseMark),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Recupera posesión',
-                          onTap: () => Navigator.of(
-                            ctx,
-                          ).pop(_PlayerActionType.recoverPossession),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Buen tiro',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.goodShot),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Falta',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.foul),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Tarjeta amarilla',
-                          onTap: () => Navigator.of(
-                            ctx,
-                          ).pop(_PlayerActionType.yellowCard),
-                        ),
-                        _PlayerActionButton(
-                          label: 'Tarjeta roja',
-                          onTap: () =>
-                              Navigator.of(ctx).pop(_PlayerActionType.redCard),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  Future<void> _onPlayerActionRequested(Player player) async {
+    if (_isExternal) {
+      _showSnack(
+        'Modo espectador: no puedes registrar acciones de jugadores',
+        error: true,
+      );
+      return;
+    }
+    final action = await showMatchPlayerActionModal(context, player);
 
     if (action == null) return;
 
     final label = _playerActionLabel(action);
     final confirmed = await _confirmAction(
       'Confirmar acción',
-      '¿Seguro que quieres registrar "$label" para ${player.fullName}?',
+      '¿Seguro que quieres registrar "${label}" para ${player.fullName}?',
     );
     if (!confirmed) return;
 
     await _savePlayerActionEvent(player, action);
   }
 
-  String _playerActionLabel(_PlayerActionType action) {
+  String _playerActionLabel(MatchPlayerActionType action) {
     switch (action) {
-      case _PlayerActionType.goal:
+      case MatchPlayerActionType.goal:
         return 'Gol';
-      case _PlayerActionType.goodPass:
+      case MatchPlayerActionType.ownGoal:
+        return 'Gol en propia';
+      case MatchPlayerActionType.goodPass:
         return 'Buen pase';
-      case _PlayerActionType.badPass:
+      case MatchPlayerActionType.keyPass:
+        return 'Pase clave';
+      case MatchPlayerActionType.badPass:
         return 'Mal pase';
-      case _PlayerActionType.badPlay:
+      case MatchPlayerActionType.badPlay:
         return 'Mala jugada';
-      case _PlayerActionType.loseMark:
-        return 'Pierde marca';
-      case _PlayerActionType.recoverPossession:
-        return 'Recupera posesión';
-      case _PlayerActionType.goodShot:
-        return 'Buen tiro';
-      case _PlayerActionType.foul:
-        return 'Falta';
-      case _PlayerActionType.yellowCard:
+      case MatchPlayerActionType.goodPlay:
+        return 'Buena jugada';
+      case MatchPlayerActionType.keyPlay:
+        return 'Jugada clave';
+      case MatchPlayerActionType.losePosition:
+        return 'Pierde posición';
+      case MatchPlayerActionType.losePossession:
+        return 'Pierde posesión';
+      case MatchPlayerActionType.winPossession:
+        return 'Gana posesión';
+      case MatchPlayerActionType.goodSave:
+        return 'Buena parada';
+      case MatchPlayerActionType.amazingSave:
+        return 'Increíble parada';
+      case MatchPlayerActionType.concededGoal:
+        return 'Gol concedido';
+      case MatchPlayerActionType.yellowCard:
         return 'Tarjeta amarilla';
-      case _PlayerActionType.redCard:
+      case MatchPlayerActionType.redCard:
         return 'Tarjeta roja';
     }
   }
 
   Future<void> _savePlayerActionEvent(
     Player player,
-    _PlayerActionType action,
+    MatchPlayerActionType action,
   ) async {
     try {
       final authState = context.read<AuthCubit>().state;
@@ -1055,7 +994,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       final minute = _currentMatchMinute();
 
       // Caso especial: gol con posible asistente y gol de equipo
-      if (action == _PlayerActionType.goal) {
+      if (action == MatchPlayerActionType.goal) {
         await _savePlayerGoalWithAssist(
           player: player,
           minute: minute,
@@ -1069,42 +1008,66 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       late String note;
 
       switch (action) {
-        case _PlayerActionType.goal:
+        case MatchPlayerActionType.goal:
           // El caso de gol se maneja antes con _savePlayerGoalWithAssist.
           return;
-        case _PlayerActionType.goodPass:
-          type = MatchEventEnum.keyPass;
+        case MatchPlayerActionType.ownGoal:
+          type = MatchEventEnum.ownGoal;
+          note = 'Gol en propia';
+          break;
+        case MatchPlayerActionType.goodPass:
+          type = MatchEventEnum.statusChange;
           note = 'Buen pase';
           break;
-        case _PlayerActionType.badPass:
+        case MatchPlayerActionType.keyPass:
+          type = MatchEventEnum.keyPass;
+          note = 'Pase clave';
+          break;
+        case MatchPlayerActionType.badPass:
           type = MatchEventEnum.statusChange;
           note = 'Mal pase';
           break;
-        case _PlayerActionType.badPlay:
+        case MatchPlayerActionType.badPlay:
           type = MatchEventEnum.statusChange;
           note = 'Mala jugada';
           break;
-        case _PlayerActionType.loseMark:
+        case MatchPlayerActionType.goodPlay:
           type = MatchEventEnum.statusChange;
-          note = 'Pierde marca';
+          note = 'Buena jugada';
           break;
-        case _PlayerActionType.recoverPossession:
+        case MatchPlayerActionType.keyPlay:
           type = MatchEventEnum.statusChange;
-          note = 'Recupera posesión';
+          note = 'Jugada clave';
           break;
-        case _PlayerActionType.goodShot:
-          type = MatchEventEnum.keyPass;
-          note = 'Buen tiro';
+        case MatchPlayerActionType.losePosition:
+          type = MatchEventEnum.statusChange;
+          note = 'Pierde posición';
           break;
-        case _PlayerActionType.foul:
-          type = MatchEventEnum.penalty;
-          note = 'Falta';
+        case MatchPlayerActionType.losePossession:
+          type = MatchEventEnum.statusChange;
+          note = 'Pierde posesión';
           break;
-        case _PlayerActionType.yellowCard:
+        case MatchPlayerActionType.winPossession:
+          type = MatchEventEnum.statusChange;
+          note = 'Gana posesión';
+          break;
+        case MatchPlayerActionType.goodSave:
+          type = MatchEventEnum.goodSave;
+          note = 'Buena parada';
+          break;
+        case MatchPlayerActionType.amazingSave:
+          type = MatchEventEnum.goodSave;
+          note = 'Increíble parada';
+          break;
+        case MatchPlayerActionType.concededGoal:
+          type = MatchEventEnum.concedeGoal;
+          note = 'Gol concedido';
+          break;
+        case MatchPlayerActionType.yellowCard:
           type = MatchEventEnum.yellowCard;
           note = 'Tarjeta amarilla';
           break;
-        case _PlayerActionType.redCard:
+        case MatchPlayerActionType.redCard:
           type = MatchEventEnum.redCard;
           note = 'Tarjeta roja';
           break;
@@ -1126,12 +1089,72 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         widget.team.id,
       );
 
-      result.fold(
-        (failure) => _showSnack(failure.message, error: true),
-        (_) => _showSnack('Acción registrada para ${player.fullName}'),
-      );
+      result.fold((failure) => _showSnack(failure.message, error: true), (_) {
+        _reloadScoreFromEvents();
+        _recalculatePlayerRatings();
+        if (type == MatchEventEnum.yellowCard ||
+            type == MatchEventEnum.redCard) {
+          _handleDisciplineForCard(player);
+        }
+        _showSnack('Acción registrada para ${player.fullName}');
+      });
     } catch (e) {
       _showSnack('No se ha podido registrar la acción', error: true);
+    }
+  }
+
+  Future<void> _handleDisciplineForCard(Player player) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final result = await supabase
+          .from('match_events')
+          .select('type, player_id1')
+          .eq('match_id', _match.id)
+          .eq('player_id1', player.id);
+
+      int yellowCount = 0;
+      bool hasRed = false;
+
+      for (final row in result) {
+        final raw = row['type'];
+        if (raw == null) continue;
+        final typeString = raw.toString().split('.').last;
+        if (typeString == 'yellowCard') {
+          yellowCount++;
+        } else if (typeString == 'redCard') {
+          hasRed = true;
+        }
+      }
+
+      if (!hasRed && yellowCount < 2) {
+        return;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _sentOffPlayerIds.add(player.id);
+
+        for (int i = 0; i < _positionPlayers.length; i++) {
+          final p = _positionPlayers[i];
+          if (p != null && p.id == player.id) {
+            _positionPlayers[i] = null;
+          }
+        }
+
+        if (_selectedPlayer?.id == player.id) {
+          _selectedPlayer = null;
+        }
+      });
+
+      _showSnack(
+        yellowCount >= 2
+            ? '${player.fullName} expulsado por doble amarilla'
+            : '${player.fullName} expulsado',
+        error: true,
+      );
+    } catch (e) {
+      debugPrint('Error handling card discipline: $e');
     }
   }
 
@@ -1140,8 +1163,13 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       context: context,
       barrierDismissible: true,
       builder: (ctx) {
+        final onFieldIds = _positionPlayers
+            .where((p) => p != null)
+            .map((p) => p!.id)
+            .toSet();
+
         final assistCandidates = _convokedPlayers
-            .where((p) => p.id != scorer.id)
+            .where((p) => p.id != scorer.id && onFieldIds.contains(p.id))
             .toList();
 
         return AlertDialog(
@@ -1216,6 +1244,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         },
         (_) {
           _reloadScoreFromEvents();
+          _recalculatePlayerRatings();
           _showSnack('Gol registrado para ${player.fullName}');
         },
       );
@@ -1278,10 +1307,13 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             const SnackBar(
               content: Text('Partido empezado correctamente'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
             ),
           );
           _matchStartTimes[_match.id] = startTime;
           _saveCurrentLineup();
+          // Persistimos la posición actual de cada jugador en match_lineup.position
+          _persistCurrentPositionsToMatchLineup();
           // Actualizamos en BD qué jugadores empiezan como titulares.
           _updateStartersInMatchLineup();
           // Guardamos evento de inicio de partido / 1ª parte
@@ -1493,6 +1525,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             const SnackBar(
               content: Text('Partido terminado correctamente'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 1),
             ),
           );
 
@@ -1512,9 +1545,17 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             isHome: _match.isHome,
           );
 
+          final getPlayersByTeamUseCase =
+              context.read() as GetPlayersByTeamUseCase;
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (ctx) => MatchStatsPage(match: finishedMatch),
+              builder: (ctx) => BlocProvider(
+                create: (_) => MatchStatsCubit(
+                  match: finishedMatch,
+                  getPlayersByTeamUseCase: getPlayersByTeamUseCase,
+                )..load(),
+                child: MatchStatsPage(match: finishedMatch),
+              ),
             ),
           );
         },
@@ -1526,6 +1567,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   Widget build(BuildContext context) {
     final scoreText =
         '${widget.team.name} ${_match.goalsScored} - ${_match.goalsConceded} ${_match.opponent}';
+    final bool isExternal = _isExternal;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Gestor de partido'), centerTitle: true),
@@ -1546,14 +1588,55 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Cronómetro
+                // Cronómetro de la parte actual: tiempo reglamentario + descuento
                 Center(
-                  child: Text(
-                    _formatTime(_elapsedSeconds),
-                    style: const TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Builder(
+                    builder: (context) {
+                      final mainSeconds = _mainClockSeconds();
+                      final extraSeconds = _extraClockSeconds();
+
+                      if (extraSeconds <= 0) {
+                        // Solo tiempo reglamentario
+                        return Text(
+                          _formatTime(mainSeconds),
+                          style: const TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      }
+
+                      // Tiempo reglamentario + descuento (aparece el segundo
+                      // cronómetro solo cuando se supera el tope de la parte)
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatTime(mainSeconds),
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            '+',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTime(extraSeconds),
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1565,7 +1648,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                       ),
-                      onPressed: () => _onAddGoal(ourTeam: false),
+                      onPressed: isExternal
+                          ? null
+                          : () => _onAddGoal(ourTeam: false),
                       child: const Text(
                         '+ Gol rival',
                         style: TextStyle(color: Colors.white),
@@ -1578,11 +1663,15 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     TextButton(
-                      onPressed: () => _onRemoveGoal(ourTeam: true),
+                      onPressed: isExternal
+                          ? null
+                          : () => _onRemoveGoal(ourTeam: true),
                       child: const Text('Quitar gol mi equipo'),
                     ),
                     TextButton(
-                      onPressed: () => _onRemoveGoal(ourTeam: false),
+                      onPressed: isExternal
+                          ? null
+                          : () => _onRemoveGoal(ourTeam: false),
                       child: const Text('Quitar gol rival'),
                     ),
                   ],
@@ -1600,11 +1689,13 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                           ),
                         )
                         .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        _changeFormation(value);
-                      }
-                    },
+                    onChanged: isExternal
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              _changeFormation(value);
+                            }
+                          },
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -1621,7 +1712,30 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                       // Relación alto/ancho aproximada del png de campo.
                       // Si cambias la imagen, puedes ajustar este valor.
                       aspectRatio: 4 / 3,
-                      child: _buildFieldWithFormation(),
+                      child: MatchFieldWithFormation(
+                        formationLines: _formationLines,
+                        positionPlayers: _positionPlayers,
+                        selectedPlayer: _selectedPlayer,
+                        sentOffPlayerIds: _sentOffPlayerIds,
+                        currentPlayersOnField: _currentPlayersOnField,
+                        maxPlayersOnField: _maxPlayersOnField,
+                        showSnack: _showSnack,
+                        onPositionsChanged: (newPositions) {
+                          setState(() {
+                            _positionPlayers = newPositions;
+                            _selectedPlayer = null;
+                          });
+                          _persistCurrentPositionsToMatchLineup();
+                        },
+                        onSubstitutionRequested: (playerIn, playerOut) {
+                          _saveSubstitutionEvent(
+                            playerIn: playerIn,
+                            playerOut: playerOut,
+                          );
+                        },
+                        onPlayerActionRequested: _onPlayerActionRequested,
+                        readOnly: isExternal,
+                      ),
                     ),
                   ),
                 ),
@@ -1629,7 +1743,33 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                 // Tabla de convocatoria embebida en el scroll
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 320),
-                  child: _buildConvocationTable(scrollingChild: true),
+                  child: MatchConvocationTable(
+                    loading: _loadingPlayers,
+                    error: _loadError,
+                    convokedPlayers: _convokedPlayers,
+                    positionPlayers: _positionPlayers,
+                    selectedPlayer: _selectedPlayer,
+                    sentOffPlayerIds: _sentOffPlayerIds,
+                    playerRatings: _playerRatings,
+                    scrollingChild: true,
+                    readOnly: isExternal,
+                    onPlayerTap: (player, isSentOff) {
+                      if (isSentOff) {
+                        _showSnack(
+                          'Jugador expulsado, no puede volver a entrar',
+                          error: true,
+                        );
+                        return;
+                      }
+                      setState(() {
+                        if (_selectedPlayer?.id == player.id) {
+                          _selectedPlayer = null;
+                        } else {
+                          _selectedPlayer = player;
+                        }
+                      });
+                    },
+                  ),
                 ),
                 const SizedBox(height: 16),
                 BlocBuilder<LoadingCubit, bool>(
@@ -1638,7 +1778,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : _onBottomButtonPressed,
+                        onPressed: (isLoading || isExternal)
+                            ? null
+                            : _onBottomButtonPressed,
                         child: isLoading
                             ? const SizedBox(
                                 width: 24,
@@ -1665,108 +1807,6 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildConvocationTable({bool scrollingChild = false}) {
-    if (_loadingPlayers) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_loadError != null) {
-      return Center(child: Text(_loadError!));
-    }
-
-    if (_convokedPlayers.isEmpty) {
-      return const Center(
-        child: Text('No hay jugadores convocados para este partido'),
-      );
-    }
-
-    final listView = ListView.separated(
-      shrinkWrap: scrollingChild,
-      physics: scrollingChild ? const ClampingScrollPhysics() : null,
-      itemCount: _convokedPlayers.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final player = _convokedPlayers[index];
-        final dorsal = player.number?.toString() ?? '-';
-        final name = player.firstName;
-        final lastName = player.lastName ?? '';
-        final display = lastName.isNotEmpty
-            ? '$dorsal  $name $lastName,'
-            : '$dorsal  $name,';
-        final assignedIndex = _positionPlayers.indexWhere(
-          (p) => p != null && p.id == player.id,
-        );
-        final isAssigned = assignedIndex != -1;
-
-        final isSelected = _selectedPlayer?.id == player.id;
-
-        return ListTile(
-          title: Text(display),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isAssigned) const Icon(Icons.check, color: Colors.green),
-              if (isSelected)
-                const Padding(
-                  padding: EdgeInsets.only(left: 4.0),
-                  child: Icon(Icons.person_outline, color: Colors.orange),
-                ),
-            ],
-          ),
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                _selectedPlayer = null;
-              } else {
-                _selectedPlayer = player;
-              }
-            });
-          },
-        );
-      },
-    );
-    return listView;
-  }
-}
-
-enum _PlayerActionType {
-  goal,
-  goodPass,
-  badPass,
-  badPlay,
-  loseMark,
-  recoverPossession,
-  goodShot,
-  foul,
-  yellowCard,
-  redCard,
-}
-
-class _PlayerActionButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _PlayerActionButton({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        onPressed: onTap,
-        child: Align(alignment: Alignment.centerLeft, child: Text(label)),
       ),
     );
   }

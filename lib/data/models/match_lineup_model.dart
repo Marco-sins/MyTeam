@@ -7,6 +7,7 @@ class MatchLineupModel extends MatchLineup {
     required super.matchId,
     required super.isStarting,
     super.minutesPlayed,
+    super.position,
     super.rating,
   });
 
@@ -17,6 +18,7 @@ class MatchLineupModel extends MatchLineup {
       matchId: json['match_id'],
       isStarting: json['is_start'],
       minutesPlayed: json['minutes_played'] ?? 0,
+      position: json['position'] as int?,
       rating: (json['rating'] as num?)?.toDouble() ?? 5,
     );
   }
@@ -27,6 +29,7 @@ class MatchLineupModel extends MatchLineup {
       'match_id': matchId,
       'is_start': isStarting,
       'minutes_played': minutesPlayed,
+      'position': position,
       // La columna rating es smallint en BD, enviamos entero
       'rating': rating.toInt(),
     };
@@ -38,6 +41,7 @@ class MatchLineupModel extends MatchLineup {
     int? matchId,
     bool? isStarting,
     int? minutesPlayed,
+    int? position,
     double? rating,
   }) {
     return MatchLineupModel(
@@ -46,6 +50,7 @@ class MatchLineupModel extends MatchLineup {
       matchId: matchId ?? this.matchId,
       isStarting: isStarting ?? this.isStarting,
       minutesPlayed: minutesPlayed ?? this.minutesPlayed,
+      position: position ?? this.position,
       rating: rating ?? this.rating,
     );
   }

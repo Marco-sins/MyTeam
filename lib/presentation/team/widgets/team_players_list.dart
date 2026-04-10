@@ -8,6 +8,7 @@ import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
 import 'package:football_manager/presentation/player/pages/edit_player_page.dart';
 import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
+import 'package:football_manager/presentation/player/widgets/player_detail_dialog.dart';
 
 class TeamPlayersList extends StatelessWidget {
   final Team team;
@@ -41,6 +42,13 @@ class TeamPlayersList extends StatelessWidget {
                 title: Text(
                   '${player.number?.toString() ?? '-'}  ${player.fullName}',
                 ),
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) =>
+                        PlayerDetailDialog(team: team, player: player),
+                  );
+                },
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -145,6 +153,7 @@ class TeamPlayersList extends StatelessWidget {
                               const SnackBar(
                                 content: Text('Jugador borrado correctamente'),
                                 backgroundColor: Colors.green,
+                                duration: Duration(seconds: 1),
                               ),
                             );
                             context.read<TeamDetailCubit>().loadTeam(team.id);

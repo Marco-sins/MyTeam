@@ -150,6 +150,7 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                                     'Partido eliminado correctamente',
                                   ),
                                   backgroundColor: Colors.green,
+                                  duration: Duration(seconds: 1),
                                 ),
                               );
                               // Recargamos la lista de partidos
