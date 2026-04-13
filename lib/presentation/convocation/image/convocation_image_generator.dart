@@ -100,6 +100,7 @@ Future<File?> generateConvocationImage({
       callTimeStr: callTimeStr,
       mapUrl: mapUrl,
       awayLocation: awayLocation,
+      isHome: isHome,
       notes: notes,
       players: sortedPlayers,
     );

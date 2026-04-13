@@ -12,6 +12,7 @@ void drawConvocationBody({
   required String callTimeStr,
   required String? mapUrl,
   required String? awayLocation,
+  required bool isHome,
   required String? notes,
   required List<Player> players,
 }) {
@@ -55,8 +56,8 @@ void drawConvocationBody({
   );
   y += 34;
 
-  if (awayLocation != null && awayLocation.isNotEmpty) {
-    // Dibuja la línea 'Lugar: <nombre del campo>'
+  if (isHome && awayLocation != null && awayLocation.isNotEmpty) {
+    // Dibuja la línea 'Lugar: <nombre del campo>' solo si es local
     final lugarText = 'Lugar: $awayLocation';
     final maxWidth = overlayRect.width - 40;
     final dx = overlayRect.left + 20;

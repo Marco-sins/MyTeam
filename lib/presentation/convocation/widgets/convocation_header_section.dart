@@ -57,30 +57,7 @@ class ConvocationHeaderSection extends StatelessWidget {
             ],
           ),
         ),
-        if (!isHome) ...[
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: SizedBox(
-              height: 40,
-              child: TextFormField(
-                initialValue: awayLocation ?? '',
-                decoration: const InputDecoration(
-                  labelText: 'Enlace o dirección',
-                  border: OutlineInputBorder(),
-                  hintText: 'Pega el enlace o dirección',
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 12,
-                  ),
-                  isDense: true,
-                ),
-                onChanged: onAwayLocationSelected,
-                maxLines: 1,
-              ),
-            ),
-          ),
-        ],
+        // Eliminado el campo de texto para 'Enlace o dirección' cuando es visitante
       ],
     );
   }
