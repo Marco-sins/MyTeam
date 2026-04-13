@@ -309,7 +309,7 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
                           )
                         : ListView.separated(
                             itemCount: _members.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (context, index) =>
                                 const Divider(height: 1),
                             itemBuilder: (context, index) {
                               final member = _members[index];

@@ -373,7 +373,9 @@ class _StatChip extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.06),
+            color: Theme.of(
+              context,
+            ).colorScheme.primary.withAlpha((0.06 * 255).round()),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(

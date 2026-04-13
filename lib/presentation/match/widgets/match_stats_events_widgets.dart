@@ -94,7 +94,7 @@ class MatchSubstitutionItem extends StatelessWidget {
           SizedBox(
             width: 40,
             child: Text(
-              "${minute}'",
+              "$minute'",
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
@@ -155,7 +155,7 @@ class MatchCardItem extends StatelessWidget {
           SizedBox(
             width: 40,
             child: Text(
-              "${minute}'",
+              "$minute'",
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
@@ -220,7 +220,7 @@ class MatchGoalItem extends StatelessWidget {
             SizedBox(
               width: 40,
               child: Text(
-                "${minute}'",
+                "$minute'",
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
@@ -292,7 +292,7 @@ class MatchGoalItem extends StatelessWidget {
           SizedBox(
             width: 40,
             child: Text(
-              "${minute}'",
+              "$minute'",
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),

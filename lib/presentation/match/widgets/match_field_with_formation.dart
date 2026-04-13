@@ -216,7 +216,7 @@ class MatchFieldWithFormation extends StatelessWidget {
                         radius: 16,
                         backgroundColor: assignedPlayer != null
                             ? Colors.greenAccent
-                            : Colors.white.withOpacity(0.85),
+                            : Colors.white.withAlpha((0.85 * 255).round()),
                         child: Text(
                           displayNumber,
                           style: const TextStyle(

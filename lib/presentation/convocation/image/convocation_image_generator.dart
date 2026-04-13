@@ -58,7 +58,8 @@ Future<File?> generateConvocationImage({
       ).createShader(rect);
     canvas.drawRect(rect, bgPaint);
 
-    final overlayPaint = Paint()..color = Colors.white.withOpacity(0.92);
+    final overlayPaint = Paint()
+      ..color = Colors.white.withAlpha((0.92 * 255).round());
     const overlayMargin = 40.0;
     final overlayRect = Rect.fromLTWH(
       overlayMargin,

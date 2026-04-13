@@ -153,7 +153,8 @@ class _InvitationsPageState extends State<InvitationsPage> {
               ? const Center(child: Text('No tienes invitaciones pendientes.'))
               : ListView.separated(
                   itemCount: _invitations.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final invitation = _invitations[index];
                     final team = _teamsById[invitation.teamId];
@@ -195,7 +196,9 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                         .read<AuthCubit>()
                                         .state;
                                     if (authState is! Authenticated) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                             'Debes estar autenticado para rechazar invitaciones',
@@ -208,10 +211,11 @@ class _InvitationsPageState extends State<InvitationsPage> {
 
                                     final rejectInvitationUseCase = context
                                         .read<RejectInvitationUseCase>();
-                                    final result = await rejectInvitationUseCase(
-                                      invitation,
-                                      authState.user,
-                                    );
+                                    final result =
+                                        await rejectInvitationUseCase(
+                                          invitation,
+                                          authState.user,
+                                        );
 
                                     if (!mounted) return;
                                     result.fold(
@@ -233,7 +237,9 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                           context,
                                         ).showSnackBar(
                                           const SnackBar(
-                                            content: Text('Invitación rechazada'),
+                                            content: Text(
+                                              'Invitación rechazada',
+                                            ),
                                             backgroundColor: Colors.green,
                                             duration: Duration(seconds: 1),
                                           ),
@@ -254,7 +260,9 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                         .read<AuthCubit>()
                                         .state;
                                     if (authState is! Authenticated) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                             'Debes estar autenticado para aceptar invitaciones',
@@ -267,10 +275,11 @@ class _InvitationsPageState extends State<InvitationsPage> {
 
                                     final acceptInvitationUseCase = context
                                         .read<AcceptInvitationUseCase>();
-                                    final result = await acceptInvitationUseCase(
-                                      invitation,
-                                      authState.user,
-                                    );
+                                    final result =
+                                        await acceptInvitationUseCase(
+                                          invitation,
+                                          authState.user,
+                                        );
 
                                     if (!mounted) return;
                                     result.fold(

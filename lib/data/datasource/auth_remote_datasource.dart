@@ -77,6 +77,7 @@ class AuthRemoteDatasource {
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
+        emailRedirectTo: 'com.example.tfg1://login',
         data: {
           'name': name,
           'teamRoles': {}, // Inicialmente sin roles de equipo

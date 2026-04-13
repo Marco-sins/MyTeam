@@ -141,8 +141,8 @@ class _MatchLineupPlayerRow extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 color: label == 'Titular'
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.blueGrey.withOpacity(0.1),
+                    ? Colors.green.withAlpha((0.1 * 255).round())
+                    : Colors.blueGrey.withAlpha((0.1 * 255).round()),
               ),
               child: Text(
                 label,

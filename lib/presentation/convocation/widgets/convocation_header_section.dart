@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'convocation_map_picker_page.dart';
@@ -19,23 +18,6 @@ class ConvocationHeaderSection extends StatelessWidget {
     required this.onToggleHomeAway,
     required this.onAwayLocationSelected,
   });
-
-  Future<void> _pickAwayLocation(BuildContext context) async {
-    final initialLatLng = _parseLatLng(awayLocation);
-
-    final result = await Navigator.of(context).push<LatLng>(
-      MaterialPageRoute(
-        builder: (_) =>
-            ConvocationMapPickerPage(initialLocation: initialLatLng),
-      ),
-    );
-
-    if (result != null) {
-      final value =
-          '${result.latitude.toStringAsFixed(5)}, ${result.longitude.toStringAsFixed(5)}';
-      onAwayLocationSelected(value);
-    }
-  }
 
   LatLng? _parseLatLng(String? value) {
     if (value == null || value.isEmpty) return null;
@@ -79,54 +61,23 @@ class ConvocationHeaderSection extends StatelessWidget {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey.shade50,
-                    foregroundColor: Colors.blueGrey.shade900,
+            child: SizedBox(
+              height: 40,
+              child: TextFormField(
+                initialValue: awayLocation ?? '',
+                decoration: const InputDecoration(
+                  labelText: 'Enlace o dirección',
+                  border: OutlineInputBorder(),
+                  hintText: 'Pega el enlace o dirección',
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 12,
                   ),
-                  onPressed: () => _pickAwayLocation(context),
-                  icon: const Icon(Icons.location_on_outlined),
-                  label: const Text('Añadir ubicación (Maps)'),
+                  isDense: true,
                 ),
-                if (awayLocation != null && awayLocation!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            awayLocation!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () async {
-                            final uri = Uri.parse(
-                              'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation!)}',
-                            );
-                            await launchUrl(
-                              uri,
-                              mode: LaunchMode.externalApplication,
-                            );
-                          },
-                          icon: const Icon(Icons.map, size: 16),
-                          label: const Text(
-                            'Ver en Maps',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+                onChanged: onAwayLocationSelected,
+                maxLines: 1,
+              ),
             ),
           ),
         ],

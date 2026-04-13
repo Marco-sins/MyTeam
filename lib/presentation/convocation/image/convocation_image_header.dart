@@ -149,9 +149,10 @@ double drawConvocationHeader({
     const Radius.circular(20),
   );
 
-  final chipPaint = Paint()..color = Colors.white.withOpacity(0.15);
+  final chipPaint = Paint()
+    ..color = Colors.white.withAlpha((0.15 * 255).round());
   final chipBorderPaint = Paint()
-    ..color = Colors.white.withOpacity(0.7)
+    ..color = Colors.white.withAlpha((0.7 * 255).round())
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.3;
 

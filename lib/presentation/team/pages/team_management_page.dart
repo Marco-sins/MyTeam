@@ -61,6 +61,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text('Gestión de equipo'),
         centerTitle: true,
@@ -83,239 +84,242 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TeamManagementHeaderRow(
-              nameController: _nameController,
-              selectedLogoPath: _selectedLogoPath,
-              logoUrl: widget.team.logoUrl,
-              onLogoTap: _onLogoTap,
-            ),
-            const SizedBox(height: 16),
-            // TODO: Botón para guardar cambios de nombre/escudo cuando conectes el use case de updateTeam
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final authState = context.read<AuthCubit>().state;
-                  if (authState is! Authenticated) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Debes iniciar sesión para guardar cambios',
-                        ),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  final updateTeamUseCase = context.read<UpdateTeamUseCase>();
-
-                  // Por ahora no guardamos cambios de logo en base de datos,
-                  // sólo permitimos seleccionar imagen para previsualizar.
-                  final String? newLogoUrl = widget.team.logoUrl;
-
-                  final newName = _nameController.text.trim();
-                  final updatedTeam = Team(
-                    id: widget.team.id,
-                    name: newName,
-                    category: widget.team.category,
-                    logoUrl: newLogoUrl,
-                  );
-
-                  final updateResult = await updateTeamUseCase(
-                    updatedTeam,
-                    authState.user,
-                  );
-
-                  updateResult.fold(
-                    (failure) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(failure.message),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    },
-                    (_) {
-                      context.read<HomeCubit>().fetchTeams();
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TeamManagementHeaderRow(
+                nameController: _nameController,
+                selectedLogoPath: _selectedLogoPath,
+                logoUrl: widget.team.logoUrl,
+                onLogoTap: _onLogoTap,
+              ),
+              const SizedBox(height: 16),
+              // TODO: Botón para guardar cambios de nombre/escudo cuando conectes el use case de updateTeam
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final authState = context.read<AuthCubit>().state;
+                    if (authState is! Authenticated) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Cambios guardados correctamente'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  );
-                },
-                icon: const Icon(Icons.save),
-                label: const Text('Guardar cambios'),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider.value(
-                        value: context.read<TeamDetailCubit>(),
-                        child: TeamRosterPage(team: widget.team),
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.groups),
-                label: const Text('Modificar plantilla'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MatchDeletePage(team: widget.team),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.sports_soccer, color: Colors.red),
-                label: const Text('Eliminar partido'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AttendanceDeletePage(team: widget.team),
-                    ),
-                  ).then((result) {
-                    if (result == true) {
-                      Navigator.of(context).pop(true);
-                    }
-                  });
-                },
-                icon: const Icon(Icons.event_busy, color: Colors.red),
-                label: const Text('Eliminar asistencia'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TeamAccessPage(team: widget.team),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.lock_open),
-                label: const Text('Administrar acceso'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                ),
-                onPressed: () async {
-                  final authState = context.read<AuthCubit>().state;
-                  if (authState is! Authenticated) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Debes iniciar sesión para borrar el equipo',
-                        ),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Borrar equipo'),
-                      content: const Text(
-                        '¿Seguro que quieres borrar este equipo? Esta acción no se puede deshacer.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          child: const Text('Cancelar'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(true),
-                          child: const Text(
-                            'Borrar',
-                            style: TextStyle(color: Colors.red),
+                          content: Text(
+                            'Debes iniciar sesión para guardar cambios',
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirm != true) return;
-                  final deleteTeamUseCase = context.read<DeleteTeamUseCase>();
-                  final result = await deleteTeamUseCase(
-                    widget.team,
-                    authState.user,
-                  );
-
-                  result.fold(
-                    (failure) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(failure.message),
                           backgroundColor: Colors.red,
                         ),
                       );
-                    },
-                    (_) {
-                      // Refrescamos la lista de equipos en Home antes de volver
-                      context.read<HomeCubit>().fetchTeams();
+                      return;
+                    }
+
+                    final updateTeamUseCase = context.read<UpdateTeamUseCase>();
+
+                    // Por ahora no guardamos cambios de logo en base de datos,
+                    // sólo permitimos seleccionar imagen para previsualizar.
+                    final String? newLogoUrl = widget.team.logoUrl;
+
+                    final newName = _nameController.text.trim();
+                    final updatedTeam = Team(
+                      id: widget.team.id,
+                      name: newName,
+                      category: widget.team.category,
+                      logoUrl: newLogoUrl,
+                    );
+
+                    final updateResult = await updateTeamUseCase(
+                      updatedTeam,
+                      authState.user,
+                    );
+
+                    updateResult.fold(
+                      (failure) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(failure.message),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      },
+                      (_) {
+                        context.read<HomeCubit>().fetchTeams();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Cambios guardados correctamente'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.save),
+                  label: const Text('Guardar cambios'),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider.value(
+                          value: context.read<TeamDetailCubit>(),
+                          child: TeamRosterPage(team: widget.team),
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.groups),
+                  label: const Text('Modificar plantilla'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MatchDeletePage(team: widget.team),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.sports_soccer, color: Colors.red),
+                  label: const Text('Eliminar partido'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AttendanceDeletePage(team: widget.team),
+                      ),
+                    ).then((result) {
+                      if (result == true) {
+                        Navigator.of(context).pop(true);
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.event_busy, color: Colors.red),
+                  label: const Text('Eliminar asistencia'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TeamAccessPage(team: widget.team),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.lock_open),
+                  label: const Text('Administrar acceso'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                  onPressed: () async {
+                    final authState = context.read<AuthCubit>().state;
+                    if (authState is! Authenticated) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Equipo borrado correctamente'),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 1),
+                          content: Text(
+                            'Debes iniciar sesión para borrar el equipo',
+                          ),
+                          backgroundColor: Colors.red,
                         ),
                       );
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                  );
-                },
-                icon: const Icon(Icons.delete),
-                label: const Text('Borrar equipo'),
+                      return;
+                    }
+
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Borrar equipo'),
+                        content: const Text(
+                          '¿Seguro que quieres borrar este equipo? Esta acción no se puede deshacer.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancelar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            child: const Text(
+                              'Borrar',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm != true) return;
+                    final deleteTeamUseCase = context.read<DeleteTeamUseCase>();
+                    final result = await deleteTeamUseCase(
+                      widget.team,
+                      authState.user,
+                    );
+
+                    result.fold(
+                      (failure) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(failure.message),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      },
+                      (_) {
+                        // Refrescamos la lista de equipos en Home antes de volver
+                        context.read<HomeCubit>().fetchTeams();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Equipo borrado correctamente'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Borrar equipo'),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: TeamBottomBar(team: widget.team),
     );
   }
 }

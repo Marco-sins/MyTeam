@@ -55,19 +55,59 @@ void drawConvocationBody({
   );
   y += 34;
 
-  if (mapUrl != null) {
-    _drawText(canvas, overlayRect, 'Lugar: $awayLocation', y, fontSize: 20);
-    y += 30;
-    _drawText(
-      canvas,
-      overlayRect,
-      'Mapa: $mapUrl',
-      y,
-      fontSize: 18,
-      color: Colors.blue,
-    );
-    y += 38;
-  } else {
+  if (mapUrl != null && awayLocation?.isNotEmpty == true) {
+    // Dibuja la línea 'Lugar: campo' donde 'campo' es azul y subrayado
+    if (mapUrl != null && awayLocation != null && awayLocation.isNotEmpty) {
+      // Dibuja la línea 'Lugar: campo' donde 'campo' es azul y subrayado
+      final prefix = 'Lugar: ';
+      final linkText = 'campo';
+      final maxWidth = overlayRect.width - 40;
+      final dx = overlayRect.left + 20;
+
+      // Construir el texto con estilos distintos
+      final builder =
+          ui.ParagraphBuilder(
+              ui.ParagraphStyle(
+                textAlign: TextAlign.left,
+                fontSize: 20,
+                fontWeight: FontWeight.normal,
+                maxLines: 1,
+              ),
+            )
+            ..pushStyle(ui.TextStyle(color: Colors.black87))
+            ..addText(prefix)
+            ..pushStyle(
+              ui.TextStyle(
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+            ..addText(linkText);
+      final paragraph = builder.build();
+      paragraph.layout(ui.ParagraphConstraints(width: maxWidth));
+      canvas.drawParagraph(paragraph, Offset(dx, y));
+
+      // Debajo, el enlace en pequeño (gris)
+      final builder2 =
+          ui.ParagraphBuilder(
+              ui.ParagraphStyle(
+                textAlign: TextAlign.left,
+                fontSize: 13,
+                fontWeight: FontWeight.normal,
+                maxLines: 1,
+              ),
+            )
+            ..pushStyle(ui.TextStyle(color: Colors.grey.shade700))
+            ..addText(mapUrl);
+      final paragraph2 = builder2.build();
+      paragraph2.layout(ui.ParagraphConstraints(width: maxWidth));
+      canvas.drawParagraph(paragraph2, Offset(dx, y + 24));
+
+      y += 38;
+    } else {
+      y += 12;
+    }
     y += 12;
   }
 
@@ -98,7 +138,7 @@ void drawConvocationBody({
   y += sectionTagHeight + 24;
 
   final playersBgPaint = Paint()
-    ..color = const Color(0xFF4CAF50).withOpacity(0.08);
+    ..color = const Color(0xFF4CAF50).withAlpha((0.08 * 255).round());
   canvas.drawCircle(Offset(overlayRect.center.dx, y + 80), 140, playersBgPaint);
 
   for (final p in players) {

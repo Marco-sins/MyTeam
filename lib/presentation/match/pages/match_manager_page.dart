@@ -665,6 +665,8 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         widget.team.id,
       );
 
+      if (!mounted) return;
+
       result.fold((failure) => _showSnack(failure.message, error: true), (_) {
         _reloadScoreFromEvents();
         _showSnack('Gol del rival registrado correctamente');
@@ -761,6 +763,11 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       _loadError = null;
     });
 
+    // 1) Intentamos obtener los ids de los jugadores convocados
+    // desde la tabla match_lineup. Si falla (por ejemplo por
+    // permisos en Supabase), seguiremos mostrando al menos
+    // todos los jugadores del equipo como fallback.
+    Set<int> playerIds = {};
     try {
       final supabase = Supabase.instance.client;
       final lineupResult = await supabase
@@ -768,11 +775,20 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           .select('player_id')
           .eq('match_id', _match.id);
 
-      final playerIds = lineupResult
+      playerIds = lineupResult
           .map<int>((row) => row['player_id'] as int)
           .toSet();
+    } catch (e) {
+      debugPrint('Error loading match_lineup for convocation: $e');
+      // playerIds se queda vacío y más abajo mostraremos
+      // todos los jugadores del equipo como fallback.
+    }
 
-      final getPlayersByTeamUseCase = context.read() as GetPlayersByTeamUseCase;
+    // 2) Cargamos los jugadores del equipo y filtramos por los
+    // ids convocados (si los tenemos). Si no tenemos ids (por
+    // error en match_lineup), mostramos toda la plantilla.
+    try {
+      final getPlayersByTeamUseCase = context.read<GetPlayersByTeamUseCase>();
       final playersResult = await getPlayersByTeamUseCase(widget.team.id);
 
       playersResult.fold(
@@ -783,9 +799,15 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           });
         },
         (players) {
-          final convoked =
-              players.where((p) => playerIds.contains(p.id)).toList()
-                ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
+          List<Player> convoked;
+          if (playerIds.isEmpty) {
+            convoked = List<Player>.from(players);
+          } else {
+            convoked = players.where((p) => playerIds.contains(p.id)).toList();
+          }
+
+          convoked.sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
+
           setState(() {
             _convokedPlayers
               ..clear()

@@ -47,7 +47,7 @@ class MatchConvocationTable extends StatelessWidget {
       shrinkWrap: scrollingChild,
       physics: scrollingChild ? const ClampingScrollPhysics() : null,
       itemCount: convokedPlayers.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final player = convokedPlayers[index];
         final dorsal = player.number?.toString() ?? '-';

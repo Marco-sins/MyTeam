@@ -29,7 +29,7 @@ class ConvocationPlayersSection extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: sortedPlayers.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final player = sortedPlayers[index];
                 final isCalled = state.calledUp[player.id] ?? false;
