@@ -118,12 +118,15 @@ class TeamBottomBar extends StatelessWidget {
       );
     }
 
-    return BottomAppBar(
-      child: SizedBox(
-        height: 64,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: buttons,
+    return SafeArea(
+      top: false,
+      child: BottomAppBar(
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: buttons,
+          ),
         ),
       ),
     );

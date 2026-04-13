@@ -55,59 +55,26 @@ void drawConvocationBody({
   );
   y += 34;
 
-  if (mapUrl != null && awayLocation?.isNotEmpty == true) {
-    // Dibuja la línea 'Lugar: campo' donde 'campo' es azul y subrayado
-    if (mapUrl != null && awayLocation != null && awayLocation.isNotEmpty) {
-      // Dibuja la línea 'Lugar: campo' donde 'campo' es azul y subrayado
-      final prefix = 'Lugar: ';
-      final linkText = 'campo';
-      final maxWidth = overlayRect.width - 40;
-      final dx = overlayRect.left + 20;
-
-      // Construir el texto con estilos distintos
-      final builder =
-          ui.ParagraphBuilder(
-              ui.ParagraphStyle(
-                textAlign: TextAlign.left,
-                fontSize: 20,
-                fontWeight: FontWeight.normal,
-                maxLines: 1,
-              ),
-            )
-            ..pushStyle(ui.TextStyle(color: Colors.black87))
-            ..addText(prefix)
-            ..pushStyle(
-              ui.TextStyle(
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-                fontWeight: FontWeight.w600,
-              ),
-            )
-            ..addText(linkText);
-      final paragraph = builder.build();
-      paragraph.layout(ui.ParagraphConstraints(width: maxWidth));
-      canvas.drawParagraph(paragraph, Offset(dx, y));
-
-      // Debajo, el enlace en pequeño (gris)
-      final builder2 =
-          ui.ParagraphBuilder(
-              ui.ParagraphStyle(
-                textAlign: TextAlign.left,
-                fontSize: 13,
-                fontWeight: FontWeight.normal,
-                maxLines: 1,
-              ),
-            )
-            ..pushStyle(ui.TextStyle(color: Colors.grey.shade700))
-            ..addText(mapUrl);
-      final paragraph2 = builder2.build();
-      paragraph2.layout(ui.ParagraphConstraints(width: maxWidth));
-      canvas.drawParagraph(paragraph2, Offset(dx, y + 24));
-
-      y += 38;
-    } else {
-      y += 12;
-    }
+  if (awayLocation != null && awayLocation.isNotEmpty) {
+    // Dibuja la línea 'Lugar: <nombre del campo>'
+    final lugarText = 'Lugar: $awayLocation';
+    final maxWidth = overlayRect.width - 40;
+    final dx = overlayRect.left + 20;
+    final builder =
+        ui.ParagraphBuilder(
+            ui.ParagraphStyle(
+              textAlign: TextAlign.left,
+              fontSize: 20,
+              fontWeight: FontWeight.normal,
+              maxLines: 1,
+            ),
+          )
+          ..pushStyle(ui.TextStyle(color: Colors.black87))
+          ..addText(lugarText);
+    final paragraph = builder.build();
+    paragraph.layout(ui.ParagraphConstraints(width: maxWidth));
+    canvas.drawParagraph(paragraph, Offset(dx, y));
+    y += 38;
     y += 12;
   }
 

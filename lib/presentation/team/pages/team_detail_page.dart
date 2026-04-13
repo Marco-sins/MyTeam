@@ -27,17 +27,7 @@ class _TeamDetailPageState extends State<TeamDetailPage> {
       appBar: AppBar(
         // Nombre fijo de la aplicación en el menú de equipo
         title: const Text('Football TFG'),
-        actions: [
-          if (widget.team.logoUrl != null &&
-              (widget.team.logoUrl!.startsWith('http://') ||
-                  widget.team.logoUrl!.startsWith('https://')))
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: CircleAvatar(
-                backgroundImage: NetworkImage(widget.team.logoUrl!),
-              ),
-            ),
-        ],
+        // Eliminado el escudo/logo del equipo de la parte superior derecha
       ),
       body: Column(
         children: [

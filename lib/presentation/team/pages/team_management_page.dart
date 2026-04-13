@@ -1,4 +1,9 @@
+import 'dart:io';
+
+import 'package:football_manager/domain/i_repositories/i_team_repository.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:football_manager/core/utils/local_image_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/team.dart';
@@ -14,7 +19,6 @@ import 'package:football_manager/presentation/attendance/pages/attendance_delete
 import 'package:football_manager/presentation/team/pages/team_roster_page.dart';
 import 'package:football_manager/presentation/team/widgets/team_management_header_row.dart';
 import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
-import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 import 'package:football_manager/presentation/team/pages/team_access_page.dart';
 
 class TeamManagementPage extends StatefulWidget {
@@ -52,9 +56,22 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
 
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
-      setState(() {
-        _selectedLogoPath = file.path; // para previsualizar en el header
-      });
+      if (file.bytes != null) {
+        // Guardar en local
+        final ext = p.extension(file.name);
+        final safeName = 'team_logo_${widget.team.id}${ext}';
+        final localPath = await LocalImageSaver.saveImageLocally(
+          file.bytes!,
+          safeName,
+        );
+        setState(() {
+          _selectedLogoPath = localPath;
+        });
+      } else if (file.path != null) {
+        setState(() {
+          _selectedLogoPath = file.path;
+        });
+      }
     }
   }
 
@@ -96,7 +113,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                 logoUrl: widget.team.logoUrl,
                 onLogoTap: _onLogoTap,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              const SizedBox(height: 8),
               // TODO: Botón para guardar cambios de nombre/escudo cuando conectes el use case de updateTeam
               Align(
                 alignment: Alignment.centerRight,
@@ -115,11 +133,31 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                       return;
                     }
 
-                    final updateTeamUseCase = context.read<UpdateTeamUseCase>();
-
-                    // Por ahora no guardamos cambios de logo en base de datos,
-                    // sólo permitimos seleccionar imagen para previsualizar.
-                    final String? newLogoUrl = widget.team.logoUrl;
+                    String? newLogoUrl =
+                        _selectedLogoPath ?? widget.team.logoUrl;
+                    // Si el logo es local, súbelo a Supabase antes de guardar
+                    if (_selectedLogoPath != null &&
+                        !_selectedLogoPath!.startsWith('http')) {
+                      final repo = context.read<ITeamRepository>();
+                      final file = File(_selectedLogoPath!);
+                      final bytes = await file.readAsBytes();
+                      final fileName =
+                          'team_logo_${widget.team.id}${p.extension(_selectedLogoPath!)}';
+                      final result = await repo.uploadLogo(bytes, fileName);
+                      result.fold(
+                        (failure) => ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Error subiendo logo: [${failure.message}',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        ),
+                        (url) {
+                          newLogoUrl = url;
+                        },
+                      );
+                    }
 
                     final newName = _nameController.text.trim();
                     final updatedTeam = Team(
@@ -129,6 +167,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                       logoUrl: newLogoUrl,
                     );
 
+                    final updateTeamUseCase = context.read<UpdateTeamUseCase>();
                     final updateResult = await updateTeamUseCase(
                       updatedTeam,
                       authState.user,

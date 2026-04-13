@@ -54,7 +54,7 @@ class TeamRemoteDatasource {
     try {
       final sanitizedFileName = fileName.replaceAll(' ', '_');
       final path =
-          'logos/${DateTime.now().millisecondsSinceEpoch}_$sanitizedFileName';
+          '${DateTime.now().millisecondsSinceEpoch}_$sanitizedFileName';
 
       await _supabase.storage
           .from(_logoBucket)

@@ -53,6 +53,7 @@ import 'package:football_manager/domain/usecase/invitation/reject_invitation_use
 import 'package:football_manager/presentation/home/bloc/home_cubit.dart';
 import 'package:football_manager/presentation/create_team/bloc/create_team_cubit.dart';
 import 'package:football_manager/presentation/home/pages/home_page.dart';
+import 'package:football_manager/domain/i_repositories/i_team_repository.dart';
 
 // --- IMPORTA TUS CAPAS ---
 // Ajusta estas rutas a las carpetas de tu proyecto
@@ -231,6 +232,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: getInvitationsByEmailUseCase),
         RepositoryProvider.value(value: acceptInvitationUseCase),
         RepositoryProvider.value(value: rejectInvitationUseCase),
+        RepositoryProvider<ITeamRepository>.value(value: teamRepository),
       ],
       child: MultiBlocProvider(
         providers: [
