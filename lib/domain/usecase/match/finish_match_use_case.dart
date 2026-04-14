@@ -7,11 +7,13 @@ import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
+import 'package:football_manager/domain/entities/match_lineup.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
 import 'package:football_manager/domain/i_repositories/i_match_event_repository.dart';
 import 'package:football_manager/domain/i_repositories/i_match_repository.dart';
 import 'package:football_manager/domain/i_repositories/i_player_repository.dart';
+import 'package:football_manager/domain/utils/match_minutes_utils.dart';
 
 class FinishMatchUseCase {
   final IMatchRepository _matchRepository;
@@ -33,13 +35,9 @@ class FinishMatchUseCase {
     Either<Failure, List<MatchEvent>> events = await _matchEventRepository
         .getMatchEventsByMatch(match.id);
     if (events.isLeft()) {
-      // If it is an error, return the error
       return events;
     }
 
-    // If it is successful, calculate the goals scored and conceded based on the
-    // match events. Cada gol se guarda una sola vez, con playerId1 como
-    // goleador y playerId2 como asistente (si la hay).
     final List<MatchEvent> matchEvents = events.getOrElse(() => []);
 
     int goalsScored = 0;
@@ -62,8 +60,7 @@ class FinishMatchUseCase {
       goalsConceded: goalsConceded,
       date: match.date,
       hour: match.hour,
-      status: MatchStatus
-          .finished, // Set status to finished to indicate the match is finished
+      status: MatchStatus.finished,
       lineups: match.lineups,
       isHome: match.isHome,
     );
@@ -71,39 +68,96 @@ class FinishMatchUseCase {
       updatedMatch,
     );
     if (result.isLeft()) {
-      // If it is an error, return the error
       return result;
     }
-    List<int> playerIds = matchEvents
-        .map((event) => event.playerId1)
-        .whereType<int>()
-        .toSet()
-        .toList();
-    int i = 0;
-    while (i < playerIds.length) {
-      int playerId = playerIds[i];
-      // Obtenemos las estadísticas actuales del jugador para acumular
+
+    final lineupsResult = await _matchRepository.getMatchLineupsByMatchId(
+      match.id,
+    );
+    if (lineupsResult.isLeft()) {
+      return lineupsResult.map<void>((_) {});
+    }
+    final List<MatchLineup> lineups = lineupsResult.getOrElse(() => []);
+
+    MatchLineup? lineupFor(int playerId) {
+      for (final l in lineups) {
+        if (l.playerId == playerId) {
+          return l;
+        }
+      }
+      return null;
+    }
+
+    final Set<int> playerIdsToUpdate = {};
+    for (final l in lineups) {
+      playerIdsToUpdate.add(l.playerId);
+    }
+    for (final e in matchEvents) {
+      if (e.playerId1 != null) {
+        playerIdsToUpdate.add(e.playerId1!);
+      }
+      if (e.playerId2 != null) {
+        playerIdsToUpdate.add(e.playerId2!);
+      }
+    }
+
+    for (final playerId in playerIdsToUpdate) {
+      final row = lineupFor(playerId);
+      final bool isStarter = row?.isStarting ?? false;
+      final int minutesThisMatch = minutesPlayedForPlayer(
+        events: matchEvents,
+        playerId: playerId,
+        isStarter: isStarter,
+      );
+
+      final eventStats = _getPlayerStats(matchEvents, playerId);
+
+      final bool participated =
+          minutesThisMatch > 0 ||
+          isStarter ||
+          eventStats.goals > 0 ||
+          eventStats.assists > 0 ||
+          eventStats.yellowCards > 0 ||
+          eventStats.redCards > 0;
+
+      if (!participated) {
+        continue;
+      }
+
+      if (row != null) {
+        final lineupWrite = await _matchRepository.updateMatchLineupMinutesPlayed(
+          matchId: match.id,
+          playerId: playerId,
+          minutesPlayed: minutesThisMatch,
+        );
+        if (lineupWrite.isLeft()) {
+          return lineupWrite;
+        }
+      }
+
       final currentPlayerResult = await _playerRepository.getPlayerById(
         playerId,
       );
       if (currentPlayerResult.isLeft()) {
-        return currentPlayerResult.map((_) => null);
+        return currentPlayerResult.map<void>((_) {});
       }
 
       final currentPlayer = currentPlayerResult.getOrElse(
         () => const Player(teamId: 0, firstName: ''),
       );
-      final perMatchStats = _getPlayerStats(matchEvents, playerId);
       final currentStats = currentPlayer.stats ?? const PlayerStats();
 
+      // Partidos / minutos / titular: se recalculan desde BD al cerrar (sync).
       final accumulatedStats = PlayerStats(
         id: currentStats.id,
         playerId: playerId,
-        goals: currentStats.goals + perMatchStats.goals,
-        assists: currentStats.assists + perMatchStats.assists,
-        yellowCards: currentStats.yellowCards + perMatchStats.yellowCards,
-        redCards: currentStats.redCards + perMatchStats.redCards,
-        matchesPlayed: currentStats.matchesPlayed + 1,
+        goals: currentStats.goals + eventStats.goals,
+        assists: currentStats.assists + eventStats.assists,
+        yellowCards: currentStats.yellowCards + eventStats.yellowCards,
+        redCards: currentStats.redCards + eventStats.redCards,
+        matchesPlayed: currentStats.matchesPlayed,
+        minutesPlayed: currentStats.minutesPlayed,
+        timesStarted: currentStats.timesStarted,
       );
 
       result = await _playerRepository.updatePlayerStats(
@@ -111,12 +165,14 @@ class FinishMatchUseCase {
         accumulatedStats,
       );
       if (result.isLeft()) {
-        // If it is an error, return the error
         return result;
       }
-      i++;
     }
-    return result;
+
+    final syncResult = await _playerRepository.syncParticipationStatsForTeam(
+      match.teamId,
+    );
+    return syncResult;
   }
 
   PlayerStats _getPlayerStats(List<MatchEvent> events, int playerId) {
@@ -129,12 +185,10 @@ class FinishMatchUseCase {
     for (int i = 0; i < events.length; i++) {
       final e = events[i];
 
-      // Goles: playerId1 es el goleador.
       if (e.playerId1 == idPlayer && e.type == MatchEventEnum.scoreGoal) {
         goals++;
       }
 
-      // Asistencias: playerId2 es el asistente en el evento de gol.
       if (e.playerId2 == idPlayer && e.type == MatchEventEnum.scoreGoal) {
         assists++;
       }
@@ -149,7 +203,7 @@ class FinishMatchUseCase {
     }
 
     return PlayerStats(
-      id: 0, // This should be generated by the database when saving the stats
+      id: 0,
       playerId: idPlayer,
       goals: goals,
       assists: assists,

@@ -30,6 +30,17 @@ class AuthCubit extends Cubit<AuthState> {
     });
   }
 
+  /// Vuelve a cargar el usuario (p. ej. `team_members` / roles) sin pasar por [AuthLoading].
+  /// Util tras aceptar una invitación o cambios de membresía manteniendo la sesión.
+  Future<void> refreshAuthenticatedUser() async {
+    final result = await getUserSessionUseCase();
+    result.fold((_) {}, (user) {
+      if (user != null) {
+        emit(Authenticated(user: user));
+      }
+    });
+  }
+
   Future<void> login(String username, String password) async {
     // Implement login logic here
     emit(AuthLoading());
@@ -51,17 +62,23 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> register(String email, String username, String password) async {
-    // Implement registration logic here
     emit(AuthLoading());
-    // Simulate a successful registration after a delay
     final result = await signUpUseCase(
       email,
       username,
       password,
-    ); // You should replace this with a proper registration use case
+    );
     result.fold(
       (failure) => emit(AuthError(failure.message)),
-      (user) => emit(Authenticated(user: user)),
+      (success) {
+        if (success.awaitingEmailConfirmation) {
+          emit(AwaitingEmailVerification(success.email));
+        } else {
+          emit(Authenticated(user: success.user!));
+        }
+      },
     );
   }
+
+  void resetToLogin() => emit(AuthInitial());
 }

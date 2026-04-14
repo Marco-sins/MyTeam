@@ -16,6 +16,7 @@ import 'package:football_manager/domain/usecase/match/start_match_use_case.dart'
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
+import 'package:football_manager/data/models/match_event_model.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
@@ -61,6 +62,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
   // Jugadores expulsados (roja o doble amarilla).
   final Set<int> _sentOffPlayerIds = {};
+
+  /// Cronología: 2ª arriba / 1ª abajo; en cada parte menos minuto abajo y más arriba.
+  List<Map<String, dynamic>> _liveEvents = [];
 
   // Formaciones disponibles (solo líneas de jugadores de campo: defensa → delantero).
   // El contenido real depende de la categoría del equipo (fútbol 7 vs fútbol 11).
@@ -428,12 +432,13 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       );
 
       await saveMatchEventUseCase(event, authState.user, widget.team.id);
+      if (mounted) await _loadLiveEvents();
     } catch (e) {
       debugPrint('Error saving status change event: $e');
     }
   }
 
-  Future<void> _reloadScoreFromEvents() async {
+  Future<({int scored, int conceded})?> _queryScoreCountsFromEvents() async {
     try {
       final supabase = Supabase.instance.client;
       final result = await supabase
@@ -456,27 +461,32 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         }
       }
 
-      if (!mounted) return;
-      setState(() {
-        _match = Match(
-          id: _match.id,
-          teamId: _match.teamId,
-          opponent: _match.opponent,
-          goalsScored: scored,
-          goalsConceded: conceded,
-          date: _match.date,
-          hour: _match.hour,
-          status: _match.status,
-          lineups: _match.lineups,
-          isHome: _match.isHome,
-        );
-      });
+      return (scored: scored, conceded: conceded);
     } catch (_) {
-      // Si falla la carga, dejamos el marcador tal como está
+      return null;
     }
   }
 
-  Future<void> _recalculatePlayerRatings() async {
+  Future<void> _reloadScoreFromEvents() async {
+    final counts = await _queryScoreCountsFromEvents();
+    if (counts == null || !mounted) return;
+    setState(() {
+      _match = Match(
+        id: _match.id,
+        teamId: _match.teamId,
+        opponent: _match.opponent,
+        goalsScored: counts.scored,
+        goalsConceded: counts.conceded,
+        date: _match.date,
+        hour: _match.hour,
+        status: _match.status,
+        lineups: _match.lineups,
+        isHome: _match.isHome,
+      );
+    });
+  }
+
+  Future<Map<int, double>?> _queryPlayerRatingsMap() async {
     try {
       final supabase = Supabase.instance.client;
       final result = await supabase
@@ -490,13 +500,494 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       for (final player in _convokedPlayers) {
         newRatings[player.id] = calculatePlayerRating(player.id, events);
       }
-
-      if (!mounted) return;
-      setState(() {
-        _playerRatings = newRatings;
-      });
+      return newRatings;
     } catch (e) {
       debugPrint('Error calculating player ratings: $e');
+      return null;
+    }
+  }
+
+  Future<void> _recalculatePlayerRatings() async {
+    final map = await _queryPlayerRatingsMap();
+    if (map == null || !mounted) return;
+    setState(() {
+      _playerRatings = map;
+    });
+  }
+
+  Future<void> _refreshDerivedMatchData({bool reloadFormation = false}) async {
+    await _reloadScoreFromEvents();
+    await _recalculatePlayerRatings();
+    await _loadDisciplineStateFromEvents();
+    await _loadLiveEvents();
+    if (reloadFormation && mounted) {
+      await _loadLastFormationFromEvents();
+    }
+  }
+
+  Future<void> _loadLiveEvents() async {
+    final rows = await _queryLiveEventsFiltered();
+    if (rows == null || !mounted) return;
+    setState(() {
+      _liveEvents = rows;
+    });
+  }
+
+  /// PostgREST puede devolver enteros como [num]; evita fallos de `as int?` en el build.
+  int? _dynToInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
+  }
+
+  String? _dynToStr(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
+  }
+
+  /// Une variantes como scoreGoal, score_goal, MatchEventEnum.scoreGoal.
+  String _canonicalEventTypeKey(dynamic raw) {
+    if (raw == null) return '';
+    final tail = raw.toString().split('.').last;
+    return tail.toLowerCase().replaceAll('_', '');
+  }
+
+  /// Oculta formaciones y sustituciones incompletas (sin jugador que sale).
+  bool _shouldIncludeInLiveEventsList(Map<String, dynamic> row) {
+    final key = _canonicalEventTypeKey(row['type']);
+    if (key == 'formation') {
+      return false;
+    }
+    if (key == 'substitution') {
+      return _dynToInt(row['player_id2']) != null;
+    }
+    return true;
+  }
+
+  DateTime _parseEventCreatedAt(dynamic v) {
+    if (v == null) return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    try {
+      return DateTime.parse(v.toString());
+    } catch (_) {
+      return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    }
+  }
+
+  /// Nota del evento [statusChange] al pasar a la 2ª parte (ver [_saveStatusChangeEvent]).
+  bool _noteIndicatesSecondHalfKickoff(String? note) {
+    if (note == null || note.isEmpty) return false;
+    final n = note.toLowerCase();
+    return n.contains('inicio') && n.contains('2') && n.contains('parte');
+  }
+
+  /// Momento del último "Inicio 2ª parte" en la lista ya filtrada (por si hubiera duplicados).
+  DateTime? _resolveSecondHalfStartFromRows(List<Map<String, dynamic>> rows) {
+    DateTime? best;
+    for (final r in rows) {
+      if (_canonicalEventTypeKey(r['type']) != 'statuschange') continue;
+      final note = _dynToStr(r['note']);
+      if (!_noteIndicatesSecondHalfKickoff(note)) continue;
+      final t = _parseEventCreatedAt(r['created_at']);
+      if (best == null || t.isAfter(best)) {
+        best = t;
+      }
+    }
+    return best;
+  }
+
+  /// 1 = primera parte, 2 = segunda. Sin ancla de inicio 2ª: todo se trata como 1ª.
+  int _eventMatchHalf(Map<String, dynamic> row, DateTime? secondHalfStart) {
+    if (secondHalfStart == null) return 1;
+    final t = _parseEventCreatedAt(row['created_at']);
+    return !t.isBefore(secondHalfStart) ? 2 : 1;
+  }
+
+  /// Etiqueta de minuto: en descuento, [reglamentario]+[added] (p. ej. 45+2, 90+1).
+  String _formatLiveEventMinuteLine(int minute, int half) {
+    if (minute <= 0) return 'Sin minuto';
+    final h = _firstHalfDurationMinutesForCategory();
+    if (half == 1) {
+      if (minute > h) {
+        return "$h+${minute - h}'";
+      }
+      return "$minute'";
+    }
+    final endReg = 2 * h;
+    if (minute > endReg) {
+      return "$endReg+${minute - endReg}'";
+    }
+    return "$minute'";
+  }
+
+  DateTime? _resolvedSecondHalfStart() =>
+      _resolveSecondHalfStartFromRows(_liveEvents);
+
+  /// 2ª parte arriba, 1ª abajo. En cada parte: de abajo a arriba de menos a más
+  /// minuto (en la columna, más minutos arriba; mismo minuto, más reciente arriba).
+  int _compareLiveEventsDisplayOrder(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+    DateTime? secondHalfStart,
+  ) {
+    final ha = _eventMatchHalf(a, secondHalfStart);
+    final hb = _eventMatchHalf(b, secondHalfStart);
+    if (ha != hb) {
+      return hb.compareTo(ha);
+    }
+    final ma = _dynToInt(a['minute']) ?? 0;
+    final mb = _dynToInt(b['minute']) ?? 0;
+    if (ma != mb) {
+      return mb.compareTo(ma);
+    }
+    final ca = _parseEventCreatedAt(a['created_at']);
+    final cb = _parseEventCreatedAt(b['created_at']);
+    final byTime = cb.compareTo(ca);
+    if (byTime != 0) {
+      return byTime;
+    }
+    final ida = _dynToInt(a['id']) ?? 0;
+    final idb = _dynToInt(b['id']) ?? 0;
+    return idb.compareTo(ida);
+  }
+
+  Future<List<Map<String, dynamic>>?> _queryLiveEventsFiltered() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final raw = await supabase
+          .from('match_events')
+          .select(
+            'id, match_id, type, minute, player_id1, player_id2, note, created_at',
+          )
+          .eq('match_id', _match.id)
+          .order('minute', ascending: true)
+          .order('created_at', ascending: true);
+
+      final list = raw as List;
+      final out = list
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .where(_shouldIncludeInLiveEventsList)
+          .toList();
+      final t2h = _resolveSecondHalfStartFromRows(out);
+      out.sort((a, b) => _compareLiveEventsDisplayOrder(a, b, t2h));
+      return out;
+    } catch (e) {
+      debugPrint('Error loading live events: $e');
+      return null;
+    }
+  }
+
+  Future<Set<int>?> _querySentOffIdsFromEvents() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final result = await supabase
+          .from('match_events')
+          .select('type, player_id1')
+          .eq('match_id', _match.id);
+
+      final Map<int, int> yellowCounts = {};
+      final Set<int> sentOff = {};
+
+      for (final row in result) {
+        final raw = row['type'];
+        if (raw == null) continue;
+        final typeString = raw.toString().split('.').last;
+        final p1 = _dynToInt(row['player_id1']);
+        if (p1 == null) continue;
+
+        if (typeString == 'redCard') {
+          sentOff.add(p1);
+        } else if (typeString == 'yellowCard') {
+          final current = yellowCounts[p1] ?? 0;
+          final next = current + 1;
+          yellowCounts[p1] = next;
+          if (next >= 2) {
+            sentOff.add(p1);
+          }
+        }
+      }
+      return sentOff;
+    } catch (e) {
+      debugPrint('Error querying discipline: $e');
+      return null;
+    }
+  }
+
+  /// Un solo [setState] tras registrar acción de jugador (menos parpadeo / scroll).
+  Future<void> _refreshAfterPlayerAction({
+    required MatchEventEnum type,
+    required Player player,
+  }) async {
+    final needsScore = type == MatchEventEnum.scoreGoal ||
+        type == MatchEventEnum.concedeGoal ||
+        type == MatchEventEnum.ownGoal;
+    final needsDiscipline = type == MatchEventEnum.yellowCard ||
+        type == MatchEventEnum.redCard;
+
+    final prevSentOff = Set<int>.from(_sentOffPlayerIds);
+
+    final fRatings = _queryPlayerRatingsMap();
+    final fLive = _queryLiveEventsFiltered();
+    final Future<({int scored, int conceded})?>? fScore =
+        needsScore ? _queryScoreCountsFromEvents() : null;
+    final Future<Set<int>?>? fDisc =
+        needsDiscipline ? _querySentOffIdsFromEvents() : null;
+
+    final ratings = await fRatings;
+    final live = await fLive;
+    final score = fScore != null ? await fScore : null;
+    final sentOff = fDisc != null ? await fDisc : null;
+
+    if (!mounted) return;
+    if (ratings == null || live == null) {
+      await _refreshDerivedMatchData();
+      return;
+    }
+    if (needsScore && score == null) {
+      await _refreshDerivedMatchData();
+      return;
+    }
+    if (needsDiscipline && sentOff == null) {
+      await _refreshDerivedMatchData();
+      return;
+    }
+
+    setState(() {
+      if (score != null) {
+        _match = Match(
+          id: _match.id,
+          teamId: _match.teamId,
+          opponent: _match.opponent,
+          goalsScored: score.scored,
+          goalsConceded: score.conceded,
+          date: _match.date,
+          hour: _match.hour,
+          status: _match.status,
+          lineups: _match.lineups,
+          isHome: _match.isHome,
+        );
+      }
+      _playerRatings = ratings;
+      _liveEvents = live;
+      if (sentOff != null) {
+        _sentOffPlayerIds
+          ..clear()
+          ..addAll(sentOff);
+        final cleared = List<Player?>.from(_positionPlayers);
+        for (int i = 0; i < cleared.length; i++) {
+          final p = cleared[i];
+          if (p != null && _sentOffPlayerIds.contains(p.id)) {
+            cleared[i] = null;
+          }
+        }
+        _positionPlayers = cleared;
+        if (_selectedPlayer != null &&
+            _sentOffPlayerIds.contains(_selectedPlayer!.id)) {
+          _selectedPlayer = null;
+        }
+      }
+    });
+
+    if (needsDiscipline &&
+        mounted &&
+        !prevSentOff.contains(player.id) &&
+        _sentOffPlayerIds.contains(player.id)) {
+      unawaited(_showCardExpulsionSnack(player));
+    }
+  }
+
+  Future<void> _showCardExpulsionSnack(Player player) async {
+    try {
+      final supabase = Supabase.instance.client;
+      final result = await supabase
+          .from('match_events')
+          .select('type, player_id1')
+          .eq('match_id', _match.id)
+          .eq('player_id1', player.id);
+
+      int yellowCount = 0;
+      bool hasRed = false;
+
+      for (final row in result) {
+        final raw = row['type'];
+        if (raw == null) continue;
+        final typeString = raw.toString().split('.').last;
+        if (typeString == 'yellowCard') {
+          yellowCount++;
+        } else if (typeString == 'redCard') {
+          hasRed = true;
+        }
+      }
+
+      if (!mounted) return;
+
+      _showSnack(
+        yellowCount >= 2 && !hasRed
+            ? '${player.fullName} expulsado por doble amarilla'
+            : '${player.fullName} expulsado',
+        error: true,
+      );
+    } catch (e) {
+      debugPrint('Error showing card expulsion snack: $e');
+    }
+  }
+
+  Player? _playerFromRoster(int? id) {
+    if (id == null) return null;
+    for (final p in _convokedPlayers) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  String _playerShortLabel(int? id) {
+    final p = _playerFromRoster(id);
+    if (p == null) {
+      return id != null ? 'Jugador $id' : '—';
+    }
+    final d = p.number?.toString() ?? '-';
+    final ln = (p.lastName ?? '').trim();
+    final name = ln.isEmpty ? p.firstName : '${p.firstName} $ln';
+    return '$d $name';
+  }
+
+  String _describeLiveEvent(Map<String, dynamic> row) {
+    final key = _canonicalEventTypeKey(row['type']);
+    final note = _dynToStr(row['note']);
+    final p1 = _dynToInt(row['player_id1']);
+    final p2 = _dynToInt(row['player_id2']);
+    final rawLabel = row['type']?.toString() ?? '';
+
+    switch (key) {
+      case 'formation':
+        return 'Formación ${note ?? '—'}';
+      case 'substitution':
+        return 'Cambio: ${_playerShortLabel(p1)} entra · ${_playerShortLabel(p2)} sale';
+      case 'statuschange':
+        return (note != null && note.isNotEmpty)
+            ? note
+            : 'Cambio de tiempo / estado';
+      case 'scoregoal':
+        final a = _playerShortLabel(p1);
+        final b = p2 != null ? _playerShortLabel(p2) : null;
+        if (b != null && p2 != null) {
+          return 'Gol $a (asist. $b)';
+        }
+        return 'Gol $a';
+      case 'concedegoal':
+        return (note != null && note.isNotEmpty) ? note : 'Gol encajado';
+      case 'owngoal':
+        return 'Gol en propia · ${_playerShortLabel(p1)}';
+      case 'yellowcard':
+        return 'Tarjeta amarilla · ${_playerShortLabel(p1)}';
+      case 'redcard':
+        return 'Tarjeta roja · ${_playerShortLabel(p1)}';
+      case 'goodsave':
+        if (note != null && note.isNotEmpty) {
+          if (p1 != null) {
+            return 'Parada · ${_playerShortLabel(p1)} — $note';
+          }
+          return 'Parada — $note';
+        }
+        if (p1 != null) {
+          return 'Parada · ${_playerShortLabel(p1)}';
+        }
+        return 'Parada';
+      case 'keypass':
+        return 'Pase clave · ${_playerShortLabel(p1)}';
+      default:
+        if (note != null && note.isNotEmpty) {
+          return '${key.isEmpty ? 'Evento' : rawLabel}: $note';
+        }
+        return key.isEmpty ? 'Evento' : rawLabel;
+    }
+  }
+
+  IconData _iconForLiveEventKey(String canonicalKey) {
+    switch (canonicalKey) {
+      case 'scoregoal':
+      case 'concedegoal':
+      case 'owngoal':
+        return Icons.sports_soccer;
+      case 'yellowcard':
+        return Icons.style;
+      case 'redcard':
+        return Icons.style;
+      case 'substitution':
+        return Icons.swap_horiz;
+      case 'formation':
+        return Icons.grid_view;
+      case 'statuschange':
+        return Icons.schedule;
+      case 'goodsave':
+        return Icons.sports_handball;
+      case 'keypass':
+        return Icons.alt_route;
+      default:
+        return Icons.event_note;
+    }
+  }
+
+  Future<void> _onLiveEventTapped(Map<String, dynamic> row) async {
+    if (_isExternal) {
+      return;
+    }
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) {
+      _showSnack('Debes iniciar sesión', error: true);
+      return;
+    }
+
+    final minute = _dynToInt(row['minute']) ?? 0;
+    final summary = _describeLiveEvent(row);
+    final half = _eventMatchHalf(row, _resolvedSecondHalfStart());
+    final minutePrefix = minute != 0
+        ? '${_formatLiveEventMinuteLine(minute, half)} · '
+        : '';
+    final confirmed = await _confirmAction(
+      'Eliminar evento',
+      '$minutePrefix$summary\n\n'
+      '¿Eliminar este evento del partido? '
+      'El marcador, las notas y la disciplina se recalcularán.',
+    );
+    if (!confirmed || !mounted) return;
+
+    try {
+      final normalized = Map<String, dynamic>.from(row);
+      normalized['id'] = _dynToInt(row['id']) ?? 0;
+      normalized['match_id'] = _dynToInt(row['match_id']) ?? _match.id;
+      normalized['player_id1'] = _dynToInt(row['player_id1']);
+      normalized['player_id2'] = _dynToInt(row['player_id2']);
+      normalized['minute'] = _dynToInt(row['minute']) ?? 0;
+
+      final event = MatchEventModel.fromJson(normalized);
+      final deleteMatchEventUseCase = context.read<DeleteMatchEventUseCase>();
+      final result = await deleteMatchEventUseCase(
+        event,
+        authState.user,
+        widget.team.id,
+      );
+
+      if (!mounted) return;
+
+      await result.fold<Future<void>>(
+        (failure) async {
+          _showSnack(failure.message, error: true);
+        },
+        (_) async {
+          final reloadFormation =
+              _canonicalEventTypeKey(row['type']) == 'formation';
+          await _refreshDerivedMatchData(reloadFormation: reloadFormation);
+          if (mounted) {
+            _showSnack('Evento eliminado');
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        _showSnack('No se ha podido eliminar el evento', error: true);
+      }
     }
   }
 
@@ -630,6 +1121,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       );
 
       await saveMatchEventUseCase(event, authState.user, widget.team.id);
+      if (mounted) await _loadLiveEvents();
     } catch (e) {
       // No rompemos la UI por un error al guardar la formación
       debugPrint('Error saving formation event: $e');
@@ -670,6 +1162,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       );
 
       await saveMatchEventUseCase(event, authState.user, widget.team.id);
+      if (mounted) await _loadLiveEvents();
     } catch (e) {
       debugPrint('Error saving substitution event: $e');
     }
@@ -720,10 +1213,17 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
       if (!mounted) return;
 
-      result.fold((failure) => _showSnack(failure.message, error: true), (_) {
-        _reloadScoreFromEvents();
-        _showSnack('Gol del rival registrado correctamente');
-      });
+      await result.fold<Future<void>>(
+        (failure) async {
+          _showSnack(failure.message, error: true);
+        },
+        (_) async {
+          await _refreshDerivedMatchData();
+          if (mounted) {
+            _showSnack('Gol del rival registrado correctamente');
+          }
+        },
+      );
     } catch (e) {
       _showSnack('No se ha podido registrar el gol', error: true);
     }
@@ -798,13 +1298,17 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         widget.team.id,
       );
 
-      deleteResult.fold((failure) => _showSnack(failure.message, error: true), (
-        _,
-      ) {
-        _reloadScoreFromEvents();
-        _recalculatePlayerRatings();
-        _showSnack('Gol eliminado correctamente');
-      });
+      await deleteResult.fold<Future<void>>(
+        (failure) async {
+          _showSnack(failure.message, error: true);
+        },
+        (_) async {
+          await _refreshDerivedMatchData();
+          if (mounted) {
+            _showSnack('Gol eliminado correctamente');
+          }
+        },
+      );
     } catch (e) {
       _showSnack('No se ha podido quitar el gol', error: true);
     }
@@ -877,6 +1381,8 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           await _loadDisciplineStateFromEvents();
           if (!mounted) return;
           await _recalculatePlayerRatings();
+          if (!mounted) return;
+          await _loadLiveEvents();
         },
       );
     } catch (e) {
@@ -928,59 +1434,28 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   }
 
   Future<void> _loadDisciplineStateFromEvents() async {
-    try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1')
-          .eq('match_id', _match.id);
+    final sentOff = await _querySentOffIdsFromEvents();
+    if (sentOff == null || !mounted) return;
 
-      final Map<int, int> yellowCounts = {};
-      final Set<int> sentOff = {};
+    setState(() {
+      _sentOffPlayerIds
+        ..clear()
+        ..addAll(sentOff);
 
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-        final int? p1 = row['player_id1'] as int?;
-        if (p1 == null) continue;
-
-        if (typeString == 'redCard') {
-          sentOff.add(p1);
-        } else if (typeString == 'yellowCard') {
-          final current = yellowCounts[p1] ?? 0;
-          final next = current + 1;
-          yellowCounts[p1] = next;
-          if (next >= 2) {
-            sentOff.add(p1);
-          }
+      final cleared = List<Player?>.from(_positionPlayers);
+      for (int i = 0; i < cleared.length; i++) {
+        final p = cleared[i];
+        if (p != null && _sentOffPlayerIds.contains(p.id)) {
+          cleared[i] = null;
         }
       }
+      _positionPlayers = cleared;
 
-      if (!mounted) return;
-
-      setState(() {
-        _sentOffPlayerIds
-          ..clear()
-          ..addAll(sentOff);
-
-        final cleared = List<Player?>.from(_positionPlayers);
-        for (int i = 0; i < cleared.length; i++) {
-          final p = cleared[i];
-          if (p != null && _sentOffPlayerIds.contains(p.id)) {
-            cleared[i] = null;
-          }
-        }
-        _positionPlayers = cleared;
-
-        if (_selectedPlayer != null &&
-            _sentOffPlayerIds.contains(_selectedPlayer!.id)) {
-          _selectedPlayer = null;
-        }
-      });
-    } catch (e) {
-      debugPrint('Error loading discipline state from events: $e');
-    }
+      if (_selectedPlayer != null &&
+          _sentOffPlayerIds.contains(_selectedPlayer!.id)) {
+        _selectedPlayer = null;
+      }
+    });
   }
 
   String _bottomButtonLabel() {
@@ -993,6 +1468,19 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         return 'Reanudar partido';
       case _MatchPhase.secondHalf:
         return 'Terminar partido';
+    }
+  }
+
+  String _phaseDisplayLabel() {
+    switch (_phase) {
+      case _MatchPhase.notStarted:
+        return 'Sin iniciar';
+      case _MatchPhase.firstHalf:
+        return '1ª parte';
+      case _MatchPhase.halfTime:
+        return 'Descanso';
+      case _MatchPhase.secondHalf:
+        return '2ª parte';
     }
   }
 
@@ -1165,74 +1653,19 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         widget.team.id,
       );
 
-      result.fold((failure) => _showSnack(failure.message, error: true), (_) {
-        _reloadScoreFromEvents();
-        _recalculatePlayerRatings();
-        if (type == MatchEventEnum.yellowCard ||
-            type == MatchEventEnum.redCard) {
-          _handleDisciplineForCard(player);
-        }
-        _showSnack('Acción registrada para ${player.fullName}');
-      });
-    } catch (e) {
-      _showSnack('No se ha podido registrar la acción', error: true);
-    }
-  }
-
-  Future<void> _handleDisciplineForCard(Player player) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1')
-          .eq('match_id', _match.id)
-          .eq('player_id1', player.id);
-
-      int yellowCount = 0;
-      bool hasRed = false;
-
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-        if (typeString == 'yellowCard') {
-          yellowCount++;
-        } else if (typeString == 'redCard') {
-          hasRed = true;
-        }
-      }
-
-      if (!hasRed && yellowCount < 2) {
-        return;
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        _sentOffPlayerIds.add(player.id);
-
-        final cleared = List<Player?>.from(_positionPlayers);
-        for (int i = 0; i < cleared.length; i++) {
-          final p = cleared[i];
-          if (p != null && p.id == player.id) {
-            cleared[i] = null;
+      await result.fold<Future<void>>(
+        (failure) async {
+          _showSnack(failure.message, error: true);
+        },
+        (_) async {
+          await _refreshAfterPlayerAction(type: type, player: player);
+          if (mounted) {
+            _showSnack('Acción registrada para ${player.fullName}');
           }
-        }
-        _positionPlayers = cleared;
-
-        if (_selectedPlayer?.id == player.id) {
-          _selectedPlayer = null;
-        }
-      });
-
-      _showSnack(
-        yellowCount >= 2
-            ? '${player.fullName} expulsado por doble amarilla'
-            : '${player.fullName} expulsado',
-        error: true,
+        },
       );
     } catch (e) {
-      debugPrint('Error handling card discipline: $e');
+      _showSnack('No se ha podido registrar la acción', error: true);
     }
   }
 
@@ -1316,14 +1749,18 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         widget.team.id,
       );
 
-      goalResult.fold(
-        (failure) {
+      await goalResult.fold<Future<void>>(
+        (failure) async {
           _showSnack('No se ha podido registrar el gol', error: true);
         },
-        (_) {
-          _reloadScoreFromEvents();
-          _recalculatePlayerRatings();
-          _showSnack('Gol registrado para ${player.fullName}');
+        (_) async {
+          await _refreshAfterPlayerAction(
+            type: MatchEventEnum.scoreGoal,
+            player: player,
+          );
+          if (mounted) {
+            _showSnack('Gol registrado para ${player.fullName}');
+          }
         },
       );
     } catch (e) {
@@ -1579,9 +2016,11 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
       if (confirm != true) return;
 
-      // Guardamos evento de final de partido
+      // Guardamos evento de final de partido (await: el cierre usa el evento
+      // para calcular minutos y fin del partido en estadísticas acumuladas).
       final minute = _currentMatchMinute();
-      _saveStatusChangeEvent(MatchStatus.finished, minute);
+      await _saveStatusChangeEvent(MatchStatus.finished, minute);
+      if (!mounted) return;
 
       final finishMatchUseCase = context.read<FinishMatchUseCase>();
       if (loadingCubit.state) return;
@@ -1589,8 +2028,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       final result = await finishMatchUseCase(_match, authState.user);
       loadingCubit.stop();
 
-      result.fold(
-        (failure) {
+      await result.fold<Future<void>>(
+        (failure) async {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(failure.message),
@@ -1598,24 +2038,15 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             ),
           );
         },
-        (_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Partido terminado correctamente'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
-            ),
-          );
-
-          // Navegamos directamente a la pantalla de estadísticas del partido
-          // y reemplazamos el gestor actual. Al volver, se regresa al menú
-          // del equipo (pantalla anterior a este gestor).
+        (_) async {
+          if (!mounted) return;
+          final counts = await _queryScoreCountsFromEvents();
           final finishedMatch = Match(
             id: _match.id,
             teamId: _match.teamId,
             opponent: _match.opponent,
-            goalsScored: _match.goalsScored,
-            goalsConceded: _match.goalsConceded,
+            goalsScored: counts?.scored ?? _match.goalsScored,
+            goalsConceded: counts?.conceded ?? _match.goalsConceded,
             date: _match.date,
             hour: _match.hour,
             status: MatchStatus.finished,
@@ -1623,10 +2054,11 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             isHome: _match.isHome,
           );
 
+          if (!mounted) return;
           final getPlayersByTeamUseCase =
-              context.read() as GetPlayersByTeamUseCase;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
+              context.read<GetPlayersByTeamUseCase>();
+          await Navigator.of(context).pushReplacement(
+            MaterialPageRoute<void>(
               builder: (ctx) => BlocProvider(
                 create: (_) => MatchStatsCubit(
                   match: finishedMatch,
@@ -1643,236 +2075,586 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scoreText =
-        '${widget.team.name} ${_match.goalsScored} - ${_match.goalsConceded} ${_match.opponent}';
     final bool isExternal = _isExternal;
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
+    Widget clockWidget() {
+      final mainSeconds = _mainClockSeconds();
+      final extraSeconds = _extraClockSeconds();
+
+      if (extraSeconds <= 0) {
+        return Text(
+          _formatTime(mainSeconds),
+          style: theme.textTheme.headlineLarge?.copyWith(
+            fontSize: 44,
+            fontWeight: FontWeight.w800,
+            color: scheme.onSurface,
+            letterSpacing: -0.5,
+          ),
+        );
+      }
+
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _formatTime(mainSeconds),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '+',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.outline,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _formatTime(extraSeconds),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.tertiary,
+            ),
+          ),
+        ],
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Gestor de partido'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Partido en curso'),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-                // Marcador grande
-                Text(
-                  scoreText,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
+            if (isExternal)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  color: scheme.secondaryContainer.withValues(alpha: 0.45),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.visibility_outlined,
+                          color: scheme.onSecondaryContainer,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Modo espectador: puedes ver el partido pero no modificarlo.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSecondaryContainer,
+                              fontWeight: FontWeight.w600,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Cronómetro de la parte actual: tiempo reglamentario + descuento
-                Center(
-                  child: Builder(
-                    builder: (context) {
-                      final mainSeconds = _mainClockSeconds();
-                      final extraSeconds = _extraClockSeconds();
-
-                      if (extraSeconds <= 0) {
-                        // Solo tiempo reglamentario
-                        return Text(
-                          _formatTime(mainSeconds),
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
+              ),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.timer_outlined, color: scheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Marcador y tiempo',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        );
-                      }
-
-                      // Tiempo reglamentario + descuento (aparece el segundo
-                      // cronómetro solo cuando se supera el tope de la parte)
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
+                        ),
+                        Chip(
+                          label: Text(
+                            _phaseDisplayLabel(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          backgroundColor:
+                              scheme.primaryContainer.withValues(alpha: 0.65),
+                          side: BorderSide.none,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            _formatTime(mainSeconds),
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              widget.team.name,
+                              textAlign: TextAlign.end,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '+',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  '${_match.goalsScored}',
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: Text(
+                                    '—',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                      color: scheme.outline,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${_match.goalsConceded}',
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: scheme.onSurface,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatTime(extraSeconds),
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: Text(
+                              _match.opponent,
+                              textAlign: TextAlign.start,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                         ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Botones de goles encima del campo
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                      ),
-                      onPressed: isExternal
-                          ? null
-                          : () => _onAddGoal(ourTeam: false),
-                      child: const Text(
-                        '+ Gol rival',
-                        style: TextStyle(color: Colors.white),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    TextButton(
-                      onPressed: isExternal
-                          ? null
-                          : () => _onRemoveGoal(ourTeam: true),
-                      child: const Text('Quitar gol mi equipo'),
-                    ),
-                    TextButton(
-                      onPressed: isExternal
-                          ? null
-                          : () => _onRemoveGoal(ourTeam: false),
-                      child: const Text('Quitar gol rival'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: isExternal
-                      ? Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                    const SizedBox(height: 14),
+                    Center(child: clockWidget()),
+                    if (!isExternal) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        'Marcador rápido',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: scheme.error,
+                          foregroundColor: scheme.onError,
+                        ),
+                        onPressed: () => _onAddGoal(ourTeam: false),
+                        icon: const Icon(Icons.sports_soccer, size: 20),
+                        label: const Text('Gol del rival'),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _onRemoveGoal(ourTeam: true),
+                              child: const Text('− Nuestro'),
+                            ),
                           ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _onRemoveGoal(ourTeam: false),
+                              child: const Text('− Rival'),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Los goles a favor se registran desde el campo (jugador) o las acciones.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.stadium_outlined, color: scheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
                           child: Text(
-                            _selectedFormation,
-                            style: Theme.of(context).textTheme.titleSmall,
+                            'Campo y formación',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        )
-                      : TextButton.icon(
-                          onPressed: _showFormationPicker,
-                          icon: const Icon(Icons.grid_view_outlined, size: 20),
-                          label: Text(_selectedFormation),
                         ),
-                ),
-                const SizedBox(height: 8),
-                // Campo: excluido del árbol de semánticas para evitar asserts
-                // del motor (`parentDataDirty`) con muchos huecos en un Stack
-                // dentro de un scroll.
-                ExcludeSemantics(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: 420,
-                        maxHeight: 320,
-                      ),
-                      child: AspectRatio(
-                        aspectRatio: 4 / 3,
-                        child: MatchFieldWithFormation(
-                          formationLines: _formationLines,
-                          positionPlayers: _positionPlayers,
-                          selectedPlayer: _selectedPlayer,
-                          sentOffPlayerIds: _sentOffPlayerIds,
-                          currentPlayersOnField: _currentPlayersOnField,
-                          maxPlayersOnField: _maxPlayersOnField,
-                          showSnack: _showSnack,
-                          onPositionsChanged: (newPositions) {
-                            setState(() {
-                              _positionPlayers = newPositions;
-                              _selectedPlayer = null;
-                            });
-                            _persistCurrentPositionsToMatchLineup();
-                          },
-                          onSubstitutionRequested: (playerIn, playerOut) {
-                            _saveSubstitutionEvent(
-                              playerIn: playerIn,
-                              playerOut: playerOut,
-                            );
-                          },
-                          onPlayerActionRequested: _onPlayerActionRequested,
-                          readOnly: isExternal,
+                        if (isExternal)
+                          Chip(
+                            label: Text(
+                              _selectedFormation,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            backgroundColor: scheme.surfaceContainerHighest
+                                .withValues(alpha: 0.65),
+                            side: BorderSide.none,
+                          )
+                        else
+                          FilledButton.tonalIcon(
+                            onPressed: _showFormationPicker,
+                            icon: const Icon(Icons.grid_view_rounded, size: 18),
+                            label: Text(_selectedFormation),
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ExcludeSemantics(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: 420,
+                            maxHeight: 320,
+                          ),
+                          child: AspectRatio(
+                            aspectRatio: 4 / 3,
+                            child: MatchFieldWithFormation(
+                              formationLines: _formationLines,
+                              positionPlayers: _positionPlayers,
+                              selectedPlayer: _selectedPlayer,
+                              sentOffPlayerIds: _sentOffPlayerIds,
+                              currentPlayersOnField: _currentPlayersOnField,
+                              maxPlayersOnField: _maxPlayersOnField,
+                              showSnack: _showSnack,
+                              onPositionsChanged: (newPositions) {
+                                setState(() {
+                                  _positionPlayers = newPositions;
+                                  _selectedPlayer = null;
+                                });
+                                _persistCurrentPositionsToMatchLineup();
+                              },
+                              onSubstitutionRequested: (playerIn, playerOut) {
+                                _saveSubstitutionEvent(
+                                  playerIn: playerIn,
+                                  playerOut: playerOut,
+                                );
+                              },
+                              onPlayerActionRequested: _onPlayerActionRequested,
+                              readOnly: isExternal,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                MatchConvocationTable(
-                  loading: _loadingPlayers,
-                  error: _loadError,
-                  convokedPlayers: _convokedPlayers,
-                  positionPlayers: _positionPlayers,
-                  selectedPlayer: _selectedPlayer,
-                  sentOffPlayerIds: _sentOffPlayerIds,
-                  playerRatings: _playerRatings,
-                  scrollingChild: true,
-                  readOnly: isExternal,
-                  onPlayerTap: (player, isSentOff) {
-                    if (isSentOff) {
-                      _showSnack(
-                        'Jugador expulsado, no puede volver a entrar',
-                        error: true,
-                      );
-                      return;
-                    }
-                    setState(() {
-                      if (_selectedPlayer?.id == player.id) {
-                        _selectedPlayer = null;
-                      } else {
-                        _selectedPlayer = player;
-                      }
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                BlocBuilder<LoadingCubit, bool>(
-                  builder: (context, isLoading) {
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: (isLoading || isExternal)
-                            ? null
-                            : _onBottomButtonPressed,
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.groups, color: scheme.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Convocados',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              )
-                            : Text(
-                                _bottomButtonLabel(),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                Text(
+                                  isExternal
+                                      ? 'Modo espectador: la lista y el campo son solo informativos.'
+                                      : 'Toca un jugador para seleccionarlo; toca el campo para alinear o abrir acciones.',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    height: 1.3,
+                                  ),
                                 ),
-                              ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 8),
+                    MatchConvocationTable(
+                      loading: _loadingPlayers,
+                      error: _loadError,
+                      convokedPlayers: _convokedPlayers,
+                      positionPlayers: _positionPlayers,
+                      selectedPlayer: _selectedPlayer,
+                      sentOffPlayerIds: _sentOffPlayerIds,
+                      playerRatings: _playerRatings,
+                      scrollingChild: true,
+                      readOnly: isExternal,
+                      onPlayerTap: (player, isSentOff) {
+                        if (isExternal) return;
+                        if (isSentOff) {
+                          _showSnack(
+                            'Jugador expulsado, no puede volver a entrar',
+                            error: true,
+                          );
+                          return;
+                        }
+                        setState(() {
+                          if (_selectedPlayer?.id == player.id) {
+                            _selectedPlayer = null;
+                          } else {
+                            _selectedPlayer = player;
+                          }
+                        });
+                      },
+                    ),
+                  ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.history, color: scheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Eventos del partido',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isExternal
+                          ? 'Cronología del encuentro.'
+                          : 'Toca un evento para eliminarlo. Solo los administradores del equipo pueden borrar eventos.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_liveEvents.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        child: Text(
+                          'Aún no hay eventos registrados',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      )
+                    else
+                      for (int i = 0; i < _liveEvents.length; i++) ...[
+                        if (i > 0)
+                          Divider(
+                            height: 1,
+                            color: scheme.outlineVariant.withValues(
+                              alpha: 0.35,
+                            ),
+                          ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: isExternal
+                                ? null
+                                : () => _onLiveEventTapped(_liveEvents[i]),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 4,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor:
+                                        scheme.surfaceContainerHigh,
+                                    child: Icon(
+                                      _iconForLiveEventKey(
+                                        _canonicalEventTypeKey(
+                                          _liveEvents[i]['type'],
+                                        ),
+                                      ),
+                                      size: 18,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _describeLiveEvent(_liveEvents[i]),
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          () {
+                                            final m =
+                                                _dynToInt(_liveEvents[i]['minute']) ??
+                                                    0;
+                                            final half = _eventMatchHalf(
+                                              _liveEvents[i],
+                                              _resolvedSecondHalfStart(),
+                                            );
+                                            return _formatLiveEventMinuteLine(
+                                              m,
+                                              half,
+                                            );
+                                          }(),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (!isExternal)
+                                    Icon(
+                                      Icons.delete_outline,
+                                      size: 22,
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            BlocBuilder<LoadingCubit, bool>(
+              builder: (context, isLoading) {
+                final schemeBtn = Theme.of(context).colorScheme;
+                return FilledButton(
+                  onPressed: (isLoading || isExternal)
+                      ? null
+                      : _onBottomButtonPressed,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: isLoading
+                      ? SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: schemeBtn.onPrimary,
+                          ),
+                        )
+                      : Text(
+                          _bottomButtonLabel(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                );
+              },
+            ),
           ],
         ),
       ),

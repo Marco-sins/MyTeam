@@ -103,4 +103,40 @@ class MatchRepository implements IMatchRepository {
       return Left(UnknowFailure('Unexpected error: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, List<MatchLineup>>> getMatchLineupsByMatchId(
+    int matchId,
+  ) async {
+    try {
+      final rows = await _remoteDatasource.getMatchLineupsByMatchId(matchId);
+      return Right(
+        rows.map(MatchLineupMapper.toEntity).toList(),
+      );
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> updateMatchLineupMinutesPlayed({
+    required int matchId,
+    required int playerId,
+    required int minutesPlayed,
+  }) async {
+    try {
+      await _remoteDatasource.updateMatchLineupMinutesPlayed(
+        matchId: matchId,
+        playerId: playerId,
+        minutesPlayed: minutesPlayed,
+      );
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure('Unexpected error: $e'));
+    }
+  }
 }

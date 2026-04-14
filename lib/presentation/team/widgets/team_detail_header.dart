@@ -6,8 +6,13 @@ import 'package:football_manager/presentation/team/cubit/team_detail_state.dart'
 
 class TeamDetailHeader extends StatelessWidget {
   final Team team;
+  final VoidCallback? onLeaveTeam;
 
-  const TeamDetailHeader({super.key, required this.team});
+  const TeamDetailHeader({
+    super.key,
+    required this.team,
+    this.onLeaveTeam,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,16 +65,44 @@ class TeamDetailHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    team.name,
-                    style: textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                      color: scheme.onSurface,
-                      height: 1.15,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          team.name,
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.4,
+                            color: scheme.onSurface,
+                            height: 1.15,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (onLeaveTeam != null)
+                        TextButton.icon(
+                          onPressed: onLeaveTeam,
+                          icon: Icon(
+                            Icons.logout_rounded,
+                            size: 20,
+                            color: scheme.error,
+                          ),
+                          label: Text(
+                            'Salir',
+                            style: TextStyle(
+                              color: scheme.error,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.only(left: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Wrap(

@@ -26,6 +26,90 @@ class _LoginPageState extends State<LoginPage> {
 
   void _toggleMode() => setState(() => _isRegisterMode = !_isRegisterMode);
 
+  Future<void> _showRegisterCheckEmailDialog(
+    BuildContext context, {
+    required String email,
+    required bool mustConfirmBeforeLogin,
+  }) async {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final body = mustConfirmBeforeLogin
+        ? 'Te hemos enviado un enlace a $email. Ábrelo para activar tu '
+            'cuenta antes de iniciar sesión. Revisa también la carpeta de '
+            'correo no deseado (spam).'
+        : 'Tu cuenta ya está activa. Revisa tu bandeja de entrada por si '
+            'recibes un correo de verificación o bienvenida (incluido spam).';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          icon: Icon(
+            Icons.mark_email_unread_outlined,
+            size: 44,
+            color: scheme.primary,
+          ),
+          title: const Text('Revisa tu correo'),
+          content: Text(body, style: textTheme.bodyMedium?.copyWith(height: 1.35)),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Entendido'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleAuthSideEffects(
+    BuildContext context,
+    AuthState state,
+  ) async {
+    if (state is AuthError) {
+      if (!context.mounted) return;
+      final scheme = Theme.of(context).colorScheme;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(state.message),
+          backgroundColor: scheme.error,
+        ),
+      );
+      return;
+    }
+
+    if (state is AwaitingEmailVerification) {
+      await _showRegisterCheckEmailDialog(
+        context,
+        email: state.email,
+        mustConfirmBeforeLogin: true,
+      );
+      if (!context.mounted) return;
+      context.read<AuthCubit>().resetToLogin();
+      setState(() => _isRegisterMode = false);
+      return;
+    }
+
+    if (state is Authenticated) {
+      final fromRegister = _isRegisterMode;
+      if (fromRegister) {
+        await _showRegisterCheckEmailDialog(
+          context,
+          email: state.user.email,
+          mustConfirmBeforeLogin: false,
+        );
+        if (!context.mounted) return;
+        setState(() => _isRegisterMode = false);
+      }
+      if (!context.mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,21 +138,7 @@ class _LoginPageState extends State<LoginPage> {
       body: AuthBackground(
         child: BlocConsumer<AuthCubit, AuthState>(
           listener: (context, state) {
-            if (state is AuthError) {
-              final scheme = Theme.of(context).colorScheme;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: scheme.error,
-                ),
-              );
-            }
-            if (state is Authenticated) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const HomePage()),
-              );
-            }
+            unawaited(_handleAuthSideEffects(context, state));
           },
           builder: (context, state) {
             return Center(

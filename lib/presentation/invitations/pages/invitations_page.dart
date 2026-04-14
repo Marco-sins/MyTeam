@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:football_manager/domain/entities/invitation.dart';
 import 'package:football_manager/domain/entities/profile.dart';
 import 'package:football_manager/domain/entities/team.dart';
@@ -28,11 +29,64 @@ class _InvitationsPageState extends State<InvitationsPage> {
   final Map<int, Team> _teamsById = {};
   final Map<String, Profile> _profilesById = {};
   String? _loadedForEmail;
+  RealtimeChannel? _invitationChannel;
 
   @override
   void initState() {
     super.initState();
     _loadInvitations();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _subscribeInvitationsRealtime();
+    });
+  }
+
+  @override
+  void dispose() {
+    final ch = _invitationChannel;
+    _invitationChannel = null;
+    if (ch != null) {
+      unawaited(Supabase.instance.client.removeChannel(ch));
+    }
+    super.dispose();
+  }
+
+  void _subscribeInvitationsRealtime() {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) return;
+    final inboxEmail = authState.user.email.trim().toLowerCase();
+    if (inboxEmail.isEmpty) return;
+
+    _invitationChannel = Supabase.instance.client
+        .channel(
+          'inv_list_${inboxEmail.hashCode}_${authState.user.id.hashCode}',
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'invitation',
+          callback: (payload) {
+            String? rowEmail;
+            switch (payload.eventType) {
+              case PostgresChangeEvent.insert:
+                rowEmail = payload.newRecord['email']?.toString();
+                break;
+              case PostgresChangeEvent.update:
+                rowEmail = payload.newRecord['email']?.toString() ??
+                    payload.oldRecord['email']?.toString();
+                break;
+              case PostgresChangeEvent.delete:
+                rowEmail = payload.oldRecord['email']?.toString();
+                break;
+              case PostgresChangeEvent.all:
+                return;
+            }
+            if (rowEmail == null) return;
+            if (rowEmail.trim().toLowerCase() != inboxEmail) return;
+            if (!mounted) return;
+            _loadInvitations(force: true);
+          },
+        )
+        .subscribe();
   }
 
   Future<void> _loadInvitations({bool force = false}) async {
@@ -347,8 +401,8 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                         );
 
                                     if (!mounted) return;
-                                    result.fold(
-                                      (failure) {
+                                    await result.fold<Future<void>>(
+                                      (failure) async {
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
@@ -358,7 +412,13 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                           ),
                                         );
                                       },
-                                      (_) {
+                                      (_) async {
+                                        // Recargar roles desde team_members para que la UI
+                                        // (permisos, espectador, etc.) use el rol de la invitación al instante.
+                                        await context
+                                            .read<AuthCubit>()
+                                            .refreshAuthenticatedUser();
+                                        if (!mounted) return;
                                         context.read<HomeCubit>().fetchTeams();
                                         ScaffoldMessenger.of(
                                           context,

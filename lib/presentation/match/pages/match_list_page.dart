@@ -70,6 +70,16 @@ class _MatchListPageState extends State<MatchListPage> {
     _liveScoresScheduleKey = null;
   }
 
+  Future<void> _onRefresh() async {
+    if (!mounted) return;
+    setState(_loadMatches);
+    try {
+      await _matchesFuture;
+    } catch (_) {
+      // El FutureBuilder mostrará el error devuelto por el caso de uso.
+    }
+  }
+
   void _scheduleLiveScoresFetch(List<Match> matches) {
     final key = matches.map((m) => m.id).join(',');
     if (_liveScoresScheduleKey == key) return;
@@ -180,41 +190,284 @@ class _MatchListPageState extends State<MatchListPage> {
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FutureBuilder(
-          future: _matchesFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: FutureBuilder(
+            future: _matchesFuture,
+            builder: (context, snapshot) {
+              final scheme = Theme.of(context).colorScheme;
 
-            if (!snapshot.hasData) {
-              return const Center(
-                child: Text('No se han podido cargar los partidos'),
-              );
-            }
-
-            final either = snapshot.data!;
-            return either.fold((failure) => Center(child: Text(failure.message)), (
-              List<Match> matches,
-            ) {
-              if (matches.isEmpty) {
-                return const Center(
-                  child: Text('No hay partidos para este equipo'),
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 48),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 28,
+                                    vertical: 36,
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: scheme.primary,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        'Cargando partidos…',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 );
               }
 
-              matches.sort((Match a, Match b) => b.date.compareTo(a.date));
+              if (!snapshot.hasData) {
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              child: Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(22),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.error_outline,
+                                        color: scheme.error,
+                                        size: 40,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          'No se han podido cargar los partidos',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              }
 
-              _scheduleLiveScoresFetch(matches);
+              final either = snapshot.data!;
+              return either.fold(
+                (failure) => LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              child: Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(22),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.cloud_off_outlined,
+                                        color: scheme.error,
+                                        size: 40,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Text(
+                                          failure.message,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyLarge,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                (List<Match> matches) {
+                  if (matches.isEmpty) {
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                            ),
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 32,
+                                ),
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 400),
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Column(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: scheme
+                                                  .primaryContainer
+                                                  .withValues(alpha: 0.5),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.sports_soccer,
+                                              size: 40,
+                                              color: scheme.primary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'Sin partidos todavía',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Los partidos que crees desde la convocatoria aparecerán aquí. Desliza hacia abajo para actualizar.',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                  color:
+                                                      scheme.onSurfaceVariant,
+                                                  height: 1.4,
+                                                ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
 
-              return ListView.builder(
-                padding: const EdgeInsets.only(bottom: 88),
-                itemCount: matches.length,
-                itemBuilder: (context, index) {
-                  final match = matches[index];
-                  final scheme = Theme.of(context).colorScheme;
+                  matches.sort((Match a, Match b) => b.date.compareTo(a.date));
+
+                  _scheduleLiveScoresFetch(matches);
+
+                  return ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(top: 12, bottom: 88),
+                    itemCount: matches.length + 1,
+                    itemBuilder: (context, index) {
+                      final scheme = Theme.of(context).colorScheme;
+                      if (index == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_month_outlined,
+                                    size: 22,
+                                    color: scheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Calendario',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                widget.team.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final match = matches[index - 1];
                   final dateText =
                       '${match.date.day.toString().padLeft(2, '0')}/${match.date.month.toString().padLeft(2, '0')} · ${match.date.hour.toString().padLeft(2, '0')}:${match.date.minute.toString().padLeft(2, '0')}';
                   final liveScored = _liveGoalsScored[match.id];
@@ -513,8 +766,10 @@ class _MatchListPageState extends State<MatchListPage> {
                   );
                 },
               );
-            });
-          },
+                },
+              );
+            },
+          ),
         ),
       ),
       bottomNavigationBar: TeamBottomBar(team: widget.team),

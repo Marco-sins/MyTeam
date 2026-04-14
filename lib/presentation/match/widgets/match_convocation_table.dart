@@ -9,6 +9,7 @@ class MatchConvocationTable extends StatelessWidget {
   final Player? selectedPlayer;
   final Set<int> sentOffPlayerIds;
   final Map<int, double> playerRatings;
+
   /// Si es true, no se usa [ListView] interno: el padre aporta el scroll.
   final bool scrollingChild;
   final void Function(Player player, bool isSentOff) onPlayerTap;
@@ -30,17 +31,46 @@ class MatchConvocationTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
     if (loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: CircularProgressIndicator(color: scheme.primary),
+        ),
+      );
     }
 
     if (error != null) {
-      return Center(child: Text(error!));
+      return Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.error_outline, color: scheme.error),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                error!,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     if (convokedPlayers.isEmpty) {
-      return const Center(
-        child: Text('No hay jugadores convocados para este partido'),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+        child: Text(
+          'No hay jugadores convocados para este partido',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
       );
     }
 
@@ -50,8 +80,12 @@ class MatchConvocationTable extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (int index = 0; index < convokedPlayers.length; index++) ...[
-            if (index > 0) const Divider(height: 1),
-            _buildPlayerRow(convokedPlayers[index]),
+            if (index > 0)
+              Divider(
+                height: 1,
+                color: scheme.outlineVariant.withValues(alpha: 0.35),
+              ),
+            _buildPlayerRow(context, convokedPlayers[index]),
           ],
         ],
       );
@@ -59,68 +93,102 @@ class MatchConvocationTable extends StatelessWidget {
 
     return ListView.separated(
       itemCount: convokedPlayers.length,
-      separatorBuilder: (context, index) => const Divider(height: 1),
+      separatorBuilder: (context, index) => Divider(
+        height: 1,
+        color: Theme.of(context)
+            .colorScheme
+            .outlineVariant
+            .withValues(alpha: 0.35),
+      ),
       itemBuilder: (context, index) =>
-          _buildPlayerRow(convokedPlayers[index]),
+          _buildPlayerRow(context, convokedPlayers[index]),
     );
   }
 
-  Widget _buildPlayerRow(Player player) {
+  Widget _buildPlayerRow(BuildContext context, Player player) {
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     final dorsal = player.number?.toString() ?? '-';
     final name = player.firstName;
     final lastName = player.lastName ?? '';
-    final display = lastName.isNotEmpty
-        ? '$dorsal  $name $lastName,'
-        : '$dorsal  $name,';
+    final displayName = lastName.isNotEmpty ? '$name $lastName' : name;
 
     final assignedIndex = positionPlayers.indexWhere(
       (p) => p != null && p.id == player.id,
     );
     final isAssigned = assignedIndex != -1;
-
     final isSelected = selectedPlayer?.id == player.id;
     final isSentOff = sentOffPlayerIds.contains(player.id);
 
-       return Material(
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: scheme.surfaceContainerHigh,
+            foregroundColor: scheme.onSurface,
+            child: Text(
+              dorsal,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              displayName,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!readOnly) _buildRatingCircle(context, player),
+              if (isAssigned)
+                Icon(Icons.check_circle, color: scheme.primary, size: 22),
+              if (isSentOff)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(Icons.block, color: scheme.error, size: 22),
+                ),
+              if (!readOnly && isSelected)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(
+                    Icons.touch_app,
+                    color: scheme.tertiary,
+                    size: 22,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (readOnly) {
+      return row;
+    }
+
+    return Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: () => onPlayerTap(player, isSentOff),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  display,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!readOnly) _buildRatingCircle(player),
-                  if (isAssigned) const Icon(Icons.check, color: Colors.green),
-                  if (isSentOff)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4.0),
-                      child: Icon(Icons.block, color: Colors.red),
-                    ),
-                  if (isSelected)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4.0),
-                      child: Icon(Icons.person_outline, color: Colors.orange),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        child: row,
       ),
     );
   }
 
-  Widget _buildRatingCircle(Player player) {
+  Widget _buildRatingCircle(BuildContext context, Player player) {
+    final scheme = Theme.of(context).colorScheme;
     final rating = playerRatings[player.id] ?? 5.0;
     final color = _ratingColor(rating);
     return Container(
@@ -131,10 +199,10 @@ class MatchConvocationTable extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         rating.toStringAsFixed(1),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w800,
-          color: Colors.black,
+          color: scheme.onSurface,
         ),
       ),
     );
@@ -144,10 +212,10 @@ class MatchConvocationTable extends StatelessWidget {
     final value = rating.clamp(0.0, 10.0);
     if (value <= 5.0) {
       final t = value / 5.0;
-      return Color.lerp(Colors.red, Colors.yellow, t)!;
+      return Color.lerp(Colors.red, Colors.amber, t)!;
     } else {
       final t = (value - 5.0) / 5.0;
-      return Color.lerp(Colors.yellow, Colors.blue, t)!;
+      return Color.lerp(Colors.amber, Colors.blue, t)!;
     }
   }
 }

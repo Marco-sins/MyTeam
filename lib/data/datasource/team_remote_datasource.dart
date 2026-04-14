@@ -26,6 +26,30 @@ class TeamRemoteDatasource {
     }
   }
 
+  Future<void> removeSelfFromTeam({
+    required int teamId,
+    required String userId,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('team_members')
+          .delete()
+          .eq('id_team', teamId)
+          .eq('id_user', userId)
+          .select();
+      if (response.isEmpty) {
+        throw ServerException(
+          message: 'No se ha podido abandonar el equipo (sin filas eliminadas).',
+          code: '404',
+        );
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
   Future<void> createTeam(TeamModel teamData) async {
     try {
       final response2 = await _supabase
@@ -73,6 +97,50 @@ class TeamRemoteDatasource {
     }
   }
 
+  /// Borra filas que referencian al equipo para evitar que la BD intente
+  /// poner `team_id` a NULL en tablas NOT NULL (p. ej. `matches`).
+  Future<void> _purgeTeamRelatedRows(int teamId) async {
+    final matchesRows = await _supabase
+        .from('matches')
+        .select('id')
+        .eq('team_id', teamId);
+
+    final List<int> matchIds = (matchesRows as List<dynamic>)
+        .map((e) => (e as Map)['id'] as int)
+        .toList();
+
+    if (matchIds.isNotEmpty) {
+      await _supabase
+          .from('match_events')
+          .delete()
+          .inFilter('match_id', matchIds);
+      await _supabase
+          .from('match_lineup')
+          .delete()
+          .inFilter('match_id', matchIds);
+    }
+
+    await _supabase.from('matches').delete().eq('team_id', teamId);
+    await _supabase.from('attendances').delete().eq('team_id', teamId);
+    await _supabase.from('invitation').delete().eq('id_team', teamId);
+    await _supabase.from('team_members').delete().eq('id_team', teamId);
+
+    final playersRes = await _supabase
+        .from('players')
+        .select('id')
+        .eq('team_id', teamId);
+    final playerIds = (playersRes as List<dynamic>)
+        .map((e) => (e as Map)['id'] as int)
+        .toList();
+    if (playerIds.isNotEmpty) {
+      await _supabase
+          .from('player_stats')
+          .delete()
+          .inFilter('player_id', playerIds);
+    }
+    await _supabase.from('players').delete().eq('team_id', teamId);
+  }
+
   Future<void> deleteTeam(int id) async {
     try {
       // Obtener el logo actual para poder eliminarlo del storage si existe
@@ -89,6 +157,8 @@ class TeamRemoteDatasource {
           await _supabase.storage.from(_logoBucket).remove([path]);
         }
       }
+
+      await _purgeTeamRelatedRows(id);
 
       final response = await _supabase
           .from('teams')

@@ -9,6 +9,8 @@ class PlayerStatsModel extends PlayerStats {
     super.yellowCards,
     super.redCards,
     super.matchesPlayed,
+    super.minutesPlayed,
+    super.timesStarted,
   });
 
   factory PlayerStatsModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +24,8 @@ class PlayerStatsModel extends PlayerStats {
       yellowCards: json['yellow_cards'] ?? json['yellowCards'] ?? 0,
       redCards: json['red_cards'] ?? json['redCards'] ?? 0,
       matchesPlayed: json['matches_played'] ?? json['matchesPlayed'] ?? 0,
+      minutesPlayed: json['minutes_played'] ?? json['minutesPlayed'] ?? 0,
+      timesStarted: json['times_started'] ?? json['timesStarted'] ?? 0,
     );
   }
 
@@ -34,6 +38,8 @@ class PlayerStatsModel extends PlayerStats {
       'yellow_cards': yellowCards,
       'red_cards': redCards,
       'matches_played': matchesPlayed,
+      'minutes_played': minutesPlayed,
+      'times_started': timesStarted,
     };
   }
 
@@ -45,6 +51,8 @@ class PlayerStatsModel extends PlayerStats {
     int? yellowCards,
     int? redCards,
     int? matchesPlayed,
+    int? minutesPlayed,
+    int? timesStarted,
   }) {
     return PlayerStatsModel(
       id: id ?? this.id,
@@ -54,6 +62,8 @@ class PlayerStatsModel extends PlayerStats {
       yellowCards: yellowCards ?? this.yellowCards,
       redCards: redCards ?? this.redCards,
       matchesPlayed: matchesPlayed ?? this.matchesPlayed,
+      minutesPlayed: minutesPlayed ?? this.minutesPlayed,
+      timesStarted: timesStarted ?? this.timesStarted,
     );
   }
 }

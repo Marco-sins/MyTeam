@@ -19,21 +19,35 @@ class MatchLineupSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(height: 24),
-          const Text(
-            'Plantilla del partido',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Divider(height: 24, color: scheme.outlineVariant.withValues(alpha: 0.5)),
+          Row(
+            children: [
+              Icon(Icons.groups_rounded, color: scheme.primary, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'Plantilla del partido',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           if (startingPlayers.isNotEmpty) ...[
-            const Text(
+            Text(
               'Titulares',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             for (final p in startingPlayers)
@@ -47,9 +61,12 @@ class MatchLineupSection extends StatelessWidget {
             const SizedBox(height: 12),
           ],
           if (substitutePlayers.isNotEmpty) ...[
-            const Text(
+            Text(
               'Suplentes',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 4),
             for (final p in substitutePlayers)
@@ -84,6 +101,8 @@ class _MatchLineupPlayerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final value = (rating ?? 5.0).clamp(0.0, 10.0);
 
     Color ratingColor(double v) {
@@ -109,14 +128,17 @@ class _MatchLineupPlayerRow extends StatelessWidget {
               child: Text(
                 player.number?.toString() ?? '-',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.primary,
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 player.fullName,
-                style: const TextStyle(fontSize: 14),
+                style: textTheme.bodyMedium,
               ),
             ),
             const SizedBox(width: 8),
@@ -141,17 +163,16 @@ class _MatchLineupPlayerRow extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 color: label == 'Titular'
-                    ? Colors.green.withAlpha((0.1 * 255).round())
-                    : Colors.blueGrey.withAlpha((0.1 * 255).round()),
+                    ? scheme.primaryContainer.withValues(alpha: 0.85)
+                    : scheme.secondaryContainer.withValues(alpha: 0.65),
               ),
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+                style: textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                   color: label == 'Titular'
-                      ? Colors.green[800]
-                      : Colors.blueGrey,
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSecondaryContainer,
                 ),
               ),
             ),

@@ -11,4 +11,12 @@ abstract class IMatchRepository {
   Future<Either<Failure, Unit>> updateMatch(Match match);
   Future<Either<Failure, Unit>> deleteMatch(int id);
   Future<Either<Failure, List<Match>>> getMatchesByTeamId(int teamId);
+  Future<Either<Failure, List<MatchLineup>>> getMatchLineupsByMatchId(
+    int matchId,
+  );
+  Future<Either<Failure, Unit>> updateMatchLineupMinutesPlayed({
+    required int matchId,
+    required int playerId,
+    required int minutesPlayed,
+  });
 }

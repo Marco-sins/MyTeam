@@ -137,4 +137,42 @@ class MatchRemoteDatasource {
       throw UnknowException('Unexpected error: $e');
     }
   }
+
+  Future<void> updateMatchLineupMinutesPlayed({
+    required int matchId,
+    required int playerId,
+    required int minutesPlayed,
+  }) async {
+    try {
+      await _supabase
+          .from('match_lineup')
+          .update({'minutes_played': minutesPlayed})
+          .eq('match_id', matchId)
+          .eq('player_id', playerId);
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<List<MatchLineupModel>> getMatchLineupsByMatchId(int matchId) async {
+    try {
+      final result = await _supabase
+          .from('match_lineup')
+          .select()
+          .eq('match_id', matchId);
+      return (result as List)
+          .map(
+            (e) => MatchLineupModel.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
 }

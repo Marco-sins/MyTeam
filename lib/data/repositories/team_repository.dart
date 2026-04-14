@@ -40,6 +40,21 @@ class TeamRepository implements ITeamRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> removeSelfFromTeam({
+    required int teamId,
+    required String userId,
+  }) async {
+    try {
+      await _datasource.removeSelfFromTeam(teamId: teamId, userId: userId);
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(ServerFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
   Future<Either<Failure, Team>> getTeamById(int id) async {
     try {
       final result = await _datasource.getTeamById(id);

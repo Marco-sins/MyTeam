@@ -30,4 +30,14 @@ class AuthError extends AuthState {
   List<Object?> get props => [message];
 }
 
+/// Registro correcto pero sin sesión hasta confirmar el correo (Supabase).
+class AwaitingEmailVerification extends AuthState {
+  final String email;
+
+  const AwaitingEmailVerification(this.email);
+
+  @override
+  List<Object?> get props => [email];
+}
+
 class Unauthenticated extends AuthState {}

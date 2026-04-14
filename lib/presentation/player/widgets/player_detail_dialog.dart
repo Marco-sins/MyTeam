@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/entities/player_stats.dart';
 import 'package:football_manager/domain/entities/team.dart';
 
 class PlayerDetailDialog extends StatefulWidget {
@@ -157,40 +158,45 @@ class _PlayerDetailDialogState extends State<PlayerDetailDialog> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Estadísticas de partidos',
+                  'Estadísticas de partidos (todas las temporadas)',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                if (stats != null) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _StatChip(
-                        label: 'Partidos',
-                        value: stats.matchesPlayed.toString(),
-                      ),
-                      _StatChip(label: 'Goles', value: stats.goals.toString()),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _StatChip(
-                        label: 'Asistencias',
-                        value: stats.assists.toString(),
-                      ),
-                      _StatChip(
-                        label: 'Tarjetas',
-                        value: '${stats.yellowCards}/${stats.redCards}',
-                      ),
-                    ],
-                  ),
-                ] else
-                  const Text(
-                    'Sin estadísticas registradas todavía.',
-                    style: TextStyle(fontSize: 13, color: Colors.grey),
-                  ),
+                Builder(
+                  builder: (context) {
+                    final s = stats ?? const PlayerStats();
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        _StatChip(
+                          label: 'Partidos jugados',
+                          value: s.matchesPlayed.toString(),
+                        ),
+                        _StatChip(
+                          label: 'Como titular',
+                          value: s.timesStarted.toString(),
+                        ),
+                        _StatChip(
+                          label: 'Minutos',
+                          value: s.minutesPlayed.toString(),
+                        ),
+                        _StatChip(
+                          label: 'Goles',
+                          value: s.goals.toString(),
+                        ),
+                        _StatChip(
+                          label: 'Asist. gol',
+                          value: s.assists.toString(),
+                        ),
+                        _StatChip(
+                          label: 'Tarjetas (A/R)',
+                          value: '${s.yellowCards}/${s.redCards}',
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),

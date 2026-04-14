@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:gotrue/gotrue.dart' show User;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/auth_server_exception.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
@@ -9,6 +11,50 @@ class AuthRemoteDatasource {
   final SupabaseClient _supabase;
 
   AuthRemoteDatasource(this._supabase);
+
+  /// Crea la fila en `profiles` si no existe (primer inicio de sesión o tras
+  /// verificar el correo cuando el insert en el registro no pudo hacerse sin sesión).
+  Future<void> _ensureProfileForAuthUser(
+    User user, {
+    String? preferredUsername,
+  }) async {
+    try {
+      final existing = await _supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+      if (existing != null) {
+        return;
+      }
+
+      final meta = user.userMetadata;
+      final metaName = meta?['name'];
+      final nameStr = metaName is String ? metaName.trim() : '';
+      final email = user.email ?? '';
+      final fromForm = preferredUsername?.trim() ?? '';
+      final username = fromForm.isNotEmpty
+          ? fromForm
+          : nameStr.isNotEmpty
+              ? nameStr
+              : (email.contains('@') ? email.split('@').first : 'Usuario');
+
+      await _supabase.from('profiles').insert({
+        'id': user.id,
+        'username': username,
+        'email': email,
+      });
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        return;
+      }
+      debugPrint(
+        '_ensureProfileForAuthUser: ${e.message} (code: ${e.code})',
+      );
+    } catch (e) {
+      debugPrint('_ensureProfileForAuthUser: $e');
+    }
+  }
 
   Future<Map<int, UserRole>> _getTeamRolesForUser(String userId) async {
     try {
@@ -44,6 +90,7 @@ class AuthRemoteDatasource {
       if (response.session == null || user == null) {
         throw Exception('Failed to sign in');
       }
+      await _ensureProfileForAuthUser(user);
       final teamRoles = await _getTeamRolesForUser(user.id);
       return AuthUserModel(
         id: user.id,
@@ -68,7 +115,13 @@ class AuthRemoteDatasource {
     }
   }
 
-  Future<AuthUserModel> signUp(
+  /// [awaitingEmailConfirmation] true cuando Supabase exige verificar el correo
+  /// y aún no hay sesión ([AuthResponse.session] == null).
+  Future<({
+    bool awaitingEmailConfirmation,
+    AuthUserModel? user,
+    String email,
+  })> signUp(
     String email,
     String name,
     String password,
@@ -84,28 +137,34 @@ class AuthRemoteDatasource {
         },
       );
       final user = response.user;
-      if (response.session == null || user == null) {
+      if (user == null) {
         throw ServerException(message: 'Failed to sign up');
       }
 
-      // Crear también la fila en la tabla de perfiles con el mismo id
-      try {
-        await _supabase.from('profiles').insert({
-          'id': user.id,
-          'username': name,
-          'email': user.email ?? email,
-        });
-      } on PostgrestException catch (e) {
-        // Si falla la creación del perfil, consideramos que es un error de servidor
-        throw ServerException(message: e.message, code: e.code);
+      final resolvedEmail = user.email ?? email;
+
+      if (response.session == null) {
+        // Sin sesión (p. ej. confirmar email): el perfil se crea en el primer login.
+        return (
+          awaitingEmailConfirmation: true,
+          user: null,
+          email: resolvedEmail,
+        );
       }
 
+      await _ensureProfileForAuthUser(user, preferredUsername: name);
+
       final teamRoles = await _getTeamRolesForUser(user.id);
-      return AuthUserModel(
+      final model = AuthUserModel(
         id: user.id,
-        email: user.email ?? '',
+        email: resolvedEmail,
         name: user.userMetadata?['name'] ?? '',
         teamRoles: teamRoles,
+      );
+      return (
+        awaitingEmailConfirmation: false,
+        user: model,
+        email: resolvedEmail,
       );
     } on AuthException catch (e) {
       throw AuthServerException('Sign up error: ${e.message}');
@@ -120,6 +179,7 @@ class AuthRemoteDatasource {
       if (user == null) {
         return null;
       }
+      await _ensureProfileForAuthUser(user);
       final teamRoles = await _getTeamRolesForUser(user.id);
       return AuthUserModel(
         id: user.id,

@@ -23,7 +23,7 @@ class MatchStatsPage extends StatelessWidget {
       case MatchStatus.firstHalf:
         return '1ª parte';
       case MatchStatus.halfTime:
-        return 'Half time';
+        return 'Descanso';
       case MatchStatus.secondHalf:
         return '2ª parte';
       case MatchStatus.finished:
@@ -53,100 +53,225 @@ class MatchStatsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     final dateText =
-        '${match.date.day.toString().padLeft(2, '0')}/${match.date.month.toString().padLeft(2, '0')} ${match.date.hour.toString().padLeft(2, '0')}:${match.date.minute.toString().padLeft(2, '0')}';
+        '${match.date.day.toString().padLeft(2, '0')}/${match.date.month.toString().padLeft(2, '0')} · '
+        '${match.date.hour.toString().padLeft(2, '0')}:${match.date.minute.toString().padLeft(2, '0')}';
 
     final authState = context.read<AuthCubit>().state;
-    bool isExternal = false;
+    var isExternal = false;
     if (authState is Authenticated) {
       isExternal = authState.user.teamRoles[match.teamId] == UserRole.external;
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalles del partido'),
+        title: const Text('Detalle del partido'),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: BlocBuilder<MatchStatsCubit, MatchStatsState>(
-          builder: (context, state) {
-            if (state.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: BlocBuilder<MatchStatsCubit, MatchStatsState>(
+        builder: (context, state) {
+          if (state.isLoading) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 28,
+                        vertical: 36,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: scheme.primary),
+                          const SizedBox(height: 20),
+                          Text(
+                            'Cargando resumen del partido…',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
 
-            if (state.error != null) {
-              return Center(child: Text(state.error!));
-            }
+          if (state.error != null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(22),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: scheme.error,
+                            size: 40,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              state.error!,
+                              style: textTheme.bodyLarge,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
 
-            final bool showLineupSection =
-                match.status == MatchStatus.finished &&
-                (state.startingPlayers.isNotEmpty ||
-                    state.substitutePlayers.isNotEmpty);
+          final bool showLineupSection =
+              match.status == MatchStatus.finished &&
+              (state.startingPlayers.isNotEmpty ||
+                  state.substitutePlayers.isNotEmpty);
 
-            // Toda la pantalla (card + eventos + plantilla) se desplaza junta.
-            return ListView.builder(
+          return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               itemCount: () {
                 if (state.events.isEmpty) {
-                  // Card + espacio + título + espacio + mensaje + plantilla opcional
                   return 5 + (showLineupSection ? 1 : 0);
                 } else {
-                  // Card + espacio + título + espacio + eventos + plantilla opcional
                   return 4 + state.events.length + (showLineupSection ? 1 : 0);
                 }
               }(),
               itemBuilder: (context, index) {
-                // 0: Card con info básica de partido
                 if (index == 0) {
                   return Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 0,
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.65,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Vs ${match.opponent}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CircleAvatar(
+                                radius: 26,
+                                backgroundColor: scheme.primaryContainer,
+                                child: Icon(
+                                  Icons.sports_soccer_rounded,
+                                  color: scheme.onPrimaryContainer,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'vs ${match.opponent}',
+                                      style: textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.3,
+                                        height: 1.15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.schedule_rounded,
+                                          size: 16,
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            dateText,
+                                            style: textTheme.bodySmall
+                                                ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              Chip(
+                                avatar: Icon(
+                                  match.isHome
+                                      ? Icons.home_rounded
+                                      : Icons.flight_takeoff_rounded,
+                                  size: 18,
+                                  color: scheme.primary,
+                                ),
+                                label: Text(
+                                  match.isHome ? 'Local' : 'Visitante',
+                                ),
+                              ),
+                              Chip(
+                                label: Text(_statusText(match.status)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 18,
+                              horizontal: 12,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            dateText,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _statusText(match.status),
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          const SizedBox(height: 16),
-                          Center(
-                            child: Text(
-                              '${match.goalsScored}  -  ${match.goalsConceded}',
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
+                            decoration: BoxDecoration(
+                              color: scheme.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: scheme.outlineVariant.withValues(
+                                  alpha: 0.45,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Center(
-                            child: Text(
-                              'Marcador final',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  '${match.goalsScored}  —  ${match.goalsConceded}',
+                                  style: textTheme.headlineMedium?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Marcador final',
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -155,31 +280,61 @@ class MatchStatsPage extends StatelessWidget {
                   );
                 }
 
-                // 1: separación debajo de la card
                 if (index == 1) {
-                  return const SizedBox(height: 16);
+                  return const SizedBox(height: 20);
                 }
 
-                // 2: título de eventos
                 if (index == 2) {
-                  return const Text(
-                    'Eventos',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  return Row(
+                    children: [
+                      Icon(
+                        Icons.history_rounded,
+                        color: scheme.primary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Eventos',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   );
                 }
 
-                // 3: separación bajo el título
                 if (index == 3) {
-                  return const SizedBox(height: 8);
+                  return const SizedBox(height: 10);
                 }
 
                 if (state.events.isEmpty) {
-                  // 4: mensaje de que no hay eventos
                   if (index == 4) {
-                    return const Center(
+                    return Card(
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: 0.4,
+                      ),
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24.0),
-                        child: Text('No hay eventos registrados'),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 28,
+                          horizontal: 16,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.event_note_outlined,
+                              size: 44,
+                              color: scheme.outline.withValues(alpha: 0.8),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No hay eventos registrados',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }
@@ -369,8 +524,11 @@ class MatchStatsPage extends StatelessWidget {
                     startingPlayers: state.startingPlayers,
                     substitutePlayers: state.substitutePlayers,
                     playerRatings: state.playerRatings,
-                    onPlayerTap: (player) =>
-                        _showPlayerMatchStats(context, state, player),
+                    showRatings: !isExternal,
+                    onPlayerTap: (player) {
+                      if (isExternal) return;
+                      _showPlayerMatchStats(context, state, player);
+                    },
                   );
                 }
 
@@ -379,7 +537,6 @@ class MatchStatsPage extends StatelessWidget {
             );
           },
         ),
-      ),
     );
   }
 }

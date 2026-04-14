@@ -10,6 +10,9 @@ class PlayerStatsMapper {
       assists: playerStats.assists,
       yellowCards: playerStats.yellowCards,
       redCards: playerStats.redCards,
+      matchesPlayed: playerStats.matchesPlayed,
+      minutesPlayed: playerStats.minutesPlayed,
+      timesStarted: playerStats.timesStarted,
     );
   }
 
@@ -21,6 +24,9 @@ class PlayerStatsMapper {
       assists: playerStatsModel.assists,
       yellowCards: playerStatsModel.yellowCards,
       redCards: playerStatsModel.redCards,
+      matchesPlayed: playerStatsModel.matchesPlayed,
+      minutesPlayed: playerStatsModel.minutesPlayed,
+      timesStarted: playerStatsModel.timesStarted,
     );
   }
 }

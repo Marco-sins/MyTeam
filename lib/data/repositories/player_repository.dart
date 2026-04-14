@@ -187,4 +187,30 @@ class PlayerRepository implements IPlayerRepository {
       return Left(ServerFailure('Unexpected error: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, Unit>> syncParticipationStatsForTeam(int teamId) async {
+    try {
+      await _remoteDatasource.syncParticipationStatsForTeam(teamId);
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(ServerFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> recalculateAllAggregatedStatsForTeam(
+    int teamId,
+  ) async {
+    try {
+      await _remoteDatasource.recalculateAllAggregatedStatsForTeam(teamId);
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(ServerFailure('Unexpected error: $e'));
+    }
+  }
 }

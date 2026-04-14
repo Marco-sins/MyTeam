@@ -33,6 +33,7 @@ import 'package:football_manager/domain/usecase/player/delete_player_use_case.da
 import 'package:football_manager/domain/usecase/player/update_player_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/team/delete_team_use_case.dart';
+import 'package:football_manager/domain/usecase/team/leave_team_as_external_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/update_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_use_case.dart';
@@ -158,6 +159,8 @@ class MyApp extends StatelessWidget {
     final updatePlayerUseCase = UpdatePlayerUseCase(playerRepository);
     final getPlayersByTeamUseCase = GetPlayersByTeamUseCase(playerRepository);
     final deleteTeamUseCase = DeleteTeamUseCase(teamRepository);
+    final leaveTeamAsExternalUseCase =
+        LeaveTeamAsExternalUseCase(teamRepository);
     final attendanceRepository = AttendanceRepository(
       AttendanceRemoteDatasource(supabaseClient),
     );
@@ -193,7 +196,10 @@ class MyApp extends StatelessWidget {
     );
     final createMatchUseCase = CreateMatchUseCase(matchRepository);
     final getMatchesByTeamUseCase = GetMatchesByTeamUseCase(matchRepository);
-    final deleteMatchUseCase = DeleteMatchUseCase(matchRepository);
+    final deleteMatchUseCase = DeleteMatchUseCase(
+      matchRepository,
+      playerRepository,
+    );
     final startMatchUseCase = StartMatchUseCase(matchRepository);
     final finishMatchUseCase = FinishMatchUseCase(
       matchRepository,
@@ -226,6 +232,7 @@ class MyApp extends StatelessWidget {
         RepositoryProvider.value(value: updatePlayerUseCase),
         RepositoryProvider.value(value: getPlayersByTeamUseCase),
         RepositoryProvider.value(value: deleteTeamUseCase),
+        RepositoryProvider.value(value: leaveTeamAsExternalUseCase),
         RepositoryProvider.value(value: uploadTeamLogoUseCase),
         RepositoryProvider.value(value: updateTeamUseCase),
         RepositoryProvider.value(value: getTeamByIdUseCase),

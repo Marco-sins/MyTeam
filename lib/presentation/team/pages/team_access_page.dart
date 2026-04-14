@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -19,25 +21,73 @@ class TeamAccessPage extends StatefulWidget {
   State<TeamAccessPage> createState() => _TeamAccessPageState();
 }
 
-class _TeamAccessPageState extends State<TeamAccessPage> {
+class _TeamAccessPageState extends State<TeamAccessPage>
+    with WidgetsBindingObserver {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   bool _loading = true;
   String? _error;
   String? _currentUserId;
   List<_TeamMember> _members = [];
+  RealtimeChannel? _teamMembersChannel;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMembers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _subscribeTeamMembersRealtime();
+    });
   }
 
-  Future<void> _loadMembers() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    final ch = _teamMembersChannel;
+    _teamMembersChannel = null;
+    if (ch != null) {
+      unawaited(_supabase.removeChannel(ch));
+    }
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadMembers(silent: true);
+    }
+  }
+
+  /// Lista siempre al día: alguien entra/sale del equipo o cambia rol.
+  void _subscribeTeamMembersRealtime() {
+    final teamId = widget.team.id;
+    _teamMembersChannel = _supabase
+        .channel('team_access_${teamId}_${_supabase.auth.currentUser?.id ?? 'x'}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'team_members',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_team',
+            value: teamId,
+          ),
+          callback: (_) {
+            if (!mounted) return;
+            _loadMembers(silent: true);
+          },
+        )
+        .subscribe();
+  }
+
+  Future<void> _loadMembers({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
 
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
@@ -82,12 +132,18 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
         }
       }
 
+      if (!mounted) return;
       setState(() {
         _currentUserId = currentUserId;
         _members = members;
         _loading = false;
+        _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
+      if (silent) {
+        return;
+      }
       setState(() {
         _error = 'No se han podido cargar los miembros del equipo';
         _loading = false;
@@ -346,6 +402,59 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 16),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.55,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.people_outline_rounded,
+                                size: 22,
+                                color: scheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Usuarios con acceso',
+                                  style: textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Lista en vivo: se actualiza sola cuando alguien '
+                            'recibe o pierde acceso. Cada fila muestra nombre '
+                            'y correo (tabla perfiles) para identificar a la persona.',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              height: 1.35,
+                            ),
+                          ),
+                          if (_members.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              '${_members.length} ${_members.length == 1 ? 'persona' : 'personas'}',
+                              style: textTheme.labelLarge?.copyWith(
+                                color: scheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Expanded(
                     child: RefreshIndicator(
                       onRefresh: _loadMembers,
@@ -405,7 +514,15 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
                                     final isCurrentUser =
                                         member.idUser == _currentUserId;
 
+                                    final displayName = member.name.isNotEmpty
+                                        ? member.name
+                                        : 'Sin nombre en perfil';
+                                    final displayEmail = member.email.isNotEmpty
+                                        ? member.email
+                                        : 'Correo no disponible (revisa el perfil en la app)';
+
                                     return ListTile(
+                                      isThreeLine: true,
                                       leading: CircleAvatar(
                                         backgroundColor:
                                             scheme.surfaceContainerHighest,
@@ -421,32 +538,47 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
                                         ),
                                       ),
                                       title: Text(
-                                        member.name.isNotEmpty
-                                            ? member.name
-                                            : 'Usuario',
-                                        maxLines: 1,
+                                        'Nombre: $displayName',
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
+                                        style: textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (member.email.isNotEmpty)
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
                                             Text(
-                                              member.email,
-                                              style: textTheme.bodySmall,
+                                              'Correo: $displayEmail',
+                                              style: textTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: member.email.isNotEmpty
+                                                    ? scheme.onSurfaceVariant
+                                                    : scheme.outline,
+                                                fontStyle:
+                                                    member.email.isNotEmpty
+                                                        ? FontStyle.normal
+                                                        : FontStyle.italic,
+                                                height: 1.3,
+                                              ),
                                             ),
-                                          Text(
-                                            _roleLabel(member.role),
-                                            style: textTheme.labelLarge
-                                                ?.copyWith(
-                                              color: scheme.onSurfaceVariant,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Rol: ${_roleLabel(member.role)}',
+                                              style: textTheme.labelLarge
+                                                  ?.copyWith(
+                                                color:
+                                                    scheme.onSurfaceVariant,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                       trailing: isCurrentUser
                                           ? Padding(

@@ -2,8 +2,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
 import 'package:football_manager/data/models/player_model.dart';
+import 'package:football_manager/data/models/player_participation_totals.dart';
 import 'package:football_manager/data/models/player_stats_model.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
+
+String _matchEventTypeTail(dynamic raw) {
+  if (raw == null) return '';
+  final s = raw.toString();
+  final parts = s.split('.');
+  return parts.isNotEmpty ? parts.last : s;
+}
 
 class PlayerRemoteDatasource {
   final SupabaseClient _supabase;
@@ -167,16 +175,246 @@ class PlayerRemoteDatasource {
     }
   }
 
+  Future<Map<int, PlayerParticipationTotals>> computeParticipationTotalsForTeam(
+    int teamId,
+  ) async {
+    try {
+      final finished = await _supabase
+          .from('matches')
+          .select('id')
+          .eq('team_id', teamId)
+          .eq('status', 'finished');
+
+      final List<int> matchIds = (finished as List<dynamic>)
+          .map((e) => (e as Map)['id'] as int)
+          .toList();
+
+      if (matchIds.isEmpty) {
+        return {};
+      }
+
+      final playedSets = <int, Set<int>>{};
+      final startedSets = <int, Set<int>>{};
+      final minutesSum = <int, int>{};
+
+      void markPlayed(int playerId, int matchId) {
+        playedSets.putIfAbsent(playerId, () => {}).add(matchId);
+      }
+
+      void markStarted(int playerId, int matchId) {
+        startedSets.putIfAbsent(playerId, () => {}).add(matchId);
+      }
+
+      void addMinutes(int playerId, int mins) {
+        minutesSum[playerId] = (minutesSum[playerId] ?? 0) + mins;
+      }
+
+      final lineups = await _supabase
+          .from('match_lineup')
+          .select('player_id, match_id, minutes_played, is_start')
+          .inFilter('match_id', matchIds);
+
+      for (final row in lineups as List<dynamic>) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final pid = map['player_id'] as int;
+        final mid = map['match_id'] as int;
+        final mins = (map['minutes_played'] as num?)?.toInt() ?? 0;
+        final isStart = (map['is_start'] as bool?) ?? false;
+
+        addMinutes(pid, mins);
+        if (mins > 0 || isStart) {
+          markPlayed(pid, mid);
+        }
+        if (isStart) {
+          markStarted(pid, mid);
+        }
+      }
+
+      final events = await _supabase
+          .from('match_events')
+          .select('match_id, type, player_id1, player_id2')
+          .inFilter('match_id', matchIds);
+
+      for (final row in events as List<dynamic>) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final mid = map['match_id'] as int;
+        if (_matchEventTypeTail(map['type']) == 'statusChange') {
+          continue;
+        }
+        final p1 = map['player_id1'] as int?;
+        final p2 = map['player_id2'] as int?;
+        if (p1 != null) {
+          markPlayed(p1, mid);
+        }
+        if (p2 != null) {
+          markPlayed(p2, mid);
+        }
+      }
+
+      final allIds = <int>{
+        ...playedSets.keys,
+        ...startedSets.keys,
+        ...minutesSum.keys,
+      };
+
+      final result = <int, PlayerParticipationTotals>{};
+      for (final id in allIds) {
+        result[id] = PlayerParticipationTotals(
+          matchesPlayed: playedSets[id]?.length ?? 0,
+          timesStarted: startedSets[id]?.length ?? 0,
+          minutesPlayedSum: minutesSum[id] ?? 0,
+        );
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> syncParticipationStatsForTeam(int teamId) async {
+    try {
+      final totals = await computeParticipationTotalsForTeam(teamId);
+      final playersRes = await _supabase
+          .from('players')
+          .select('id')
+          .eq('team_id', teamId);
+
+      for (final row in playersRes as List<dynamic>) {
+        final id = (row as Map)['id'] as int;
+        final t = totals[id] ?? PlayerParticipationTotals.zero;
+        await _supabase.from('player_stats').update({
+          'matches_played': t.matchesPlayed,
+          'times_started': t.timesStarted,
+          'minutes_played': t.minutesPlayedSum,
+        }).eq('player_id', id);
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  /// Goles, asistencias y tarjetas solo de partidos finalizados (misma regla
+  /// que al cerrar un partido), útil tras borrar un partido o para corregir drift.
+  Future<void> recomputeScoringAndDisciplineForTeam(int teamId) async {
+    try {
+      final finished = await _supabase
+          .from('matches')
+          .select('id')
+          .eq('team_id', teamId)
+          .eq('status', 'finished');
+
+      final List<int> matchIds = (finished as List<dynamic>)
+          .map((e) => (e as Map)['id'] as int)
+          .toList();
+
+      final goals = <int, int>{};
+      final assists = <int, int>{};
+      final yellows = <int, int>{};
+      final reds = <int, int>{};
+
+      if (matchIds.isNotEmpty) {
+        final events = await _supabase
+            .from('match_events')
+            .select('type, player_id1, player_id2')
+            .inFilter('match_id', matchIds);
+
+        for (final row in events as List<dynamic>) {
+          final map = Map<String, dynamic>.from(row as Map);
+          final tail = _matchEventTypeTail(map['type']);
+          final p1 = map['player_id1'] as int?;
+          final p2 = map['player_id2'] as int?;
+
+          if (tail == 'scoreGoal') {
+            if (p1 != null) {
+              goals[p1] = (goals[p1] ?? 0) + 1;
+            }
+            if (p2 != null) {
+              assists[p2] = (assists[p2] ?? 0) + 1;
+            }
+          } else if (tail == 'yellowCard') {
+            if (p1 != null) {
+              yellows[p1] = (yellows[p1] ?? 0) + 1;
+            }
+          } else if (tail == 'redCard') {
+            if (p1 != null) {
+              reds[p1] = (reds[p1] ?? 0) + 1;
+            }
+          }
+        }
+      }
+
+      final playersRes = await _supabase
+          .from('players')
+          .select('id')
+          .eq('team_id', teamId);
+
+      for (final row in playersRes as List<dynamic>) {
+        final id = (row as Map)['id'] as int;
+        await _supabase.from('player_stats').update({
+          'goals': goals[id] ?? 0,
+          'assistences': assists[id] ?? 0,
+          'yellow_cards': yellows[id] ?? 0,
+          'red_cards': reds[id] ?? 0,
+        }).eq('player_id', id);
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> recalculateAllAggregatedStatsForTeam(int teamId) async {
+    await syncParticipationStatsForTeam(teamId);
+    await recomputeScoringAndDisciplineForTeam(teamId);
+  }
+
   Future<List<PlayerModel>> getPlayersByTeam(int teamId) async {
     try {
       final result = await _supabase
           .from('players')
-          .select()
+          .select('*, player_stats(*)')
           .eq('team_id', teamId);
       List<PlayerModel> players = result
-          .map((e) => PlayerModel.fromJson(e))
+          .map((e) => PlayerModel.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
-      return players;
+
+      final totals = await computeParticipationTotalsForTeam(teamId);
+      return players.map((p) {
+        final t = totals[p.id] ?? PlayerParticipationTotals.zero;
+        final st = p.stats;
+        if (st == null) {
+          return p.copyWith(
+            stats: PlayerStatsModel(
+              matchesPlayed: t.matchesPlayed,
+              timesStarted: t.timesStarted,
+              minutesPlayed: t.minutesPlayedSum,
+            ),
+          );
+        }
+        final model = st is PlayerStatsModel ? st : PlayerStatsModel(
+          id: st.id,
+          playerId: st.playerId,
+          goals: st.goals,
+          assists: st.assists,
+          yellowCards: st.yellowCards,
+          redCards: st.redCards,
+          matchesPlayed: st.matchesPlayed,
+          minutesPlayed: st.minutesPlayed,
+          timesStarted: st.timesStarted,
+        );
+        return p.copyWith(
+          stats: model.copyWith(
+            matchesPlayed: t.matchesPlayed,
+            timesStarted: t.timesStarted,
+            minutesPlayed: t.minutesPlayedSum,
+          ),
+        );
+      }).toList();
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

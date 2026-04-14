@@ -28,4 +28,8 @@ abstract class IPlayerRepository {
     int playerId,
     PlayerStats playerStats,
   );
+  Future<Either<Failure, Unit>> syncParticipationStatsForTeam(int teamId);
+  Future<Either<Failure, Unit>> recalculateAllAggregatedStatsForTeam(
+    int teamId,
+  );
 }

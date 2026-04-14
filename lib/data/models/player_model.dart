@@ -36,10 +36,34 @@ class PlayerModel extends Player {
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
       positions: positions,
-      stats: json['stats'] != null
-          ? PlayerStatsModel.fromJson(json['stats'])
-          : const PlayerStatsModel(),
+      stats: _statsFromEmbed(json['stats'] ?? json['player_stats']),
     );
+  }
+
+  static PlayerStatsModel _statsFromEmbed(dynamic raw) {
+    if (raw == null) {
+      return const PlayerStatsModel();
+    }
+    if (raw is List) {
+      if (raw.isEmpty) {
+        return const PlayerStatsModel();
+      }
+      final first = raw.first;
+      if (first is Map<String, dynamic>) {
+        return PlayerStatsModel.fromJson(first);
+      }
+      if (first is Map) {
+        return PlayerStatsModel.fromJson(Map<String, dynamic>.from(first));
+      }
+      return const PlayerStatsModel();
+    }
+    if (raw is Map<String, dynamic>) {
+      return PlayerStatsModel.fromJson(raw);
+    }
+    if (raw is Map) {
+      return PlayerStatsModel.fromJson(Map<String, dynamic>.from(raw));
+    }
+    return const PlayerStatsModel();
   }
 
   Map<String, dynamic> toJson() {

@@ -4,6 +4,7 @@ import 'package:football_manager/data/datasource/attendance_remote_datasource.da
 import 'package:football_manager/data/repositories/attendance_repository.dart';
 import 'package:football_manager/domain/entities/attendance.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/entities/player_stats.dart';
 import 'package:football_manager/domain/entities/team.dart';
 
 class AttendanceSummaryTable extends StatelessWidget {
@@ -170,11 +171,14 @@ class AttendanceSummaryTable extends StatelessWidget {
                                 ),
                                 for (final date in matrix.dates)
                                   DataCell(
-                                    Center(
-                                      child: _buildCell(
-                                        matrix,
-                                        player.id,
-                                        date,
+                                    SizedBox(
+                                      width: 80,
+                                      child: Center(
+                                        child: _buildCell(
+                                          matrix,
+                                          player.id,
+                                          date,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -280,7 +284,7 @@ class AttendanceSummaryTable extends StatelessWidget {
                       ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Estadísticas',
+                      'Entrenamientos',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -300,37 +304,66 @@ class AttendanceSummaryTable extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Partidos (datos guardados)',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    if (player.stats != null) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _StatChip(
-                            label: 'Goles',
-                            value: player.stats!.goals.toString(),
-                          ),
-                          _StatChip(
-                            label: 'Asistencias',
-                            value: player.stats!.assists.toString(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _StatChip(
-                            label: 'Partidos',
-                            value: player.stats!.matchesPlayed.toString(),
-                          ),
-                          _StatChip(
-                            label: 'Tarjetas',
-                            value:
-                                '${player.stats!.yellowCards}/${player.stats!.redCards}',
-                          ),
-                        ],
-                      ),
-                    ],
+                    Builder(
+                      builder: (_) {
+                        final s = player.stats ?? const PlayerStats();
+                        return Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _StatChip(
+                                  label: 'Partidos jugados',
+                                  value: s.matchesPlayed.toString(),
+                                ),
+                                _StatChip(
+                                  label: 'Como titular',
+                                  value: s.timesStarted.toString(),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _StatChip(
+                                  label: 'Goles',
+                                  value: s.goals.toString(),
+                                ),
+                                _StatChip(
+                                  label: 'Asistencias',
+                                  value: s.assists.toString(),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _StatChip(
+                                  label: 'Minutos',
+                                  value: s.minutesPlayed.toString(),
+                                ),
+                                _StatChip(
+                                  label: 'Tarjetas (A/R)',
+                                  value:
+                                      '${s.yellowCards}/${s.redCards}',
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

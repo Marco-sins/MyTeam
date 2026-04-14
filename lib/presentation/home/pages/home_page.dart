@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
 import 'package:football_manager/presentation/home/widgets/add_team.dart';
 import 'package:football_manager/presentation/invitations/pages/invitations_page.dart';
@@ -19,14 +22,113 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _invitationsCount = 0;
+  RealtimeChannel? _teamMembersChannel;
+  RealtimeChannel? _invitationsChannel;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     context.read<HomeCubit>().fetchTeams();
     _loadInvitationsCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _subscribeTeamMembersRealtime();
+      _subscribeInvitationsRealtime();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    final chTeam = _teamMembersChannel;
+    _teamMembersChannel = null;
+    if (chTeam != null) {
+      unawaited(Supabase.instance.client.removeChannel(chTeam));
+    }
+    final chInv = _invitationsChannel;
+    _invitationsChannel = null;
+    if (chInv != null) {
+      unawaited(Supabase.instance.client.removeChannel(chInv));
+    }
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshHome();
+    }
+  }
+
+  /// Si te quitan de un equipo, el panel se actualiza sin reiniciar la app.
+  /// Requiere Realtime activado para `team_members` en Supabase (recomendado).
+  void _subscribeTeamMembersRealtime() {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) return;
+    final uid = authState.user.id;
+
+    _teamMembersChannel = Supabase.instance.client
+        .channel('team_members_panel_$uid')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.delete,
+          schema: 'public',
+          table: 'team_members',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_user',
+            value: uid,
+          ),
+          callback: (_) {
+            if (!mounted) return;
+            context.read<HomeCubit>().fetchTeams();
+            context.read<AuthCubit>().refreshAuthenticatedUser();
+          },
+        )
+        .subscribe();
+  }
+
+  /// Actualiza el contador del botón al instante cuando llega o se borra una invitación.
+  /// Requiere Realtime activado para la tabla `invitation` en Supabase.
+  void _subscribeInvitationsRealtime() {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) return;
+    final inboxEmail = authState.user.email.trim().toLowerCase();
+    if (inboxEmail.isEmpty) return;
+
+    final channelId =
+        'inv_inbox_${inboxEmail.hashCode}_${authState.user.id.hashCode}';
+
+    _invitationsChannel = Supabase.instance.client
+        .channel(channelId)
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'invitation',
+          callback: (payload) {
+            String? rowEmail;
+            switch (payload.eventType) {
+              case PostgresChangeEvent.insert:
+                rowEmail = payload.newRecord['email']?.toString();
+                break;
+              case PostgresChangeEvent.update:
+                rowEmail = payload.newRecord['email']?.toString() ??
+                    payload.oldRecord['email']?.toString();
+                break;
+              case PostgresChangeEvent.delete:
+                rowEmail = payload.oldRecord['email']?.toString();
+                break;
+              case PostgresChangeEvent.all:
+                return;
+            }
+            if (rowEmail == null) return;
+            if (rowEmail.trim().toLowerCase() != inboxEmail) return;
+            if (!mounted) return;
+            _loadInvitationsCount();
+          },
+        )
+        .subscribe();
   }
 
   Future<void> _loadInvitationsCount() async {
@@ -43,7 +145,9 @@ class _HomePageState extends State<HomePage> {
     try {
       final getInvitationsByEmailUseCase = context
           .read<GetInvitationsByEmailUseCase>();
-      final result = await getInvitationsByEmailUseCase(authState.user.email);
+      final normalizedEmail = authState.user.email.trim().toLowerCase();
+      final result =
+          await getInvitationsByEmailUseCase(normalizedEmail);
 
       if (!mounted) return;
 
