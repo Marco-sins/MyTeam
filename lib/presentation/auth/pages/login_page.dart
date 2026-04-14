@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
-import 'package:football_manager/presentation/auth/widgets/aut_mode_selector.dart';
+import 'package:football_manager/presentation/auth/widgets/auth_mode_selector.dart';
 import 'package:football_manager/presentation/home/pages/home_page.dart';
 import 'package:football_manager/presentation/auth/pages/reset_password_page.dart';
-import '../bloc/auth_cubit.dart';
-import '../bloc/auth_state.dart';
+import '../cubit/auth_cubit.dart';
+import '../cubit/auth_state.dart';
 import '../widgets/login_form.dart';
 import '../widgets/register_form.dart';
 import '../widgets/auth_background.dart';
@@ -55,10 +55,11 @@ class _LoginPageState extends State<LoginPage> {
         child: BlocConsumer<AuthCubit, AuthState>(
           listener: (context, state) {
             if (state is AuthError) {
+              final scheme = Theme.of(context).colorScheme;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
-                  backgroundColor: Colors.redAccent,
+                  backgroundColor: scheme.error,
                 ),
               );
             }
@@ -78,18 +79,26 @@ class _LoginPageState extends State<LoginPage> {
                     AuthHeader(isRegisterMode: _isRegisterMode),
                     const SizedBox(height: 24),
 
-                    // Contenedor del Formulario
                     Container(
-                      constraints: const BoxConstraints(maxWidth: 340),
-                      padding: const EdgeInsets.all(24),
+                      constraints: const BoxConstraints(maxWidth: 380),
+                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.2),
+                        ),
+                        boxShadow: [
                           BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 10,
-                            offset: Offset(0, 5),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.12),
+                            blurRadius: 28,
+                            offset: const Offset(0, 12),
                           ),
                         ],
                       ),
@@ -98,7 +107,7 @@ class _LoginPageState extends State<LoginPage> {
                           : const LoginForm(),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     AuthModeSelector(
                       isRegisterMode: _isRegisterMode,
                       onTap: _toggleMode,

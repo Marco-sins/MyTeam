@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/presentation/auth/pages/forgot_password_page.dart';
-import '../bloc/auth_cubit.dart';
+import '../cubit/auth_cubit.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
@@ -39,9 +39,10 @@ class _LoginFormState extends State<LoginForm> {
         children: [
           TextFormField(
             controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
+              labelText: 'Correo electrónico',
             ),
             validator: (value) => value!.isEmpty ? 'Introduce tu email' : null,
           ),
@@ -49,9 +50,10 @@ class _LoginFormState extends State<LoginForm> {
           TextFormField(
             controller: _passwordController,
             obscureText: true,
+            textInputAction: TextInputAction.done,
+            onFieldSubmitted: (_) => _submit(),
             decoration: const InputDecoration(
               labelText: 'Contraseña',
-              border: OutlineInputBorder(),
             ),
             validator: (value) =>
                 value!.length < 6 ? 'Mínimo 6 caracteres' : null,
@@ -59,10 +61,9 @@ class _LoginFormState extends State<LoginForm> {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
+            child: FilledButton(
               onPressed: _submit,
-              child: const Text('Iniciar Sesión'),
+              child: const Text('Iniciar sesión'),
             ),
           ),
           const SizedBox(height: 12),

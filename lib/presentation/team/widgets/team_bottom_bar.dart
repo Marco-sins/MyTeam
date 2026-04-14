@@ -5,14 +5,14 @@ import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/get_attendance_by_date_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/update_attendance_use_case.dart';
-import 'package:football_manager/presentation/attendance/bloc/attendance_cubit.dart';
+import 'package:football_manager/presentation/attendance/cubit/attendance_cubit.dart';
 import 'package:football_manager/presentation/attendance/pages/attendance_page.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
-import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/convocation/pages/convocation_page.dart';
 import 'package:football_manager/presentation/match/pages/match_list_page.dart';
-import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_management_page.dart';
 
 class TeamBottomBar extends StatelessWidget {
@@ -118,14 +118,28 @@ class TeamBottomBar extends StatelessWidget {
       );
     }
 
+    final scheme = Theme.of(context).colorScheme;
+
     return SafeArea(
       top: false,
       child: BottomAppBar(
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: buttons,
+        elevation: 0,
+        color: scheme.surface,
+        surfaceTintColor: scheme.primary.withValues(alpha: 0.04),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: scheme.outlineVariant.withValues(alpha: 0.45),
+              ),
+            ),
+          ),
+          child: SizedBox(
+            height: 64,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: buttons,
+            ),
           ),
         ),
       ),
@@ -142,15 +156,28 @@ class _BottomBarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return InkWell(
       onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 22),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 11)),
-        ],
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 24, color: scheme.onSurfaceVariant),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

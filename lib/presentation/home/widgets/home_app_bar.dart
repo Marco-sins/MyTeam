@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../auth/bloc/auth_cubit.dart';
+import '../../auth/cubit/auth_cubit.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HomeAppBar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final titleStyle = Theme.of(context).appBarTheme.titleTextStyle;
+
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.logout),
+        tooltip: 'Cerrar sesión',
+        icon: const Icon(Icons.logout_rounded),
         onPressed: () => context.read<AuthCubit>().logout(),
       ),
       title: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.sports_soccer, size: 22),
-          SizedBox(width: 8),
-          Text("Team Manager", style: TextStyle(fontWeight: FontWeight.bold)),
+        children: [
+          Icon(
+            Icons.sports_soccer_rounded,
+            size: 24,
+            color: scheme.onPrimary,
+          ),
+          const SizedBox(width: 10),
+          Text('Mis equipos', style: titleStyle),
         ],
       ),
       centerTitle: true,

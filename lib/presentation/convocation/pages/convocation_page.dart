@@ -9,8 +9,8 @@ import 'package:football_manager/presentation/convocation/widgets/convocation_da
 import 'package:football_manager/presentation/convocation/widgets/convocation_header_section.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_notes_field.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_players_section.dart';
-import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
+import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
 import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 
@@ -25,12 +25,12 @@ class ConvocationPage extends StatefulWidget {
 
 class _ConvocationPageState extends State<ConvocationPage> {
   final TextEditingController _rivalController = TextEditingController();
+  final TextEditingController _awayLocationController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
   late final ConvocationCubit _convocationCubit;
 
   bool _isHome = true;
-  String? _awayLocation;
 
   TimeOfDay _callTime = TimeOfDay.now();
 
@@ -40,6 +40,7 @@ class _ConvocationPageState extends State<ConvocationPage> {
   @override
   void dispose() {
     _rivalController.dispose();
+    _awayLocationController.dispose();
     _notesController.dispose();
     _convocationCubit.close();
     super.dispose();
@@ -103,13 +104,14 @@ class _ConvocationPageState extends State<ConvocationPage> {
   }
 
   Future<void> _onSavePressed() async {
+    final away = _awayLocationController.text.trim();
     await ConvocationSaveService.save(
       context: context,
       team: widget.team,
       rivalController: _rivalController,
       notesController: _notesController,
       isHome: _isHome,
-      awayLocation: _awayLocation,
+      awayLocation: away.isEmpty ? null : away,
       selectedDate: _selectedDate,
       selectedTime: _selectedTime,
       callTime: _callTime,
@@ -122,12 +124,15 @@ class _ConvocationPageState extends State<ConvocationPage> {
     final String formattedDate = _formattedDate(_selectedDate);
     final String formattedMatchTime = _formattedTime(_selectedTime);
     final String formattedCallTime = _formattedTime(_callTime);
+    final bottomInset =
+        MediaQuery.of(context).padding.bottom + 72;
 
     return BlocProvider.value(
       value: _convocationCubit,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Convocatoria'),
+          centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
@@ -149,26 +154,21 @@ class _ConvocationPageState extends State<ConvocationPage> {
         ),
         body: SafeArea(
           child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 20),
                 ConvocationHeaderSection(
                   rivalController: _rivalController,
+                  awayLocationController: _awayLocationController,
                   isHome: _isHome,
-                  awayLocation: _awayLocation,
-                  onToggleHomeAway: () {
+                  onHomeAwayChanged: (home) {
                     setState(() {
-                      _isHome = !_isHome;
-                    });
-                  },
-                  onAwayLocationSelected: (location) {
-                    setState(() {
-                      _awayLocation = location;
+                      _isHome = home;
                     });
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 ConvocationDateTimeSection(
                   formattedDate: formattedDate,
                   formattedMatchTime: formattedMatchTime,
@@ -177,16 +177,43 @@ class _ConvocationPageState extends State<ConvocationPage> {
                   onPickMatchTime: _pickTime,
                   onPickCallTime: _pickCallTime,
                 ),
-                const SizedBox(height: 16),
-                const Divider(height: 1),
+                const SizedBox(height: 12),
                 BlocBuilder<TeamDetailCubit, TeamDetailState>(
                   builder: (context, state) {
                     if (state is TeamDetailLoading ||
                         state is TeamDetailInitial) {
-                      return const Center(child: CircularProgressIndicator());
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      );
                     }
                     if (state is TeamDetailError) {
-                      return Center(child: Text(state.message));
+                      return Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  state.message,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     }
                     if (state is TeamDetailLoaded) {
                       return ConvocationPlayersSection(players: state.players);
@@ -194,8 +221,9 @@ class _ConvocationPageState extends State<ConvocationPage> {
                     return const SizedBox.shrink();
                   },
                 ),
-                const Divider(height: 1),
+                const SizedBox(height: 12),
                 ConvocationNotesField(notesController: _notesController),
+                const SizedBox(height: 8),
                 ConvocationActionsRow(
                   onCancel: () => Navigator.of(context).pop(),
                   onSave: _onSavePressed,

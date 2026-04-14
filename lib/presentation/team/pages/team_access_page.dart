@@ -7,8 +7,8 @@ import 'package:football_manager/domain/entities/invitation.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/usecase/profile/get_profiles_by_ids_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/create_invitation_use_case.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 
 class TeamAccessPage extends StatefulWidget {
   const TeamAccessPage({super.key, required this.team});
@@ -108,8 +108,12 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             child: const Text('Quitar'),
           ),
         ],
@@ -131,18 +135,18 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Acceso eliminado correctamente'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 1),
+        SnackBar(
+          content: const Text('Acceso eliminado correctamente'),
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se ha podido quitar el acceso'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('No se ha podido quitar el acceso'),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -157,11 +161,12 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setState) {
+            final scheme = Theme.of(ctx).colorScheme;
             return AlertDialog(
               title: const Text('Invitar usuario'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextField(
                     controller: emailController,
@@ -170,42 +175,35 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
                       labelText: 'Correo electrónico',
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
+                  const SizedBox(height: 20),
+                  Text(
                     'Rol',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() => selectedRole = 'external');
-                          },
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: selectedRole == 'external'
-                                ? Colors.green.shade50
-                                : null,
-                          ),
-                          child: const Text('Espectador'),
+                    style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
                         ),
+                  ),
+                  const SizedBox(height: 10),
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'external',
+                        label: Text('Espectador'),
+                        icon: Icon(Icons.visibility_outlined, size: 18),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() => selectedRole = 'admin');
-                          },
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: selectedRole == 'admin'
-                                ? Colors.green.shade50
-                                : null,
-                          ),
-                          child: const Text('Admin'),
+                      ButtonSegment(
+                        value: 'admin',
+                        label: Text('Admin'),
+                        icon: Icon(
+                          Icons.admin_panel_settings_outlined,
+                          size: 18,
                         ),
                       ),
                     ],
+                    selected: {selectedRole},
+                    onSelectionChanged: (s) {
+                      setState(() => selectedRole = s.first);
+                    },
                   ),
                 ],
               ),
@@ -214,17 +212,17 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: const Text('Cancelar'),
                 ),
-                ElevatedButton(
+                FilledButton(
                   onPressed: () {
                     final email = emailController.text.trim();
                     if (email.isEmpty) {
                       return;
                     }
-                    Navigator.of(
-                      ctx,
-                    ).pop(_InviteData(email: email, role: selectedRole));
+                    Navigator.of(ctx).pop(
+                      _InviteData(email: email, role: selectedRole),
+                    );
                   },
-                  child: const Text('Invitar'),
+                  child: const Text('Enviar invitación'),
                 ),
               ],
             );
@@ -238,9 +236,11 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes estar autenticado para enviar invitaciones'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text(
+            'Debes estar autenticado para enviar invitaciones',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -283,85 +283,206 @@ class _TeamAccessPageState extends State<TeamAccessPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Administrar acceso')),
+      appBar: AppBar(title: const Text('Acceso al equipo')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? RefreshIndicator(
+                onRefresh: _loadMembers,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * 0.35,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                  ],
+                ),
+              )
             : _error != null
-            ? Center(child: Text(_error!))
+            ? RefreshIndicator(
+                onRefresh: _loadMembers,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: 48,
+                            color: scheme.error,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _error!,
+                            style: textTheme.bodyLarge,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )
             : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Equipo: ${widget.team.name}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    widget.team.name,
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                      color: scheme.onSurface,
+                      height: 1.2,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Expanded(
-                    child: _members.isEmpty
-                        ? const Center(
-                            child: Text('No hay usuarios con acceso todavía.'),
-                          )
-                        : ListView.separated(
-                            itemCount: _members.length,
-                            separatorBuilder: (context, index) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final member = _members[index];
-                              final isCurrentUser =
-                                  member.idUser == _currentUserId;
-
-                              return ListTile(
-                                title: Text(
-                                  member.name.isNotEmpty
-                                      ? member.name
-                                      : 'Usuario',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (member.email.isNotEmpty)
+                    child: RefreshIndicator(
+                      onRefresh: _loadMembers,
+                      child: _members.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.sizeOf(context).height * 0.35,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.group_add_outlined,
+                                        size: 56,
+                                        color: scheme.outline
+                                            .withValues(alpha: 0.65),
+                                      ),
+                                      const SizedBox(height: 12),
                                       Text(
-                                        member.email,
-                                        style: const TextStyle(fontSize: 12),
+                                        'Nadie más tiene acceso aún.',
+                                        style: textTheme.bodyLarge,
+                                        textAlign: TextAlign.center,
                                       ),
-                                    Text(
-                                      'Rol: ${_roleLabel(member.role)}',
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        'Invita por correo con el botón de abajo.',
+                                        style: textTheme.bodySmall,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                trailing: isCurrentUser
-                                    ? null
-                                    : IconButton(
-                                        icon: const Icon(
-                                          Icons.close,
-                                          color: Colors.red,
+                              ],
+                            )
+                          : Card(
+                              clipBehavior: Clip.antiAlias,
+                              child: SizedBox.expand(
+                                child: ListView.separated(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  itemCount: _members.length,
+                                  separatorBuilder: (context, index) =>
+                                      Divider(
+                                    height: 1,
+                                    indent: 16,
+                                    endIndent: 16,
+                                    color: scheme.outlineVariant.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                  ),
+                                  itemBuilder: (context, index) {
+                                    final member = _members[index];
+                                    final isCurrentUser =
+                                        member.idUser == _currentUserId;
+
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor:
+                                            scheme.surfaceContainerHighest,
+                                        child: Text(
+                                          (member.name.isNotEmpty
+                                                  ? member.name[0]
+                                                  : '?')
+                                              .toUpperCase(),
+                                          style: TextStyle(
+                                            color: scheme.primary,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
-                                        tooltip: 'Quitar acceso',
-                                        onPressed: () => _removeMember(member),
                                       ),
-                              );
-                            },
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: _showInviteDialog,
-                      icon: const Icon(Icons.person_add_alt),
-                      label: const Text('Invitar'),
+                                      title: Text(
+                                        member.name.isNotEmpty
+                                            ? member.name
+                                            : 'Usuario',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (member.email.isNotEmpty)
+                                            Text(
+                                              member.email,
+                                              style: textTheme.bodySmall,
+                                            ),
+                                          Text(
+                                            _roleLabel(member.role),
+                                            style: textTheme.labelLarge
+                                                ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      trailing: isCurrentUser
+                                          ? Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 8,
+                                              ),
+                                              child: Text(
+                                                'Tú',
+                                                style: textTheme.labelLarge
+                                                    ?.copyWith(
+                                                  color: scheme.primary,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            )
+                                          : IconButton(
+                                              icon: Icon(
+                                                Icons.person_remove_outlined,
+                                                color: scheme.error,
+                                              ),
+                                              tooltip: 'Quitar acceso',
+                                              onPressed: () =>
+                                                  _removeMember(member),
+                                            ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: _showInviteDialog,
+                    icon: const Icon(Icons.person_add_alt_1_rounded),
+                    label: const Text('Invitar usuario'),
                   ),
                 ],
               ),

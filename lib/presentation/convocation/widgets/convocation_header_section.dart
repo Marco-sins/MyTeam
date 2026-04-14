@@ -1,64 +1,109 @@
 import 'package:flutter/material.dart';
-import 'package:latlong2/latlong.dart';
-
-import 'convocation_map_picker_page.dart';
 
 class ConvocationHeaderSection extends StatelessWidget {
   final TextEditingController rivalController;
+  final TextEditingController awayLocationController;
   final bool isHome;
-  final String? awayLocation;
-  final VoidCallback onToggleHomeAway;
-  final ValueChanged<String> onAwayLocationSelected;
+  final ValueChanged<bool> onHomeAwayChanged;
 
   const ConvocationHeaderSection({
     super.key,
     required this.rivalController,
+    required this.awayLocationController,
     required this.isHome,
-    required this.awayLocation,
-    required this.onToggleHomeAway,
-    required this.onAwayLocationSelected,
+    required this.onHomeAwayChanged,
   });
-
-  LatLng? _parseLatLng(String? value) {
-    if (value == null || value.isEmpty) return null;
-    final parts = value.split(',');
-    if (parts.length != 2) return null;
-    final lat = double.tryParse(parts[0].trim());
-    final lng = double.tryParse(parts[1].trim());
-    if (lat == null || lng == null) return null;
-    return LatLng(lat, lng);
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: rivalController,
-                  decoration: const InputDecoration(
-                    labelText: 'Rival',
-                    border: OutlineInputBorder(),
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.sports_soccer, size: 22, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Partido',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: rivalController,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: 'Rival',
+                prefixIcon: const Icon(Icons.groups_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(
+                  alpha: 0.35,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Sede',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment<bool>(
+                  value: true,
+                  label: Text('Casa'),
+                  icon: Icon(Icons.home_outlined),
+                ),
+                ButtonSegment<bool>(
+                  value: false,
+                  label: Text('Fuera'),
+                  icon: Icon(Icons.flight_takeoff),
+                ),
+              ],
+              selected: {isHome},
+              onSelectionChanged: (selection) {
+                if (selection.isEmpty) return;
+                onHomeAwayChanged(selection.first);
+              },
+            ),
+            if (!isHome) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: awayLocationController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  labelText: 'Pabellón o dirección (opcional)',
+                  hintText: 'Aparecerá en la imagen de convocatoria',
+                  prefixIcon: const Icon(Icons.place_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: scheme.surfaceContainerHighest.withValues(
+                    alpha: 0.35,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: onToggleHomeAway,
-                icon: Icon(isHome ? Icons.home : Icons.flight_takeoff),
-                color: isHome ? Colors.green : Colors.blue,
-                tooltip: isHome ? 'Partido en casa' : 'Partido fuera de casa',
-              ),
             ],
-          ),
+          ],
         ),
-        // Eliminado el campo de texto para 'Enlace o dirección' cuando es visitante
-      ],
+      ),
     );
   }
 }

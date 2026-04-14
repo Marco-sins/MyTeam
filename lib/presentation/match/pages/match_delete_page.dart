@@ -4,8 +4,8 @@ import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/match/delete_match_use_case.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 
 class MatchDeletePage extends StatefulWidget {
   final Team team;

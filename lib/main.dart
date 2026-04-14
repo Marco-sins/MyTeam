@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/core/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:football_manager/data/datasource/auth_remote_datasource.dart';
@@ -50,16 +51,16 @@ import 'package:football_manager/domain/usecase/invitation/create_invitation_use
 import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/accept_invitation_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/reject_invitation_use_case.dart';
-import 'package:football_manager/presentation/home/bloc/home_cubit.dart';
-import 'package:football_manager/presentation/create_team/bloc/create_team_cubit.dart';
+import 'package:football_manager/presentation/home/cubit/home_cubit.dart';
+import 'package:football_manager/presentation/create_team/cubit/create_team_cubit.dart';
 import 'package:football_manager/presentation/home/pages/home_page.dart';
 import 'package:football_manager/domain/i_repositories/i_team_repository.dart';
 
 // --- IMPORTA TUS CAPAS ---
 // Ajusta estas rutas a las carpetas de tu proyecto
-import 'presentation/auth/bloc/auth_cubit.dart';
-import 'presentation/auth/bloc/auth_state.dart';
-import 'presentation/auth/pages/login_page.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/auth/pages/login_page.dart';
 
 void main() async {
   // 1. Inicialización de Flutter
@@ -94,26 +95,40 @@ class SupabaseConfigErrorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
       home: Scaffold(
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-                SizedBox(height: 16),
-                Text(
-                  'Configuracion de Supabase invalida',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
+            padding: const EdgeInsets.all(28),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.settings_suggest_outlined,
+                        size: 44,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Configuración de Supabase',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Revisa el archivo .env: SUPABASE_URL y SUPABASE_ANON_KEY deben ser válidos. Luego reinicia la app.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 12),
-                Text(
-                  'Actualiza el archivo .env con valores reales en SUPABASE_URL y SUPABASE_ANON_KEY, luego reinicia la app.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -256,32 +271,7 @@ class MyApp extends StatelessWidget {
         child: MaterialApp(
           title: 'Football TFG',
           debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF1B5E20),
-              primary: const Color(0xFF1B5E20), // verde campo
-              secondary: const Color(0xFFFFC107), // amarillo marcador
-            ),
-            scaffoldBackgroundColor: const Color(0xFFF3F6F4),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1B5E20),
-              foregroundColor: Colors.white,
-              centerTitle: true,
-              elevation: 0,
-            ),
-            cardTheme: const CardThemeData(
-              color: Colors.white,
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(16)),
-              ),
-            ),
-            floatingActionButtonTheme: const FloatingActionButtonThemeData(
-              backgroundColor: Color(0xFF1B5E20),
-              foregroundColor: Colors.white,
-            ),
-          ),
+          theme: AppTheme.light(),
           // 4. Decidimos qué pantalla mostrar según el estado del AuthCubit
           home: BlocBuilder<AuthCubit, AuthState>(
             builder: (context, state) {

@@ -6,14 +6,14 @@ import 'package:football_manager/domain/entities/match_lineup.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/match/create_match_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
-import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_cubit.dart';
 import 'package:football_manager/presentation/convocation/image/convocation_image_generator.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_image_page.dart';
-import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
+import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
 import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
 
 class ConvocationSaveService {

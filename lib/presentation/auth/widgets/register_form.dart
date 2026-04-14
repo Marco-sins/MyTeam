@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/auth_cubit.dart';
+import '../cubit/auth_cubit.dart';
 
 class RegisterForm extends StatefulWidget {
   const RegisterForm({super.key});
@@ -16,6 +16,14 @@ class _RegisterFormState extends State<RegisterForm> {
   final _formKey = GlobalKey<FormState>();
 
   @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
@@ -23,18 +31,20 @@ class _RegisterFormState extends State<RegisterForm> {
         children: [
           TextFormField(
             controller: _nameController,
+            textInputAction: TextInputAction.next,
+            textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(
-              labelText: 'Nombre Completo',
-              border: OutlineInputBorder(),
+              labelText: 'Nombre completo',
             ),
             validator: (value) => value!.isEmpty ? 'Dinos tu nombre' : null,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
+              labelText: 'Correo electrónico',
             ),
             validator: (value) =>
                 value!.contains('@') ? null : 'Email inválido',
@@ -43,9 +53,9 @@ class _RegisterFormState extends State<RegisterForm> {
           TextFormField(
             controller: _passwordController,
             obscureText: true,
+            textInputAction: TextInputAction.done,
             decoration: const InputDecoration(
               labelText: 'Contraseña',
-              border: OutlineInputBorder(),
             ),
             validator: (value) =>
                 value!.length < 6 ? 'Mínimo 6 caracteres' : null,
@@ -53,11 +63,9 @@ class _RegisterFormState extends State<RegisterForm> {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
+            child: FilledButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
-                  // LLAMADA AL NUEVO MÉTODO DEL CUBIT
                   context.read<AuthCubit>().register(
                     _emailController.text.trim(),
                     _nameController.text.trim(),
@@ -65,7 +73,7 @@ class _RegisterFormState extends State<RegisterForm> {
                   );
                 }
               },
-              child: const Text('Registrarse'),
+              child: const Text('Crear cuenta'),
             ),
           ),
         ],

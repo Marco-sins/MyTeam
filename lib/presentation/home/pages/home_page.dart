@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
 import 'package:football_manager/presentation/home/widgets/add_team.dart';
 import 'package:football_manager/presentation/invitations/pages/invitations_page.dart';
-import '../../auth/bloc/auth_cubit.dart';
-import '../../auth/bloc/auth_state.dart';
+import '../../auth/cubit/auth_cubit.dart';
+import '../../auth/cubit/auth_state.dart';
 import '../../auth/pages/login_page.dart';
-import '../bloc/home_cubit.dart';
-import '../bloc/home_state.dart';
+import '../cubit/home_cubit.dart';
+import '../cubit/home_state.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/home_empty.dart';
 import '../widgets/team_card.dart';
@@ -25,7 +25,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Siempre que se construye HomePage, cargamos los equipos
     context.read<HomeCubit>().fetchTeams();
     _loadInvitationsCount();
   }
@@ -68,6 +67,24 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _refreshHome() async {
+    await context.read<HomeCubit>().fetchTeams();
+    await _loadInvitationsCount();
+  }
+
+  int _crossAxisCountForWidth(double width) {
+    if (width >= 1200) return 4;
+    if (width >= 800) return 3;
+    return 2;
+  }
+
+  Widget _pullToRefreshWrapper({required Widget child}) {
+    return RefreshIndicator(
+      onRefresh: _refreshHome,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
@@ -80,7 +97,6 @@ class _HomePageState extends State<HomePage> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
         appBar: const HomeAppBar(),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: Row(
@@ -101,34 +117,35 @@ class _HomePageState extends State<HomePage> {
                     if (!mounted) return;
                     _loadInvitationsCount();
                   },
-                  backgroundColor: Colors.grey.shade200,
-                  icon: const Icon(Icons.mail_outline, color: Colors.black87),
-                  label: const Text(
-                    'Invitaciones',
-                    style: TextStyle(color: Colors.black87),
-                  ),
+                  elevation: 1,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.secondaryContainer,
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onSecondaryContainer,
+                  icon: const Icon(Icons.forward_to_inbox_rounded, size: 22),
+                  label: const Text('Invitaciones'),
                 ),
                 if (_invitationsCount > 0)
                   Positioned(
-                    right: -6,
-                    top: -6,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      constraints: const BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '$_invitationsCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                    right: -2,
+                    top: -2,
+                    child: IgnorePointer(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.error,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _invitationsCount > 9 ? '9+' : '$_invitationsCount',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onError,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -141,52 +158,230 @@ class _HomePageState extends State<HomePage> {
         ),
         body: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
+            final width = MediaQuery.sizeOf(context).width;
+            final crossAxisCount = _crossAxisCountForWidth(width);
+
             if (state is HomeLoading || state is HomeInitial) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.green),
+              return _pullToRefreshWrapper(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final scheme = Theme.of(context).colorScheme;
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 320),
+                              child: Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 28,
+                                    vertical: 36,
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: scheme.primary,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        'Cargando tus equipos…',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            }
+
+            if (state is HomeError) {
+              return _pullToRefreshWrapper(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final scheme = Theme.of(context).colorScheme;
+                    return SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 400),
+                              child: Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.cloud_off_outlined,
+                                        size: 44,
+                                        color: scheme.error,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        state.message,
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge,
+                                      ),
+                                      const SizedBox(height: 20),
+                                      FilledButton.tonalIcon(
+                                        onPressed: _refreshHome,
+                                        icon: const Icon(Icons.refresh_rounded),
+                                        label: const Text('Reintentar'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               );
             }
 
             if (state is HomeLoaded) {
               if (state.teams.isEmpty) {
-                return const HomeEmpty();
-              }
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-
-                  int crossAxisCount = 2; // móviles por defecto
-                  if (width >= 1200) {
-                    crossAxisCount = 4; // escritorio / pantallas muy grandes
-                  } else if (width >= 800) {
-                    crossAxisCount = 3; // tablets o móviles muy anchos
-                  }
-
-                  return GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      mainAxisExtent: 190,
-                    ),
-                    itemCount: state.teams.length,
-                    itemBuilder: (context, index) {
-                      final team = state.teams[index];
-                      return TeamCard(team: team);
+                return _pullToRefreshWrapper(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: const HomeEmpty(),
+                        ),
+                      );
                     },
-                  );
-                },
+                  ),
+                );
+              }
+
+              return _pullToRefreshWrapper(
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _HomeIntroHeader(teamCount: state.teams.length),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 108),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          mainAxisExtent: 206,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            return TeamCard(team: state.teams[index]);
+                          },
+                          childCount: state.teams.length,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               );
             }
 
-            if (state is HomeError) {
-              return Center(child: Text(state.message));
-            }
-
-            return const SizedBox();
+            return _pullToRefreshWrapper(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: const SizedBox.shrink(),
+                    ),
+                  );
+                },
+              ),
+            );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _HomeIntroHeader extends StatelessWidget {
+  const _HomeIntroHeader({required this.teamCount});
+
+  final int teamCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
+    final countLine = teamCount == 1
+        ? 'Tienes 1 equipo. Toca una tarjeta para abrirlo.'
+        : 'Tienes $teamCount equipos. Toca una tarjeta para abrirlo.';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.dashboard_outlined, size: 22, color: scheme.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Tu panel',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            countLine,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.35,
+            ),
+          ),
+        ],
       ),
     );
   }

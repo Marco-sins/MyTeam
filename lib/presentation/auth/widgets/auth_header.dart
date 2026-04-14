@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/theme/app_theme.dart';
 
 class AuthHeader extends StatelessWidget {
   final bool isRegisterMode;
@@ -9,37 +10,34 @@ class AuthHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text(
-          "Equipaso",
+        Text(
+          'Equipaso',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-            shadows: [
-              Shadow(
-                blurRadius: 8,
-                color: Colors.black26,
-                offset: Offset(0, 3),
-              ),
-            ],
+            color: Colors.white.withValues(alpha: 0.98),
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+            height: 1.1,
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
+        Container(
+          width: 44,
+          height: 3,
+          decoration: BoxDecoration(
+            color: AppTheme.accentGold.withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(height: 14),
         Text(
-          isRegisterMode ? "Nice to meet you!" : "Welcome back!",
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
+          isRegisterMode ? 'Crea tu cuenta' : 'Bienvenido de nuevo',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.82),
+            fontSize: 16,
             fontWeight: FontWeight.w500,
-            shadows: [
-              Shadow(
-                blurRadius: 6,
-                color: Colors.black26,
-                offset: Offset(0, 2),
-              ),
-            ],
+            letterSpacing: 0.1,
           ),
           textAlign: TextAlign.center,
         ),

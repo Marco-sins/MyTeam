@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
 
+/// Campo táctil: colocación por **jugador seleccionado en la lista + toque en la posición**.
+/// Se evitó [DragTarget]/arrastre desde lista porque en scrollables dispara asserts de
+/// semántica (`!semantics.parentDataDirty`) y congela la UI en varias versiones de Flutter.
 class MatchFieldWithFormation extends StatelessWidget {
   final List<int> formationLines;
   final List<Player?> positionPlayers;
@@ -63,22 +66,57 @@ class MatchFieldWithFormation extends StatelessWidget {
               Positioned(
                 left: left - 16,
                 top: top - 16,
-                child: DragTarget<Player>(
-                  onWillAccept: (player) {
-                    if (readOnly) return false;
-                    if (player == null) return false;
-                    if (sentOffPlayerIds.contains(player.id)) {
+                child: GestureDetector(
+                  onTap: () {
+                    if (readOnly) {
+                      return;
+                    }
+                    // Si no hay jugador seleccionado desde la lista y
+                    // esta posición tiene jugador en el campo, abrimos
+                    // el modal de acciones para ese jugador.
+                    if (selectedPlayer == null && assignedPlayer != null) {
+                      onPlayerActionRequested(assignedPlayer);
+                      return;
+                    }
+
+                    if (selectedPlayer == null && assignedPlayer == null) {
+                      showSnack(
+                        'Selecciona primero un jugador en la lista',
+                        error: true,
+                      );
+                      return;
+                    }
+
+                    if (sentOffPlayerIds.contains(selectedPlayer!.id)) {
                       showSnack(
                         'Jugador expulsado, no puede volver a entrar',
                         error: true,
                       );
-                      return false;
+                      return;
                     }
 
                     final existingIndex = positionPlayers.indexWhere(
-                      (p) => p != null && p.id == player.id,
+                      (p) => p != null && p.id == selectedPlayer!.id,
                     );
 
+                    // Ya está en esta posición: no hacemos nada.
+                    if (existingIndex == index) {
+                      return;
+                    }
+
+                    final newPositions = List<Player?>.from(
+                      positionPlayers,
+                    );
+
+                    // Intercambio de posiciones entre dos jugadores en campo.
+                    if (existingIndex != -1 && assignedPlayer != null) {
+                      newPositions[existingIndex] = assignedPlayer;
+                      newPositions[index] = selectedPlayer;
+                      onPositionsChanged(newPositions);
+                      return;
+                    }
+
+                    // Máximo de jugadores en campo según expulsiones.
                     if (existingIndex == -1 &&
                         assignedPlayer == null &&
                         currentPlayersOnField() >= maxPlayersOnField()) {
@@ -86,148 +124,35 @@ class MatchFieldWithFormation extends StatelessWidget {
                         'No puedes tener más jugadores en el campo. Por cada expulsado debe quedar un hueco libre.',
                         error: true,
                       );
-                      return false;
-                    }
-                    return true;
-                  },
-                  onAccept: (player) {
-                    if (readOnly) return;
-                    final existingIndex = positionPlayers.indexWhere(
-                      (p) => p != null && p.id == player.id,
-                    );
-                    final currentAtPos = index < positionPlayers.length
-                        ? positionPlayers[index]
-                        : null;
-
-                    // Si ya está en esta posición, no hacemos nada.
-                    if (existingIndex == index) {
                       return;
                     }
 
-                    final newPositions = List<Player?>.from(positionPlayers);
-
-                    // Si el jugador ya está en el campo y esta posición
-                    // también tiene jugador, hacemos intercambio de
-                    // posiciones sin registrar sustitución.
-                    if (existingIndex != -1 && currentAtPos != null) {
-                      newPositions[existingIndex] = currentAtPos;
-                      newPositions[index] = player;
-                      onPositionsChanged(newPositions);
-                      return;
-                    }
-
-                    // Si el jugador ya está en el campo y aquí no hay
-                    // nadie, simplemente lo movemos.
-                    if (existingIndex != -1 && currentAtPos == null) {
+                    // Sustitución / entrada: coloca al seleccionado y sale el que había.
+                    if (existingIndex != -1) {
                       newPositions[existingIndex] = null;
-                      newPositions[index] = player;
-                      onPositionsChanged(newPositions);
-                      return;
                     }
 
-                    // Jugador desde banquillo: comprobamos otra vez el
-                    // máximo permitido por seguridad.
-                    if (existingIndex == -1 &&
-                        currentAtPos == null &&
-                        currentPlayersOnField() >= maxPlayersOnField()) {
-                      showSnack(
-                        'No puedes tener más jugadores en el campo. Por cada expulsado debe quedar un hueco libre.',
-                        error: true,
-                      );
-                      return;
-                    }
-
-                    // Sustitución normal (entra desde banquillo o sin
-                    // posición previa y sale el que estaba en esta
-                    // posición, si lo hubiera).
-                    newPositions[index] = player;
+                    newPositions[index] = selectedPlayer;
                     onPositionsChanged(newPositions);
-                    onSubstitutionRequested(player, currentAtPos);
-                  },
-                  builder: (context, candidateData, rejectedData) {
-                    return GestureDetector(
-                      onTap: () {
-                        if (readOnly) {
-                          return;
-                        }
-                        // Si no hay jugador seleccionado desde la lista y
-                        // esta posición tiene jugador en el campo, abrimos
-                        // el modal de acciones para ese jugador.
-                        if (selectedPlayer == null && assignedPlayer != null) {
-                          onPlayerActionRequested(assignedPlayer);
-                          return;
-                        }
-
-                        if (selectedPlayer == null && assignedPlayer == null) {
-                          showSnack(
-                            'Selecciona primero un jugador en la lista',
-                            error: true,
-                          );
-                          return;
-                        }
-
-                        // Si el jugador seleccionado ya está en el campo y
-                        // la posición destino también tiene jugador, hacemos
-                        // un intercambio de posiciones sin registrar
-                        // sustitución.
-                        final existingIndex = positionPlayers.indexWhere(
-                          (p) => p != null && p.id == selectedPlayer!.id,
-                        );
-
-                        final newPositions = List<Player?>.from(
-                          positionPlayers,
-                        );
-
-                        if (existingIndex != -1 && assignedPlayer != null) {
-                          newPositions[existingIndex] = assignedPlayer;
-                          newPositions[index] = selectedPlayer;
-                          onPositionsChanged(newPositions);
-                          return;
-                        }
-
-                        // Si el jugador seleccionado no está en el campo y
-                        // en esta posición no hay nadie, comprobar que no
-                        // superamos el máximo permitido según expulsiones.
-                        if (existingIndex == -1 &&
-                            assignedPlayer == null &&
-                            currentPlayersOnField() >= maxPlayersOnField()) {
-                          showSnack(
-                            'No puedes tener más jugadores en el campo. Por cada expulsado debe quedar un hueco libre.',
-                            error: true,
-                          );
-                          return;
-                        }
-
-                        // Sustitución normal: entra jugador (desde banquillo
-                        // o sin posición previa) y sale el que estaba en
-                        // esta posición.
-                        if (existingIndex != -1) {
-                          newPositions[existingIndex] = null;
-                        }
-
-                        newPositions[index] = selectedPlayer;
-                        onPositionsChanged(newPositions);
-                        onSubstitutionRequested(
-                          selectedPlayer!,
-                          assignedPlayer,
-                        );
-                      },
-                      child: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: assignedPlayer != null
-                            ? Colors.greenAccent
-                            : Colors.white.withAlpha((0.85 * 255).round()),
-                        child: Text(
-                          displayNumber,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
+                    onSubstitutionRequested(
+                      selectedPlayer!,
+                      assignedPlayer,
                     );
                   },
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: assignedPlayer != null
+                        ? Colors.greenAccent
+                        : Colors.white.withAlpha((0.85 * 255).round()),
+                    child: Text(
+                      displayNumber,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             );
@@ -236,7 +161,10 @@ class MatchFieldWithFormation extends StatelessWidget {
           }
         }
 
-        return Stack(children: children);
+        return Stack(
+          clipBehavior: Clip.none,
+          children: children,
+        );
       },
     );
   }

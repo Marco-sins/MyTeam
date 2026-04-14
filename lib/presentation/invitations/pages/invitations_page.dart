@@ -10,9 +10,9 @@ import 'package:football_manager/domain/usecase/invitation/accept_invitation_use
 import 'package:football_manager/domain/usecase/invitation/reject_invitation_use_case.dart';
 import 'package:football_manager/domain/usecase/team/get_team_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/profile/get_profiles_by_ids_use_case.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
-import 'package:football_manager/presentation/home/bloc/home_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/home/cubit/home_cubit.dart';
 
 class InvitationsPage extends StatefulWidget {
   const InvitationsPage({super.key});
@@ -35,7 +35,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
     _loadInvitations();
   }
 
-  Future<void> _loadInvitations() async {
+  Future<void> _loadInvitations({bool force = false}) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -52,7 +52,9 @@ class _InvitationsPageState extends State<InvitationsPage> {
 
       final user = authState.user;
       final normalizedEmail = user.email.trim().toLowerCase();
-      if (_loadedForEmail == normalizedEmail && _invitations.isNotEmpty) {
+      if (!force &&
+          _loadedForEmail == normalizedEmail &&
+          _invitations.isNotEmpty) {
         setState(() {
           _loading = false;
         });
@@ -136,6 +138,9 @@ class _InvitationsPageState extends State<InvitationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return BlocListener<AuthCubit, AuthState>(
       listenWhen: (previous, current) => current is Authenticated,
       listener: (context, state) {
@@ -143,19 +148,82 @@ class _InvitationsPageState extends State<InvitationsPage> {
       },
       child: Scaffold(
         appBar: AppBar(title: const Text('Invitaciones')),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
-              ? Center(child: Text(_error!))
-              : _invitations.isEmpty
-              ? const Center(child: Text('No tienes invitaciones pendientes.'))
-              : ListView.separated(
-                  itemCount: _invitations.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
+        body: RefreshIndicator(
+          onRefresh: () => _loadInvitations(force: true),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _loading
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * 0.35,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                    ],
+                  )
+                : _error != null
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              size: 48,
+                              color: scheme.error,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _error!,
+                              style: textTheme.bodyLarge,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : _invitations.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * 0.35,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.mark_email_read_outlined,
+                              size: 56,
+                              color: scheme.outline.withValues(alpha: 0.65),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No hay invitaciones pendientes',
+                              style: textTheme.titleSmall,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Cuando te inviten a un equipo, aparecerán aquí.',
+                              style: textTheme.bodySmall,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: _invitations.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
                     final invitation = _invitations[index];
                     final team = _teamsById[invitation.teamId];
                     final inviter = _profilesById[invitation.invitedByUserId];
@@ -170,25 +238,22 @@ class _InvitationsPageState extends State<InvitationsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Te han invitado al equipo $teamName',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              'Invitación a $teamName',
+                              style: textTheme.titleSmall,
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
-                              'Por: $inviterName',
-                              style: const TextStyle(fontSize: 14),
+                              'De: $inviterName',
+                              style: textTheme.bodySmall,
                             ),
                             const SizedBox(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 IconButton(
-                                  icon: const Icon(
-                                    Icons.close,
-                                    color: Colors.red,
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    color: scheme.error,
                                   ),
                                   tooltip: 'Rechazar invitación',
                                   onPressed: () async {
@@ -250,9 +315,9 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                 ),
                                 const SizedBox(width: 8),
                                 IconButton(
-                                  icon: const Icon(
-                                    Icons.check,
-                                    color: Colors.green,
+                                  icon: Icon(
+                                    Icons.check_rounded,
+                                    color: scheme.primary,
                                   ),
                                   tooltip: 'Aceptar invitación',
                                   onPressed: () async {
@@ -320,6 +385,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
                     );
                   },
                 ),
+          ),
         ),
       ),
     );

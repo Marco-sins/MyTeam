@@ -16,9 +16,9 @@ import 'package:football_manager/domain/usecase/match/start_match_use_case.dart'
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
-import 'package:football_manager/presentation/common/loading_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/widgets/match_convocation_table.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
@@ -108,10 +108,12 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       (sum, value) => sum + value,
     );
     _positionPlayers = List<Player?>.filled(totalPositions, null);
-    _loadConvocationPlayers();
-    // Cargar marcador y formación iniciales desde los eventos guardados en BD
-    _reloadScoreFromEvents();
-    _loadLastFormationFromEvents();
+    // Evita condiciones de carrera: la formación desde BD debe aplicarse antes
+    // de restaurar convocatoria y posiciones (varios setState en paralelo
+    // disparaban asserts de layout/semántica y podían congelar la UI).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _bootstrapMatchInitialData();
+    });
     // Si el partido ya está en juego al entrar, arrancamos el cronómetro
     // en la fase correspondiente.
     if (_match.status == MatchStatus.firstHalf) {
@@ -137,11 +139,21 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     _isTimerRunning = true;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!_isTimerRunning) return;
+      if (!_isTimerRunning || !mounted) return;
       setState(() {
         _elapsedSeconds++;
       });
     });
+  }
+
+  Future<void> _bootstrapMatchInitialData() async {
+    if (!mounted) return;
+    await Future.wait<void>([
+      _reloadScoreFromEvents(),
+      _loadLastFormationFromEvents(),
+    ]);
+    if (!mounted) return;
+    await _loadConvocationPlayers();
   }
 
   bool _isSmallSideCategory() {
@@ -242,10 +254,51 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       _selectedFormation = newKey;
       final outfieldLines = _formationOptions[newKey]!;
       _formationLines = [1, ...outfieldLines];
+      final totalPositions = _formationLines.fold<int>(
+        0,
+        (sum, value) => sum + value,
+      );
+      final old = _positionPlayers;
+      final resized = List<Player?>.filled(totalPositions, null);
+      final copyCount = totalPositions < old.length ? totalPositions : old.length;
+      for (int i = 0; i < copyCount; i++) {
+        resized[i] = old[i];
+      }
+      _positionPlayers = resized;
       _selectedPlayer = null;
       _pendingPositionPlayerIds = null;
     });
     _saveFormationEvent();
+  }
+
+  Future<void> _showFormationPicker() async {
+    if (_isExternal) return;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return SimpleDialog(
+          title: const Text('Formación'),
+          children: [
+            for (final key in _formationOptions.keys)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, key),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      key,
+                      style: const TextStyle(fontSize: 17),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+    if (!mounted || choice == null) return;
+    _changeFormation(choice);
   }
 
   void _restorePositionsIfSaved() {
@@ -791,14 +844,15 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       final getPlayersByTeamUseCase = context.read<GetPlayersByTeamUseCase>();
       final playersResult = await getPlayersByTeamUseCase(widget.team.id);
 
-      playersResult.fold(
-        (failure) {
+      await playersResult.fold<Future<void>>(
+        (failure) async {
+          if (!mounted) return;
           setState(() {
             _loadError = failure.message;
             _loadingPlayers = false;
           });
         },
-        (players) {
+        (players) async {
           List<Player> convoked;
           if (playerIds.isEmpty) {
             convoked = List<Player>.from(players);
@@ -808,6 +862,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
           convoked.sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
 
+          if (!mounted) return;
           setState(() {
             _convokedPlayers
               ..clear()
@@ -816,15 +871,12 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           });
 
           _restorePositionsIfSaved();
-          // Una vez cargados los jugadores convocados, reconstruimos
-          // quién está jugando según los eventos de sustitución.
-          _loadPositionsFromEvents().then((_) {
-            // Aplicamos expulsiones (rojas / dobles amarillas) y
-            // bloqueamos huecos correspondientes en el campo.
-            _loadDisciplineStateFromEvents();
-          });
-          // Y calculamos la media inicial de cada jugador.
-          _recalculatePlayerRatings();
+          if (!mounted) return;
+          await _loadPositionsFromEvents();
+          if (!mounted) return;
+          await _loadDisciplineStateFromEvents();
+          if (!mounted) return;
+          await _recalculatePlayerRatings();
         },
       );
     } catch (e) {
@@ -912,12 +964,14 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           ..clear()
           ..addAll(sentOff);
 
-        for (int i = 0; i < _positionPlayers.length; i++) {
-          final p = _positionPlayers[i];
+        final cleared = List<Player?>.from(_positionPlayers);
+        for (int i = 0; i < cleared.length; i++) {
+          final p = cleared[i];
           if (p != null && _sentOffPlayerIds.contains(p.id)) {
-            _positionPlayers[i] = null;
+            cleared[i] = null;
           }
         }
+        _positionPlayers = cleared;
 
         if (_selectedPlayer != null &&
             _sentOffPlayerIds.contains(_selectedPlayer!.id)) {
@@ -1157,12 +1211,14 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       setState(() {
         _sentOffPlayerIds.add(player.id);
 
-        for (int i = 0; i < _positionPlayers.length; i++) {
-          final p = _positionPlayers[i];
+        final cleared = List<Player?>.from(_positionPlayers);
+        for (int i = 0; i < cleared.length; i++) {
+          final p = cleared[i];
           if (p != null && p.id == player.id) {
-            _positionPlayers[i] = null;
+            cleared[i] = null;
           }
         }
+        _positionPlayers = cleared;
 
         if (_selectedPlayer?.id == player.id) {
           _selectedPlayer = null;
@@ -1594,12 +1650,10 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Gestor de partido'), centerTitle: true),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
                 // Marcador grande
                 Text(
                   scoreText,
@@ -1701,97 +1755,91 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                 const SizedBox(height: 16),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: DropdownButton<String>(
-                    value: _selectedFormation,
-                    items: _formationOptions.keys
-                        .map(
-                          (key) => DropdownMenuItem<String>(
-                            value: key,
-                            child: Text(key),
+                  child: isExternal
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            _selectedFormation,
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
                         )
-                        .toList(),
-                    onChanged: isExternal
-                        ? null
-                        : (value) {
-                            if (value != null) {
-                              _changeFormation(value);
-                            }
-                          },
-                  ),
+                      : TextButton.icon(
+                          onPressed: _showFormationPicker,
+                          icon: const Icon(Icons.grid_view_outlined, size: 20),
+                          label: Text(_selectedFormation),
+                        ),
                 ),
                 const SizedBox(height: 8),
-                // Campo con la formación. Usamos un AspectRatio para que
-                // imagen y posiciones escalen juntas, pero limitamos el
-                // tamaño máximo para que no se haga demasiado grande.
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 420,
-                      maxHeight: 320,
-                    ),
-                    child: AspectRatio(
-                      // Relación alto/ancho aproximada del png de campo.
-                      // Si cambias la imagen, puedes ajustar este valor.
-                      aspectRatio: 4 / 3,
-                      child: MatchFieldWithFormation(
-                        formationLines: _formationLines,
-                        positionPlayers: _positionPlayers,
-                        selectedPlayer: _selectedPlayer,
-                        sentOffPlayerIds: _sentOffPlayerIds,
-                        currentPlayersOnField: _currentPlayersOnField,
-                        maxPlayersOnField: _maxPlayersOnField,
-                        showSnack: _showSnack,
-                        onPositionsChanged: (newPositions) {
-                          setState(() {
-                            _positionPlayers = newPositions;
-                            _selectedPlayer = null;
-                          });
-                          _persistCurrentPositionsToMatchLineup();
-                        },
-                        onSubstitutionRequested: (playerIn, playerOut) {
-                          _saveSubstitutionEvent(
-                            playerIn: playerIn,
-                            playerOut: playerOut,
-                          );
-                        },
-                        onPlayerActionRequested: _onPlayerActionRequested,
-                        readOnly: isExternal,
+                // Campo: excluido del árbol de semánticas para evitar asserts
+                // del motor (`parentDataDirty`) con muchos huecos en un Stack
+                // dentro de un scroll.
+                ExcludeSemantics(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: 420,
+                        maxHeight: 320,
+                      ),
+                      child: AspectRatio(
+                        aspectRatio: 4 / 3,
+                        child: MatchFieldWithFormation(
+                          formationLines: _formationLines,
+                          positionPlayers: _positionPlayers,
+                          selectedPlayer: _selectedPlayer,
+                          sentOffPlayerIds: _sentOffPlayerIds,
+                          currentPlayersOnField: _currentPlayersOnField,
+                          maxPlayersOnField: _maxPlayersOnField,
+                          showSnack: _showSnack,
+                          onPositionsChanged: (newPositions) {
+                            setState(() {
+                              _positionPlayers = newPositions;
+                              _selectedPlayer = null;
+                            });
+                            _persistCurrentPositionsToMatchLineup();
+                          },
+                          onSubstitutionRequested: (playerIn, playerOut) {
+                            _saveSubstitutionEvent(
+                              playerIn: playerIn,
+                              playerOut: playerOut,
+                            );
+                          },
+                          onPlayerActionRequested: _onPlayerActionRequested,
+                          readOnly: isExternal,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Tabla de convocatoria embebida en el scroll
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 320),
-                  child: MatchConvocationTable(
-                    loading: _loadingPlayers,
-                    error: _loadError,
-                    convokedPlayers: _convokedPlayers,
-                    positionPlayers: _positionPlayers,
-                    selectedPlayer: _selectedPlayer,
-                    sentOffPlayerIds: _sentOffPlayerIds,
-                    playerRatings: _playerRatings,
-                    scrollingChild: true,
-                    readOnly: isExternal,
-                    onPlayerTap: (player, isSentOff) {
-                      if (isSentOff) {
-                        _showSnack(
-                          'Jugador expulsado, no puede volver a entrar',
-                          error: true,
-                        );
-                        return;
+                MatchConvocationTable(
+                  loading: _loadingPlayers,
+                  error: _loadError,
+                  convokedPlayers: _convokedPlayers,
+                  positionPlayers: _positionPlayers,
+                  selectedPlayer: _selectedPlayer,
+                  sentOffPlayerIds: _sentOffPlayerIds,
+                  playerRatings: _playerRatings,
+                  scrollingChild: true,
+                  readOnly: isExternal,
+                  onPlayerTap: (player, isSentOff) {
+                    if (isSentOff) {
+                      _showSnack(
+                        'Jugador expulsado, no puede volver a entrar',
+                        error: true,
+                      );
+                      return;
+                    }
+                    setState(() {
+                      if (_selectedPlayer?.id == player.id) {
+                        _selectedPlayer = null;
+                      } else {
+                        _selectedPlayer = player;
                       }
-                      setState(() {
-                        if (_selectedPlayer?.id == player.id) {
-                          _selectedPlayer = null;
-                        } else {
-                          _selectedPlayer = player;
-                        }
-                      });
-                    },
-                  ),
+                    });
+                  },
                 ),
                 const SizedBox(height: 16),
                 BlocBuilder<LoadingCubit, bool>(
@@ -1825,9 +1873,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                     );
                   },
                 ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );

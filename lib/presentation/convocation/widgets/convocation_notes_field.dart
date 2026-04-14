@@ -7,16 +7,47 @@ class ConvocationNotesField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-      child: TextFormField(
-        controller: notesController,
-        minLines: 2,
-        maxLines: null,
-        decoration: const InputDecoration(
-          labelText: 'Observaciones',
-          border: OutlineInputBorder(),
-          alignLabelWithHint: true,
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.notes, size: 22, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Observaciones',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: notesController,
+              minLines: 3,
+              maxLines: 6,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Material, puntualidad, mensaje al grupo…',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(
+                  alpha: 0.35,
+                ),
+                alignLabelWithHint: true,
+              ),
+            ),
+          ],
         ),
       ),
     );

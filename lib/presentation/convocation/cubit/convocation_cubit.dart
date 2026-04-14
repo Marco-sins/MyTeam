@@ -1,14 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class ConvocationState {
-  final Map<int, bool> calledUp;
-
-  const ConvocationState({this.calledUp = const {}});
-
-  ConvocationState copyWith({Map<int, bool>? calledUp}) {
-    return ConvocationState(calledUp: calledUp ?? this.calledUp);
-  }
-}
+import 'convocation_state.dart';
 
 class ConvocationCubit extends Cubit<ConvocationState> {
   ConvocationCubit() : super(const ConvocationState());

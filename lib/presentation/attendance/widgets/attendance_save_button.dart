@@ -3,11 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_state.dart';
-import 'package:football_manager/presentation/attendance/bloc/attendance_cubit.dart';
-import 'package:football_manager/presentation/team/bloc/team_detail_cubit.dart';
-import 'package:football_manager/presentation/team/bloc/team_detail_state.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/attendance/cubit/attendance_cubit.dart';
+import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
 import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
 
 class AttendanceSaveButton extends StatelessWidget {
@@ -17,23 +17,24 @@ class AttendanceSaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return SizedBox(
       width: double.infinity,
       height: 52,
-      child: ElevatedButton.icon(
+      child: FilledButton.icon(
         onPressed: () async {
-          // Evitamos dobles clics si ya se está guardando
           final saving = context.read<AttendanceCubit>().state.saving;
           if (saving) return;
 
           final authState = context.read<AuthCubit>().state;
           if (authState is! Authenticated) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
+              SnackBar(
+                content: const Text(
                   'Debes iniciar sesión para guardar la asistencia',
                 ),
-                backgroundColor: Colors.red,
+                backgroundColor: scheme.error,
               ),
             );
             return;
@@ -42,20 +43,38 @@ class AttendanceSaveButton extends StatelessWidget {
           final teamState = context.read<TeamDetailCubit>().state;
           if (teamState is! TeamDetailLoaded) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('No se ha podido cargar la plantilla del equipo'),
-                backgroundColor: Colors.red,
+              SnackBar(
+                content: const Text(
+                  'No se ha podido cargar la plantilla del equipo',
+                ),
+                backgroundColor: scheme.error,
               ),
             );
             return;
           }
 
-          // Modal de cargando mientras se procesa el guardado
           showDialog<void>(
             context: context,
             barrierDismissible: false,
             builder: (ctx) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(color: scheme.primary),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Guardando…',
+                          style: Theme.of(ctx).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
             },
           );
 
@@ -69,30 +88,29 @@ class AttendanceSaveButton extends StatelessWidget {
 
           if (!context.mounted) return;
 
-          // Cerramos el diálogo de cargando antes de mostrar el resultado
           Navigator.of(context, rootNavigator: true).pop();
 
           if (errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(errorMessage),
-                backgroundColor: Colors.red,
+                backgroundColor: scheme.error,
               ),
             );
             return;
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Asistencia guardada correctamente'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+            SnackBar(
+              content: const Text('Asistencia guardada correctamente'),
+              backgroundColor: scheme.primary,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
             ),
           );
 
-          // Volvemos siempre al home del equipo
-          final getPlayersByTeamUseCase = context
-              .read<GetPlayersByTeamUseCase>();
+          final getPlayersByTeamUseCase =
+              context.read<GetPlayersByTeamUseCase>();
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
               builder: (_) => BlocProvider(
@@ -104,9 +122,9 @@ class AttendanceSaveButton extends StatelessWidget {
             (route) => route.isFirst,
           );
         },
-        icon: const Icon(Icons.save),
+        icon: const Icon(Icons.save_rounded),
         label: const Text(
-          'Guardar',
+          'Guardar asistencia',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),

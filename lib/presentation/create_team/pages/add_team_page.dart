@@ -1,10 +1,10 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:football_manager/presentation/home/bloc/home_cubit.dart';
-import 'package:football_manager/presentation/auth/bloc/auth_cubit.dart';
-import '../../create_team/bloc/create_team_cubit.dart';
-import '../../create_team/bloc/create_team_state.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
+import 'package:football_manager/presentation/create_team/cubit/create_team_cubit.dart';
+import 'package:football_manager/presentation/create_team/cubit/create_team_state.dart';
+import 'package:football_manager/presentation/home/cubit/home_cubit.dart';
 
 class AddTeamPage extends StatefulWidget {
   const AddTeamPage({super.key});
@@ -39,7 +39,7 @@ class _AddTeamPageState extends State<AddTeamPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Añadir Equipo')),
+      appBar: AppBar(title: const Text('Nuevo equipo')),
       body: BlocListener<CreateTeamCubit, CreateTeamState>(
         listener: (context, state) {
           if (state is CreateTeamSuccess) {
@@ -49,10 +49,10 @@ class _AddTeamPageState extends State<AddTeamPage> {
             // del nuevo equipo (y pueda, por ejemplo, borrarlo o gestionarlo).
             context.read<AuthCubit>().checkUserSession();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Equipo creado con éxito'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 1),
+              SnackBar(
+                content: const Text('Equipo creado correctamente'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                duration: const Duration(seconds: 2),
               ),
             );
             Navigator.pop(context);
@@ -61,7 +61,7 @@ class _AddTeamPageState extends State<AddTeamPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
@@ -80,23 +80,32 @@ class _AddTeamPageState extends State<AddTeamPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outlineVariant
+                              .withValues(alpha: 0.5),
+                        ),
                       ),
                       child: Row(
-                        children: const [
-                          Icon(Icons.sports_soccer, color: Colors.green),
-                          SizedBox(width: 12),
+                        children: [
+                          Icon(
+                            Icons.sports_soccer_rounded,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Información del Equipo',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              'Datos del equipo',
+                              style: Theme.of(context).textTheme.titleSmall,
                             ),
                           ),
                         ],
@@ -106,14 +115,10 @@ class _AddTeamPageState extends State<AddTeamPage> {
                     // Nombre
                     TextFormField(
                       controller: _nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Nombre del Equipo',
-                        prefixIcon: const Icon(Icons.shield_outlined),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre del equipo',
+                        prefixIcon: Icon(Icons.shield_outlined),
                       ),
                       validator: (value) => value == null || value.isEmpty
                           ? 'Introduce un nombre'
@@ -122,13 +127,8 @@ class _AddTeamPageState extends State<AddTeamPage> {
                     const SizedBox(height: 16),
                     // Categoría
                     DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Categoría',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                       ),
                       items:
                           [
@@ -182,15 +182,7 @@ class _AddTeamPageState extends State<AddTeamPage> {
                       builder: (context, state) {
                         return SizedBox(
                           width: double.infinity,
-                          height: 55,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green[800],
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              elevation: 4,
-                            ),
+                          child: FilledButton(
                             onPressed: state is CreateTeamLoading
                                 ? null
                                 : () async {
@@ -206,17 +198,17 @@ class _AddTeamPageState extends State<AddTeamPage> {
                                     }
                                   },
                             child: state is CreateTeamLoading
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
-                                : const Text(
-                                    'GUARDAR EQUIPO',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                ? SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimary,
                                     ),
-                                  ),
+                                  )
+                                : const Text('Guardar equipo'),
                           ),
                         );
                       },

@@ -5,7 +5,7 @@ import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/get_attendance_by_date_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/update_attendance_use_case.dart';
-import 'package:football_manager/presentation/attendance/attendance_status.dart';
+import 'package:football_manager/presentation/attendance/models/attendance_status.dart';
 
 import 'attendance_state.dart';
 

@@ -5,51 +5,54 @@ class AttendanceTableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: const [
-        Divider(height: 1),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 40,
-                child: Text(
-                  '#',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Jugador',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox(width: 8),
-              SizedBox(
-                width: 60,
-                child: Text(
-                  'Asiste',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              ),
-              SizedBox(width: 8),
-              SizedBox(
-                width: 60,
-                child: Text(
-                  'Ausencia',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              ),
-            ],
+    final scheme = Theme.of(context).colorScheme;
+    final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: scheme.onSurfaceVariant,
+          fontSize: 12,
+        );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh.withValues(alpha: 0.45),
+        border: Border(
+          top: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          bottom: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
-        Divider(height: 1),
-      ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            child: Text('#', textAlign: TextAlign.center, style: labelStyle),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Jugador', style: labelStyle)),
+          SizedBox(
+            width: 56,
+            child: Text(
+              'Asiste',
+              textAlign: TextAlign.center,
+              style: labelStyle,
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: 56,
+            child: Text(
+              'Falta',
+              textAlign: TextAlign.center,
+              style: labelStyle,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

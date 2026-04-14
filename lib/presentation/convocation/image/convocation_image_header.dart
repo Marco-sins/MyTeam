@@ -164,22 +164,24 @@ double drawConvocationHeader({
   final isHomeLocalLeft = isHome;
 
   void drawChipLabel(String text, RRect rect) {
+    final inner = rect.outerRect;
     final builder =
         ui.ParagraphBuilder(
             ui.ParagraphStyle(
               textAlign: TextAlign.center,
               fontSize: 12,
               fontWeight: FontWeight.w700,
+              maxLines: 2,
             ),
           )
           ..pushStyle(ui.TextStyle(color: Colors.white))
           ..addText(text);
     final paragraph = builder.build()
-      ..layout(const ui.ParagraphConstraints(width: chipWidth));
+      ..layout(ui.ParagraphConstraints(width: inner.width));
 
     final offset = Offset(
-      rect.left + (chipWidth - paragraph.maxIntrinsicWidth) / 2,
-      rect.top + (chipHeight - paragraph.height) / 2,
+      inner.left,
+      inner.top + (inner.height - paragraph.height) / 2,
     );
     canvas.drawParagraph(paragraph, offset);
   }

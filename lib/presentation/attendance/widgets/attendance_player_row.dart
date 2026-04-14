@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
-import 'package:football_manager/presentation/attendance/attendance_status.dart';
+import 'package:football_manager/presentation/attendance/models/attendance_status.dart';
 import 'package:football_manager/presentation/attendance/widgets/attendance_status_option_chip.dart';
 
 class AttendancePlayerRow extends StatelessWidget {
@@ -19,40 +19,51 @@ class AttendancePlayerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          SizedBox(
-            width: 40,
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: scheme.surfaceContainerHigh,
             child: Text(
               player.number?.toString() ?? '-',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(player.fullName, style: const TextStyle(fontSize: 14)),
+            child: Text(
+              player.fullName,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
           ),
-          const SizedBox(width: 8),
           SizedBox(
-            width: 60,
+            width: 56,
             child: Center(
               child: AttendanceStatusOptionChip(
                 label: 'A',
-                selectedColor: Theme.of(context).colorScheme.primary,
+                selectedColor: scheme.primary,
                 isSelected: currentStatus == AttendanceStatus.present,
                 onTap: onMarkPresent,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           SizedBox(
-            width: 60,
+            width: 56,
             child: Center(
               child: AttendanceStatusOptionChip(
                 label: 'X',
-                selectedColor: Colors.red,
+                selectedColor: scheme.error,
                 isSelected: currentStatus == AttendanceStatus.absent,
                 onTap: onMarkAbsent,
               ),

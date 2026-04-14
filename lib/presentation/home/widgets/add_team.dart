@@ -6,16 +6,20 @@ class AddTeam extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return FloatingActionButton.extended(
+      elevation: 1,
       onPressed: () {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const AddTeamPage()),
         );
       },
-      backgroundColor: const Color(0xFF2E7D32),
-      icon: const Icon(Icons.add, color: Colors.white),
-      label: const Text("Nuevo Equipo", style: TextStyle(color: Colors.white)),
+      backgroundColor: scheme.primary,
+      foregroundColor: scheme.onPrimary,
+      icon: const Icon(Icons.add_rounded),
+      label: const Text('Nuevo equipo'),
     );
   }
 }

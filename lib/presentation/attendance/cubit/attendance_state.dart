@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:football_manager/presentation/attendance/attendance_status.dart';
+import 'package:football_manager/presentation/attendance/models/attendance_status.dart';
 
 class AttendanceState extends Equatable {
   final DateTime selectedDate;
