@@ -83,6 +83,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   _MatchPhase _phase = _MatchPhase.notStarted;
   bool _isTimerRunning = false;
 
+  RealtimeChannel? _spectatorMatchRealtimeChannel;
+  Timer? _spectatorRealtimeDebounce;
+
   bool get _isExternal {
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) return false;
@@ -136,6 +139,12 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   @override
   void dispose() {
     _timer?.cancel();
+    _spectatorRealtimeDebounce?.cancel();
+    final ch = _spectatorMatchRealtimeChannel;
+    _spectatorMatchRealtimeChannel = null;
+    if (ch != null) {
+      unawaited(Supabase.instance.client.removeChannel(ch));
+    }
     super.dispose();
   }
 
@@ -158,6 +167,136 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     ]);
     if (!mounted) return;
     await _loadConvocationPlayers();
+    if (!mounted) return;
+    _subscribeSpectatorRealtime();
+  }
+
+  /// Externo: cambios en BD (eventos, alineación, estado del partido) sin tirar del listado.
+  void _subscribeSpectatorRealtime() {
+    if (!_isExternal) return;
+    if (_spectatorMatchRealtimeChannel != null) return;
+    if (_match.status == MatchStatus.finished) return;
+
+    final mid = _match.id;
+    void onRemoteChange() {
+      if (!mounted) return;
+      _scheduleSpectatorRealtimeRefresh();
+    }
+
+    _spectatorMatchRealtimeChannel = Supabase.instance.client
+        .channel('match_spectator_$mid')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'match_events',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'match_id',
+            value: mid,
+          ),
+          callback: (_) => onRemoteChange(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'match_lineup',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'match_id',
+            value: mid,
+          ),
+          callback: (_) => onRemoteChange(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'matches',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: mid,
+          ),
+          callback: (_) => onRemoteChange(),
+        )
+        .subscribe();
+  }
+
+  void _scheduleSpectatorRealtimeRefresh() {
+    _spectatorRealtimeDebounce?.cancel();
+    _spectatorRealtimeDebounce = Timer(const Duration(milliseconds: 400), () {
+      _spectatorRealtimeDebounce = null;
+      if (!mounted) return;
+      unawaited(_onRefreshMatchScreen());
+    });
+  }
+
+  MatchStatus? _parseMatchStatusColumn(dynamic raw) {
+    if (raw == null) return null;
+    final tail = raw.toString().split('.').last;
+    for (final v in MatchStatus.values) {
+      if (v.toString().split('.').last == tail) {
+        return v;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _syncMatchMetaFromServer() async {
+    try {
+      final row = await Supabase.instance.client
+          .from('matches')
+          .select('status')
+          .eq('id', _match.id)
+          .maybeSingle();
+      if (!mounted || row == null) return;
+      final status = _parseMatchStatusColumn(row['status']);
+      if (status == null || status == _match.status) return;
+
+      setState(() {
+        _match = Match(
+          id: _match.id,
+          teamId: _match.teamId,
+          opponent: _match.opponent,
+          goalsScored: _match.goalsScored,
+          goalsConceded: _match.goalsConceded,
+          date: _match.date,
+          hour: _match.hour,
+          status: status,
+          lineups: _match.lineups,
+          isHome: _match.isHome,
+        );
+        switch (status) {
+          case MatchStatus.notStarted:
+            _phase = _MatchPhase.notStarted;
+            _isTimerRunning = false;
+            _timer?.cancel();
+            break;
+          case MatchStatus.firstHalf:
+            _phase = _MatchPhase.firstHalf;
+            break;
+          case MatchStatus.halfTime:
+            _phase = _MatchPhase.halfTime;
+            _isTimerRunning = false;
+            _timer?.cancel();
+            break;
+          case MatchStatus.secondHalf:
+            _phase = _MatchPhase.secondHalf;
+            break;
+          case MatchStatus.finished:
+            _isTimerRunning = false;
+            _timer?.cancel();
+            break;
+        }
+      });
+
+      if (status == MatchStatus.firstHalf || status == MatchStatus.secondHalf) {
+        if (mounted && !_isTimerRunning) {
+          _initializeTimer();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error syncing match meta: $e');
+    }
   }
 
   bool _isSmallSideCategory() {
@@ -522,6 +661,26 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     await _loadLiveEvents();
     if (reloadFormation && mounted) {
       await _loadLastFormationFromEvents();
+    }
+  }
+
+  /// Recarga datos desde Supabase (marcador, campo, eventos). Usado al
+  /// deslizar para abajo; relevante para externos que no modifican el partido.
+  Future<void> _onRefreshMatchScreen() async {
+    await _reloadScoreFromEvents();
+    if (!mounted) return;
+    await _recalculatePlayerRatings();
+    if (!mounted) return;
+    await _loadLiveEvents();
+    if (!mounted) return;
+    await _loadLastFormationFromEvents();
+    if (!mounted) return;
+    await _loadPositionsFromEvents();
+    if (!mounted) return;
+    await _loadDisciplineStateFromEvents();
+    if (!mounted) return;
+    if (_isExternal) {
+      await _syncMatchMetaFromServer();
     }
   }
 
@@ -1472,6 +1631,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   }
 
   String _phaseDisplayLabel() {
+    if (_match.status == MatchStatus.finished) {
+      return 'Finalizado';
+    }
     switch (_phase) {
       case _MatchPhase.notStarted:
         return 'Sin iniciar';
@@ -2134,10 +2296,12 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
+        child: RefreshIndicator(
+          onRefresh: _onRefreshMatchScreen,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
             if (isExternal)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -2157,7 +2321,8 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Modo espectador: puedes ver el partido pero no modificarlo.',
+                            'Modo espectador: la pantalla se actualiza sola cuando hay cambios '
+                            '(goles, cambios, formación…). También puedes deslizar hacia abajo.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: scheme.onSecondaryContainer,
                               fontWeight: FontWeight.w600,
@@ -2659,6 +2824,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
               },
             ),
           ],
+          ),
         ),
       ),
     );
