@@ -154,45 +154,28 @@ class ConvocationPlayersSection extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Material(
-                          color: isCalled
-                              ? scheme.primaryContainer
-                              : scheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(20),
-                          child: InkWell(
-                            onTap: () => context
-                                .read<ConvocationCubit>()
-                                .toggleCalledUp(player.id),
-                            borderRadius: BorderRadius.circular(20),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isCalled
-                                        ? Icons.check_circle_outline
-                                        : Icons.remove_circle_outline,
-                                    size: 18,
-                                    color: isCalled
-                                        ? scheme.onPrimaryContainer
-                                        : scheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    isCalled ? 'Sí' : 'No',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                      color: isCalled
-                                          ? scheme.onPrimaryContainer
-                                          : scheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
+                        GestureDetector(
+                          onTap: () => context
+                              .read<ConvocationCubit>()
+                              .toggleCalledUp(player.id),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isCalled
+                                  ? scheme.primary
+                                  : scheme.error,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              isCalled ? 'Sí' : 'No',
+                              style: TextStyle(
+                                color: isCalled
+                                    ? scheme.onPrimary
+                                    : scheme.onError,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
@@ -205,7 +188,7 @@ class ConvocationPlayersSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                 child: Text(
-                  'Toca Sí/No para marcar si el jugador está convocado.',
+                  'Toca el botón de cada jugador para alternar entre Sí y No.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

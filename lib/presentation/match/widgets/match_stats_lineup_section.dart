@@ -23,24 +23,23 @@ class MatchLineupSection extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Divider(height: 24, color: scheme.outlineVariant.withValues(alpha: 0.5)),
           Row(
             children: [
-              Icon(Icons.groups_rounded, color: scheme.primary, size: 22),
-              const SizedBox(width: 8),
+              Icon(Icons.groups_rounded, color: scheme.primary, size: 24),
+              const SizedBox(width: 10),
               Text(
                 'Plantilla del partido',
                 style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           if (startingPlayers.isNotEmpty) ...[
             Text(
               'Titulares',
@@ -117,12 +116,15 @@ class _MatchLineupPlayerRow extends StatelessWidget {
 
     final color = ratingColor(value.toDouble());
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2.0),
-        child: Row(
-          children: [
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          child: Row(
+            children: [
             SizedBox(
               width: 32,
               child: Text(
@@ -177,6 +179,7 @@ class _MatchLineupPlayerRow extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

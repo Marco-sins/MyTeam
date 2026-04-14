@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/core/constants/app_branding.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
@@ -276,7 +277,7 @@ class MyApp extends StatelessWidget {
           ),
         ],
         child: MaterialApp(
-          title: 'Football TFG',
+          title: AppBranding.displayName,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(),
           // 4. Decidimos qué pantalla mostrar según el estado del AuthCubit

@@ -7,8 +7,14 @@ class HomeCubit extends Cubit<HomeState> {
 
   HomeCubit(this._getTeamsUseCase) : super(HomeInitial());
 
-  Future<void> fetchTeams() async {
-    emit(HomeLoading());
+  /// Si [showLoading] es false y ya hay lista cargada, no se muestra la pantalla
+  /// completa de carga (evita parpadeos al refrescar o al volver del segundo plano).
+  Future<void> fetchTeams({bool showLoading = false}) async {
+    final showFullScreenLoading =
+        showLoading || state is! HomeLoaded;
+    if (showFullScreenLoading) {
+      emit(HomeLoading());
+    }
     final result = await _getTeamsUseCase();
     if (isClosed) return;
     result.fold(

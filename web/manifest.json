@@ -1,6 +1,6 @@
 {
-    "name": "tfg1",
-    "short_name": "tfg1",
+    "name": "MyTeam",
+    "short_name": "MyTeam",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

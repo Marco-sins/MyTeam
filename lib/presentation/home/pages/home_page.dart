@@ -26,6 +26,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _invitationsCount = 0;
   RealtimeChannel? _teamMembersChannel;
   RealtimeChannel? _invitationsChannel;
+  AppLifecycleState? _previousAppLifecycle;
 
   @override
   void initState() {
@@ -57,8 +58,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _refreshHome();
+    final prev = _previousAppLifecycle;
+    _previousAppLifecycle = state;
+    // Evita refrescos en cada cambio menor de foco; solo al volver de segundo plano.
+    if (state == AppLifecycleState.resumed &&
+        (prev == AppLifecycleState.paused ||
+            prev == AppLifecycleState.hidden)) {
+      unawaited(_refreshHome());
     }
   }
 

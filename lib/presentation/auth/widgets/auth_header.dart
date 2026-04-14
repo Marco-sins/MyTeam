@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/constants/app_branding.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
 
 class AuthHeader extends StatelessWidget {
@@ -11,7 +12,7 @@ class AuthHeader extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'Equipaso',
+          AppBranding.mainTitleEs,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.98),
             fontSize: 32,

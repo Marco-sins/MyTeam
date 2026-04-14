@@ -10,6 +10,10 @@ class MatchStatsState extends Equatable {
     required this.substitutePlayers,
     required this.isStarterById,
     required this.playerRatings,
+    required this.formationLines,
+    required this.formationLabel,
+    required this.fieldPositionPlayers,
+    required this.sentOffPlayerIds,
   });
 
   const MatchStatsState.initial()
@@ -20,7 +24,11 @@ class MatchStatsState extends Equatable {
       startingPlayers = const [],
       substitutePlayers = const [],
       isStarterById = const {},
-      playerRatings = const {};
+      playerRatings = const {},
+      formationLines = const [],
+      formationLabel = null,
+      fieldPositionPlayers = const [],
+      sentOffPlayerIds = const {};
 
   final bool isLoading;
   final String? error;
@@ -30,6 +38,13 @@ class MatchStatsState extends Equatable {
   final List<Player> substitutePlayers;
   final Map<int, bool> isStarterById;
   final Map<int, double> playerRatings;
+  /// Filas del campo (portero + líneas), p. ej. [1,4,4,2]. Vacío = no hay dibujo.
+  final List<int> formationLines;
+  /// Clave de formación guardada (`4-4-2`, …) o null si se infirió por posiciones.
+  final String? formationLabel;
+  /// Jugadores por hueco al final del partido (expulsados fuera del campo).
+  final List<Player?> fieldPositionPlayers;
+  final Set<int> sentOffPlayerIds;
 
   MatchStatsState copyWith({
     bool? isLoading,
@@ -40,6 +55,10 @@ class MatchStatsState extends Equatable {
     List<Player>? substitutePlayers,
     Map<int, bool>? isStarterById,
     Map<int, double>? playerRatings,
+    List<int>? formationLines,
+    String? formationLabel,
+    List<Player?>? fieldPositionPlayers,
+    Set<int>? sentOffPlayerIds,
   }) {
     return MatchStatsState(
       isLoading: isLoading ?? this.isLoading,
@@ -50,6 +69,10 @@ class MatchStatsState extends Equatable {
       substitutePlayers: substitutePlayers ?? this.substitutePlayers,
       isStarterById: isStarterById ?? this.isStarterById,
       playerRatings: playerRatings ?? this.playerRatings,
+      formationLines: formationLines ?? this.formationLines,
+      formationLabel: formationLabel ?? this.formationLabel,
+      fieldPositionPlayers: fieldPositionPlayers ?? this.fieldPositionPlayers,
+      sentOffPlayerIds: sentOffPlayerIds ?? this.sentOffPlayerIds,
     );
   }
 
@@ -63,5 +86,9 @@ class MatchStatsState extends Equatable {
     substitutePlayers,
     isStarterById,
     playerRatings,
+    formationLines,
+    formationLabel,
+    fieldPositionPlayers,
+    sentOffPlayerIds,
   ];
 }

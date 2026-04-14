@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/core/constants/app_branding.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/usecase/team/leave_team_as_external_use_case.dart';
@@ -193,7 +194,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
     if (!_accessVerified) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Mi equipo'),
+          title: const Text(AppBranding.mainTitleEs),
           centerTitle: true,
         ),
         body: Center(
@@ -216,7 +217,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi equipo'),
+        title: const Text(AppBranding.mainTitleEs),
         centerTitle: true,
       ),
       body: Column(

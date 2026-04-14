@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../auth/cubit/auth_cubit.dart';
+import 'package:football_manager/core/constants/app_branding.dart';
+import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HomeAppBar({super.key});
@@ -25,7 +26,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
             color: scheme.onPrimary,
           ),
           const SizedBox(width: 10),
-          Text('Mis equipos', style: titleStyle),
+          Text(AppBranding.mainTitleEs, style: titleStyle),
         ],
       ),
       centerTitle: true,

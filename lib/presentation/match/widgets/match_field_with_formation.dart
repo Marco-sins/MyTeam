@@ -37,6 +37,7 @@ class MatchFieldWithFormation extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final scheme = Theme.of(context).colorScheme;
         final fieldWidth = constraints.maxWidth;
         final fieldHeight = constraints.maxHeight;
         final rows = formationLines.length;
@@ -142,14 +143,17 @@ class MatchFieldWithFormation extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 16,
                     backgroundColor: assignedPlayer != null
-                        ? Colors.greenAccent
-                        : Colors.white.withAlpha((0.85 * 255).round()),
+                        ? scheme.primaryContainer
+                        : scheme.surfaceContainerHighest
+                            .withValues(alpha: 0.92),
                     child: Text(
                       displayNumber,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                        color: assignedPlayer != null
+                            ? scheme.onPrimaryContainer
+                            : scheme.onSurfaceVariant,
                       ),
                     ),
                   ),

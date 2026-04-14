@@ -2016,6 +2016,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
       if (confirm != true) return;
 
+      // Asegura en BD la disposición actual del campo para el detalle del partido.
+      await _persistCurrentPositionsToMatchLineup();
+
       // Guardamos evento de final de partido (await: el cierre usa el evento
       // para calcular minutos y fin del partido en estadísticas acumuladas).
       final minute = _currentMatchMinute();
