@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/team.dart';
 
+import 'convocation_image_theme.dart';
+
 double drawConvocationHeader({
   required Canvas canvas,
   required Rect overlayRect,
@@ -10,7 +12,7 @@ double drawConvocationHeader({
   required bool isHome,
   required String rivalName,
 }) {
-  const headerHeight = 190.0;
+  final headerHeight = ConvocationImageTheme.headerHeight;
   final headerRRect = RRect.fromRectAndCorners(
     Rect.fromLTWH(
       overlayRect.left,
@@ -18,19 +20,38 @@ double drawConvocationHeader({
       overlayRect.width,
       headerHeight,
     ),
-    topLeft: const Radius.circular(32),
-    topRight: const Radius.circular(32),
+    topLeft: Radius.circular(ConvocationImageTheme.cardCornerRadius),
+    topRight: Radius.circular(ConvocationImageTheme.cardCornerRadius),
   );
 
   final headerPaint = Paint()
-    ..shader = const LinearGradient(
-      colors: [Color(0xFF0D47A1), Color(0xFF1B5E20)],
+    ..shader = LinearGradient(
+      colors: [
+        ConvocationImageTheme.pitch,
+        ConvocationImageTheme.pitchBright,
+      ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
     ).createShader(headerRRect.outerRect);
   canvas.drawRRect(headerRRect, headerPaint);
 
-  double y = overlayRect.top + 28;
+  // Franja inferior oro (identidad app)
+  final goldStripe = RRect.fromRectAndCorners(
+    Rect.fromLTWH(
+      overlayRect.left,
+      overlayRect.top + headerHeight - 4,
+      overlayRect.width,
+      4,
+    ),
+    bottomLeft: const Radius.circular(0),
+    bottomRight: const Radius.circular(0),
+  );
+  canvas.drawRRect(
+    goldStripe,
+    Paint()..color = ConvocationImageTheme.gold,
+  );
+
+  double y = overlayRect.top + 22;
 
   final homeTeamName = isHome ? team.name : rivalName;
   final awayTeamName = isHome ? rivalName : team.name;
@@ -38,25 +59,28 @@ double drawConvocationHeader({
   void drawText(
     String text,
     double dy, {
-    double? fontSize,
+    required double fontSize,
     FontWeight fontWeight = FontWeight.normal,
-    Color color = Colors.black87,
+    Color color = Colors.white,
     TextAlign align = TextAlign.left,
+    double? letterSpacing,
   }) {
     final builder =
         ui.ParagraphBuilder(
             ui.ParagraphStyle(
               textAlign: align,
-              fontSize: fontSize ?? 32,
+              fontSize: fontSize,
               fontWeight: fontWeight,
               maxLines: 4,
             ),
           )
-          ..pushStyle(ui.TextStyle(color: color))
+          ..pushStyle(
+            ui.TextStyle(color: color, letterSpacing: letterSpacing),
+          )
           ..addText(text);
 
     final paragraph = builder.build();
-    const maxWidth = 1000.0;
+    const maxWidth = 980.0;
     paragraph.layout(const ui.ParagraphConstraints(width: maxWidth));
 
     double dx;
@@ -65,103 +89,117 @@ double drawConvocationHeader({
           overlayRect.left +
           (overlayRect.width - paragraph.maxIntrinsicWidth) / 2;
     } else if (align == TextAlign.right) {
-      dx = overlayRect.right - paragraph.maxIntrinsicWidth - 20;
+      dx = overlayRect.right - paragraph.maxIntrinsicWidth - 32;
     } else {
-      dx = overlayRect.left + 20;
+      dx = overlayRect.left + 32;
     }
 
     canvas.drawParagraph(paragraph, Offset(dx, dy));
   }
 
-  void drawMatchupLine(double dy) {
-    const versusText = 'VS';
-    const teamFontSize = 52.0;
-    const versusFontSize = 54.0;
-    const spacing = 24.0;
+  drawText(
+    'CONVOCATORIA',
+    y,
+    fontSize: 13,
+    fontWeight: FontWeight.w800,
+    color: Colors.white.withValues(alpha: 0.88),
+    align: TextAlign.left,
+    letterSpacing: 2.2,
+  );
 
-    ui.Paragraph buildParagraph(String text, double fontSize) {
+  y += 30;
+
+  void drawMatchupLine(double dy) {
+    const versusText = 'vs';
+    const teamFontSize = 44.0;
+    const versusFontSize = 36.0;
+    const spacing = 20.0;
+
+    ui.Paragraph buildParagraph(
+      String text,
+      double fontSize,
+      Color color,
+      FontWeight w,
+    ) {
       final builder =
           ui.ParagraphBuilder(
               ui.ParagraphStyle(
                 textAlign: TextAlign.left,
                 fontSize: fontSize,
-                fontWeight: FontWeight.w900,
-                maxLines: 1,
+                fontWeight: w,
+                maxLines: 2,
               ),
             )
-            ..pushStyle(ui.TextStyle(color: Colors.white))
+            ..pushStyle(ui.TextStyle(color: color))
             ..addText(text);
 
       final paragraph = builder.build();
-      paragraph.layout(const ui.ParagraphConstraints(width: double.infinity));
+      paragraph.layout(const ui.ParagraphConstraints(width: 480));
       return paragraph;
     }
 
-    final homeParagraph = buildParagraph(homeTeamName, teamFontSize);
-    final versusParagraph = buildParagraph(versusText, versusFontSize);
-    final awayParagraph = buildParagraph(awayTeamName, teamFontSize);
+    final homeParagraph = buildParagraph(
+      homeTeamName,
+      teamFontSize,
+      Colors.white,
+      FontWeight.w800,
+    );
+    final versusParagraph = buildParagraph(
+      versusText,
+      versusFontSize,
+      ConvocationImageTheme.gold,
+      FontWeight.w700,
+    );
+    final awayParagraph = buildParagraph(
+      awayTeamName,
+      teamFontSize,
+      Colors.white,
+      FontWeight.w800,
+    );
 
     final centerX = overlayRect.center.dx;
     final versusWidth = versusParagraph.maxIntrinsicWidth;
     final homeWidth = homeParagraph.maxIntrinsicWidth;
 
     final versusDx = centerX - (versusWidth / 2);
-    final versusDy = dy;
-
     final homeDx = versusDx - spacing - homeWidth;
-    final homeDy = dy;
-
     final awayDx = versusDx + versusWidth + spacing;
-    final awayDy = dy;
 
-    canvas.drawParagraph(homeParagraph, Offset(homeDx, homeDy));
-    canvas.drawParagraph(versusParagraph, Offset(versusDx, versusDy));
-    canvas.drawParagraph(awayParagraph, Offset(awayDx, awayDy));
+    canvas.drawParagraph(homeParagraph, Offset(homeDx, dy));
+    canvas.drawParagraph(versusParagraph, Offset(versusDx, dy + 4));
+    canvas.drawParagraph(awayParagraph, Offset(awayDx, dy));
   }
 
-  drawText(
-    'Convocatoria',
-    y,
-    fontSize: 28,
-    fontWeight: FontWeight.w700,
-    color: Colors.white,
-    align: TextAlign.left,
-  );
+  drawMatchupLine(y);
 
-  final matchTitleY = y + 44;
-  drawMatchupLine(matchTitleY);
-
-  const chipHeight = 26.0;
-  const chipWidth = 90.0;
-  final chipTop = headerRRect.outerRect.bottom - chipHeight - 16;
+  const chipHeight = 30.0;
+  const chipWidth = 100.0;
+  final chipTop = headerRRect.outerRect.bottom - chipHeight - 20;
 
   final localChipRect = RRect.fromRectAndRadius(
-    Rect.fromLTWH(overlayRect.left + 28, chipTop, chipWidth, chipHeight),
-    const Radius.circular(20),
+    Rect.fromLTWH(overlayRect.left + 32, chipTop, chipWidth, chipHeight),
+    const Radius.circular(10),
   );
   final awayChipRect = RRect.fromRectAndRadius(
     Rect.fromLTWH(
-      overlayRect.right - chipWidth - 28,
+      overlayRect.right - chipWidth - 32,
       chipTop,
       chipWidth,
       chipHeight,
     ),
-    const Radius.circular(20),
+    const Radius.circular(10),
   );
 
-  final chipPaint = Paint()
-    ..color = Colors.white.withAlpha((0.15 * 255).round());
-  final chipBorderPaint = Paint()
-    ..color = Colors.white.withAlpha((0.7 * 255).round())
+  final chipFill = Paint()..color = ConvocationImageTheme.secondaryContainer;
+  final chipBorder = Paint()
+    ..color = ConvocationImageTheme.goldDeep.withValues(alpha: 0.35)
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.3;
+    ..strokeWidth = 1;
 
-  canvas.drawRRect(localChipRect, chipPaint);
-  canvas.drawRRect(localChipRect, chipBorderPaint);
-  canvas.drawRRect(awayChipRect, chipPaint);
-  canvas.drawRRect(awayChipRect, chipBorderPaint);
-
-  final isHomeLocalLeft = isHome;
+  canvas.drawRRect(localChipRect, chipFill);
+  canvas.drawRRect(localChipRect, chipBorder);
+  canvas.drawRRect(awayChipRect, chipFill);
+  canvas.drawRRect(awayChipRect, chipBorder);
 
   void drawChipLabel(String text, RRect rect) {
     final inner = rect.outerRect;
@@ -170,11 +208,16 @@ double drawConvocationHeader({
             ui.ParagraphStyle(
               textAlign: TextAlign.center,
               fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               maxLines: 2,
             ),
           )
-          ..pushStyle(ui.TextStyle(color: Colors.white))
+          ..pushStyle(
+            ui.TextStyle(
+              color: ConvocationImageTheme.onSecondaryContainer,
+              letterSpacing: 0.6,
+            ),
+          )
           ..addText(text);
     final paragraph = builder.build()
       ..layout(ui.ParagraphConstraints(width: inner.width));
@@ -186,7 +229,7 @@ double drawConvocationHeader({
     canvas.drawParagraph(paragraph, offset);
   }
 
-  if (isHomeLocalLeft) {
+  if (isHome) {
     drawChipLabel('LOCAL', localChipRect);
     drawChipLabel('VISITANTE', awayChipRect);
   } else {
@@ -194,30 +237,5 @@ double drawConvocationHeader({
     drawChipLabel('LOCAL', awayChipRect);
   }
 
-  final confettiPaint1 = Paint()..color = const Color(0xFFFFC107);
-  final confettiPaint2 = Paint()..color = const Color(0xFFFF4081);
-  final confettiPaint3 = Paint()..color = const Color(0xFF00E5FF);
-
-  canvas.drawCircle(
-    Offset(overlayRect.left + 24, overlayRect.top + 16),
-    6,
-    confettiPaint1,
-  );
-  canvas.drawCircle(
-    Offset(overlayRect.right - 28, overlayRect.top + 22),
-    7,
-    confettiPaint2,
-  );
-  canvas.drawCircle(
-    Offset(overlayRect.left + 80, overlayRect.top + 40),
-    5,
-    confettiPaint3,
-  );
-  canvas.drawCircle(
-    Offset(overlayRect.right - 90, overlayRect.top + 48),
-    5,
-    confettiPaint1,
-  );
-
-  return headerRRect.outerRect.bottom + 40;
+  return headerRRect.outerRect.bottom + ConvocationImageTheme.headerBottomGap;
 }

@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
+import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/i_repositories/i_match_repository.dart';
@@ -22,6 +23,11 @@ class DeleteMatchUseCase {
     final response = await _matchRepository.deleteMatch(match.id);
     if (response.isLeft()) {
       return response;
+    }
+    // Las estadísticas agregadas en player_stats solo suman partidos
+    // finalizados; borrar un pendiente o en curso no las altera.
+    if (match.status != MatchStatus.finished) {
+      return const Right(null);
     }
     final recalc = await _playerRepository.recalculateAllAggregatedStatsForTeam(
       match.teamId,

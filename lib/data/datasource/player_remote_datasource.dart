@@ -13,6 +13,95 @@ String _matchEventTypeTail(dynamic raw) {
   return parts.isNotEmpty ? parts.last : s;
 }
 
+/// Mensajes tipo: Could not find the 'minutes_played' column of 'player_stats'...
+final _unknownColumnInPayload = RegExp(
+  r"the '([^']+)' column",
+  caseSensitive: false,
+);
+
+Map<String, dynamic>? _removeColumnFromPayloadIfSchemaError(
+  PostgrestException e,
+  Map<String, dynamic> payload,
+) {
+  final match = _unknownColumnInPayload.firstMatch(e.message);
+  if (match == null) return null;
+  final col = match.group(1);
+  if (col == null || !payload.containsKey(col)) return null;
+  return Map<String, dynamic>.from(payload)..remove(col);
+}
+
+Future<void> _updatePlayerStatsWithSchemaFallback(
+  SupabaseClient supabase,
+  int playerId,
+  Map<String, dynamic> payload,
+) async {
+  var data = Map<String, dynamic>.from(payload)..remove('id');
+  const maxAttempts = 16;
+  for (var i = 0; i < maxAttempts; i++) {
+    if (data.isEmpty) {
+      throw ServerException(
+        message:
+            'No se pudo actualizar player_stats: el esquema no coincide. '
+            'Ejecuta en Supabase SQL: database/add_player_stats_minutes_times_started.sql',
+        code: '500',
+      );
+    }
+    try {
+      await supabase.from('player_stats').update(data).eq('player_id', playerId);
+      return;
+    } on PostgrestException catch (e) {
+      final next = _removeColumnFromPayloadIfSchemaError(e, data);
+      if (next == null) {
+        throw ServerException(message: e.message, code: e.code);
+      }
+      data = next;
+    }
+  }
+  throw ServerException(
+    message: 'player_stats: demasiados reintentos por columnas desconocidas',
+    code: '500',
+  );
+}
+
+Future<void> _insertPlayerStatsWithSchemaFallback(
+  SupabaseClient supabase,
+  Map<String, dynamic> payload,
+) async {
+  var data = Map<String, dynamic>.from(payload)..remove('id');
+  const maxAttempts = 16;
+  for (var i = 0; i < maxAttempts; i++) {
+    if (data.isEmpty) {
+      throw ServerException(
+        message:
+            'No se pudo crear player_stats: el esquema no coincide. '
+            'Ejecuta en Supabase SQL: database/add_player_stats_minutes_times_started.sql',
+        code: '500',
+      );
+    }
+    try {
+      final statsResponse =
+          await supabase.from('player_stats').insert(data).select();
+      if (statsResponse.isEmpty) {
+        throw ServerException(
+          message: 'Failed to create player stats',
+          code: '500',
+        );
+      }
+      return;
+    } on PostgrestException catch (e) {
+      final next = _removeColumnFromPayloadIfSchemaError(e, data);
+      if (next == null) {
+        throw ServerException(message: e.message, code: e.code);
+      }
+      data = next;
+    }
+  }
+  throw ServerException(
+    message: 'player_stats insert: demasiados reintentos',
+    code: '500',
+  );
+}
+
 class PlayerRemoteDatasource {
   final SupabaseClient _supabase;
 
@@ -33,16 +122,10 @@ class PlayerRemoteDatasource {
       final int playerId = (response as List).isNotEmpty
           ? response[0]['id'] as int
           : 0;
-      final statsResponse = await _supabase
-          .from('player_stats')
-          .insert(playerStatsData.copyWith(playerId: playerId).toJson())
-          .select();
-      if (statsResponse.isEmpty) {
-        throw ServerException(
-          message: 'Failed to create player stats',
-          code: '500',
-        );
-      }
+      await _insertPlayerStatsWithSchemaFallback(
+        _supabase,
+        playerStatsData.copyWith(playerId: playerId).toJson(),
+      );
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -281,15 +364,21 @@ class PlayerRemoteDatasource {
           .select('id')
           .eq('team_id', teamId);
 
-      for (final row in playersRes as List<dynamic>) {
-        final id = (row as Map)['id'] as int;
-        final t = totals[id] ?? PlayerParticipationTotals.zero;
-        await _supabase.from('player_stats').update({
-          'matches_played': t.matchesPlayed,
-          'times_started': t.timesStarted,
-          'minutes_played': t.minutesPlayedSum,
-        }).eq('player_id', id);
-      }
+      await Future.wait(
+        (playersRes as List<dynamic>).map((row) async {
+          final id = (row as Map)['id'] as int;
+          final t = totals[id] ?? PlayerParticipationTotals.zero;
+          await _updatePlayerStatsWithSchemaFallback(
+            _supabase,
+            id,
+            {
+              'matches_played': t.matchesPlayed,
+              'times_started': t.timesStarted,
+              'minutes_played': t.minutesPlayedSum,
+            },
+          );
+        }),
+      );
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -352,15 +441,17 @@ class PlayerRemoteDatasource {
           .select('id')
           .eq('team_id', teamId);
 
-      for (final row in playersRes as List<dynamic>) {
-        final id = (row as Map)['id'] as int;
-        await _supabase.from('player_stats').update({
-          'goals': goals[id] ?? 0,
-          'assistences': assists[id] ?? 0,
-          'yellow_cards': yellows[id] ?? 0,
-          'red_cards': reds[id] ?? 0,
-        }).eq('player_id', id);
-      }
+      await Future.wait(
+        (playersRes as List<dynamic>).map((row) async {
+          final id = (row as Map)['id'] as int;
+          await _supabase.from('player_stats').update({
+            'goals': goals[id] ?? 0,
+            'assistences': assists[id] ?? 0,
+            'yellow_cards': yellows[id] ?? 0,
+            'red_cards': reds[id] ?? 0,
+          }).eq('player_id', id);
+        }),
+      );
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -440,10 +531,11 @@ class PlayerRemoteDatasource {
     PlayerStatsModel playerStats,
   ) async {
     try {
-      await _supabase
-          .from('player_stats')
-          .update(playerStats.toJson())
-          .eq('player_id', playerId);
+      await _updatePlayerStatsWithSchemaFallback(
+        _supabase,
+        playerId,
+        playerStats.toJson(),
+      );
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

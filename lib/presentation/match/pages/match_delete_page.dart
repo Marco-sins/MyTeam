@@ -62,7 +62,7 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
 
               return ListView.builder(
                 itemCount: matches.length,
-                itemBuilder: (context, index) {
+                itemBuilder: (_, index) {
                   final match = matches[index];
                   final statusText = () {
                     switch (match.status) {
@@ -89,9 +89,10 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                       trailing: IconButton(
                         icon: const Icon(Icons.close, color: Colors.red),
                         onPressed: () async {
+                          final messenger = ScaffoldMessenger.of(context);
                           final authState = context.read<AuthCubit>().state;
                           if (authState is! Authenticated) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text(
                                   'Debes iniciar sesión para borrar partidos',
@@ -126,6 +127,7 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                           );
 
                           if (confirm != true) return;
+                          if (!context.mounted) return;
 
                           final deleteMatchUseCase = context
                               .read<DeleteMatchUseCase>();
@@ -134,9 +136,11 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                             authState.user,
                           );
 
+                          if (!context.mounted) return;
+
                           result.fold(
                             (failure) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text(failure.message),
                                   backgroundColor: Colors.red,
@@ -144,7 +148,7 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                               );
                             },
                             (_) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 const SnackBar(
                                   content: Text(
                                     'Partido eliminado correctamente',
@@ -153,7 +157,6 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                                   duration: Duration(seconds: 1),
                                 ),
                               );
-                              // Recargamos la lista de partidos
                               setState(_loadMatches);
                             },
                           );
