@@ -20,12 +20,14 @@ import 'package:football_manager/data/models/match_event_model.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/widgets/match_convocation_table.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
 import 'package:football_manager/presentation/match/widgets/match_player_action_modal.dart';
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 
 enum _MatchPhase { notStarted, firstHalf, halfTime, secondHalf }
 
@@ -403,7 +405,9 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
       );
       final old = _positionPlayers;
       final resized = List<Player?>.filled(totalPositions, null);
-      final copyCount = totalPositions < old.length ? totalPositions : old.length;
+      final copyCount = totalPositions < old.length
+          ? totalPositions
+          : old.length;
       for (int i = 0; i < copyCount; i++) {
         resized[i] = old[i];
       }
@@ -429,10 +433,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                   alignment: AlignmentDirectional.centerStart,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      key,
-                      style: const TextStyle(fontSize: 17),
-                    ),
+                    child: Text(key, style: const TextStyle(fontSize: 17)),
                   ),
                 ),
               ),
@@ -693,12 +694,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
   }
 
   /// PostgREST puede devolver enteros como [num]; evita fallos de `as int?` en el build.
-  int? _dynToInt(dynamic v) {
-    if (v == null) return null;
-    if (v is int) return v;
-    if (v is num) return v.toInt();
-    return int.tryParse(v.toString());
-  }
+  int? _dynToInt(dynamic v) => supabaseInt(v);
 
   String? _dynToStr(dynamic v) {
     if (v == null) return null;
@@ -765,7 +761,6 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
   /// Etiqueta de minuto: en descuento, [reglamentario]+[added] (p. ej. 45+2, 90+1).
   String _formatLiveEventMinuteLine(int minute, int half) {
-    if (minute <= 0) return 'Sin minuto';
     final h = _firstHalfDurationMinutesForCategory();
     if (half == 1) {
       if (minute > h) {
@@ -825,7 +820,15 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
       final list = raw as List;
       final out = list
-          .map((e) => Map<String, dynamic>.from(e as Map))
+          .map((e) {
+            final m = Map<String, dynamic>.from(e as Map);
+            m['minute'] = resolveMatchEventMinute(m);
+            final id1 = supabaseInt(m['player_id1']);
+            final id2 = supabaseInt(m['player_id2']);
+            if (id1 != null) m['player_id1'] = id1;
+            if (id2 != null) m['player_id2'] = id2;
+            return m;
+          })
           .where(_shouldIncludeInLiveEventsList)
           .toList();
       final t2h = _resolveSecondHalfStartFromRows(out);
@@ -878,20 +881,23 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     required MatchEventEnum type,
     required Player player,
   }) async {
-    final needsScore = type == MatchEventEnum.scoreGoal ||
+    final needsScore =
+        type == MatchEventEnum.scoreGoal ||
         type == MatchEventEnum.concedeGoal ||
         type == MatchEventEnum.ownGoal;
-    final needsDiscipline = type == MatchEventEnum.yellowCard ||
-        type == MatchEventEnum.redCard;
+    final needsDiscipline =
+        type == MatchEventEnum.yellowCard || type == MatchEventEnum.redCard;
 
     final prevSentOff = Set<int>.from(_sentOffPlayerIds);
 
     final fRatings = _queryPlayerRatingsMap();
     final fLive = _queryLiveEventsFiltered();
-    final Future<({int scored, int conceded})?>? fScore =
-        needsScore ? _queryScoreCountsFromEvents() : null;
-    final Future<Set<int>?>? fDisc =
-        needsDiscipline ? _querySentOffIdsFromEvents() : null;
+    final Future<({int scored, int conceded})?>? fScore = needsScore
+        ? _queryScoreCountsFromEvents()
+        : null;
+    final Future<Set<int>?>? fDisc = needsDiscipline
+        ? _querySentOffIdsFromEvents()
+        : null;
 
     final ratings = await fRatings;
     final live = await fLive;
@@ -981,11 +987,20 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
       if (!mounted) return;
 
-      _showSnack(
-        yellowCount >= 2 && !hasRed
-            ? '${player.fullName} expulsado por doble amarilla'
-            : '${player.fullName} expulsado',
+      _showSnackBarRich(
         error: true,
+        spans: [
+          ...playerNameSpanList(
+            player,
+            const TextStyle(color: Colors.white),
+            mode: PlayerNameTextMode.matchShort,
+          ),
+          TextSpan(
+            text: yellowCount >= 2 && !hasRed
+                ? ' expulsado por doble amarilla'
+                : ' expulsado',
+          ),
+        ],
       );
     } catch (e) {
       debugPrint('Error showing card expulsion snack: $e');
@@ -1000,66 +1015,102 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     return null;
   }
 
-  String _playerShortLabel(int? id) {
-    final p = _playerFromRoster(id);
-    if (p == null) {
-      return id != null ? 'Jugador $id' : '—';
-    }
-    final d = p.number?.toString() ?? '-';
-    final ln = (p.lastName ?? '').trim();
-    final name = ln.isEmpty ? p.firstName : '${p.firstName} $ln';
-    return '$d $name';
-  }
-
-  String _describeLiveEvent(Map<String, dynamic> row) {
+  List<InlineSpan> _liveEventDescriptionSpans(
+    Map<String, dynamic> row,
+    TextStyle base,
+  ) {
     final key = _canonicalEventTypeKey(row['type']);
     final note = _dynToStr(row['note']);
     final p1 = _dynToInt(row['player_id1']);
     final p2 = _dynToInt(row['player_id2']);
     final rawLabel = row['type']?.toString() ?? '';
 
+    List<InlineSpan> dorsalSpans(int? id) {
+      final pl = _playerFromRoster(id);
+      if (pl == null) {
+        return [TextSpan(text: id != null ? 'Jugador $id' : '—')];
+      }
+      return playerDorsalNameSpanList(pl, base);
+    }
+
     switch (key) {
       case 'formation':
-        return 'Formación ${note ?? '—'}';
+        return [TextSpan(text: 'Formación ${note ?? '—'}')];
       case 'substitution':
-        return 'Cambio: ${_playerShortLabel(p1)} entra · ${_playerShortLabel(p2)} sale';
+        return [
+          const TextSpan(text: 'Cambio: '),
+          ...dorsalSpans(p1),
+          const TextSpan(text: ' entra · '),
+          ...dorsalSpans(p2),
+          const TextSpan(text: ' sale'),
+        ];
       case 'statuschange':
-        return (note != null && note.isNotEmpty)
-            ? note
-            : 'Cambio de tiempo / estado';
+        return [
+          TextSpan(
+            text: (note != null && note.isNotEmpty)
+                ? note!
+                : 'Cambio de tiempo / estado',
+          ),
+        ];
       case 'scoregoal':
-        final a = _playerShortLabel(p1);
-        final b = p2 != null ? _playerShortLabel(p2) : null;
-        if (b != null && p2 != null) {
-          return 'Gol $a (asist. $b)';
+        final out = <InlineSpan>[const TextSpan(text: 'Gol '), ...dorsalSpans(p1)];
+        if (p2 != null) {
+          out.add(const TextSpan(text: ' (asist. '));
+          out.addAll(dorsalSpans(p2));
+          out.add(const TextSpan(text: ')'));
         }
-        return 'Gol $a';
+        return out;
       case 'concedegoal':
-        return (note != null && note.isNotEmpty) ? note : 'Gol encajado';
+        return [
+          TextSpan(
+            text: (note != null && note.isNotEmpty) ? note! : 'Gol encajado',
+          ),
+        ];
       case 'owngoal':
-        return 'Gol en propia · ${_playerShortLabel(p1)}';
+        return [
+          const TextSpan(text: 'Gol en propia · '),
+          ...dorsalSpans(p1),
+        ];
       case 'yellowcard':
-        return 'Tarjeta amarilla · ${_playerShortLabel(p1)}';
+        return [
+          const TextSpan(text: 'Tarjeta amarilla · '),
+          ...dorsalSpans(p1),
+        ];
       case 'redcard':
-        return 'Tarjeta roja · ${_playerShortLabel(p1)}';
+        return [
+          const TextSpan(text: 'Tarjeta roja · '),
+          ...dorsalSpans(p1),
+        ];
       case 'goodsave':
         if (note != null && note.isNotEmpty) {
           if (p1 != null) {
-            return 'Parada · ${_playerShortLabel(p1)} — $note';
+            return [
+              const TextSpan(text: 'Parada · '),
+              ...dorsalSpans(p1),
+              TextSpan(text: ' — $note'),
+            ];
           }
-          return 'Parada — $note';
+          return [TextSpan(text: 'Parada — $note')];
         }
         if (p1 != null) {
-          return 'Parada · ${_playerShortLabel(p1)}';
+          return [
+            const TextSpan(text: 'Parada · '),
+            ...dorsalSpans(p1),
+          ];
         }
-        return 'Parada';
+        return [const TextSpan(text: 'Parada')];
       case 'keypass':
-        return 'Pase clave · ${_playerShortLabel(p1)}';
+        return [
+          const TextSpan(text: 'Pase clave · '),
+          ...dorsalSpans(p1),
+        ];
       default:
         if (note != null && note.isNotEmpty) {
-          return '${key.isEmpty ? 'Evento' : rawLabel}: $note';
+          return [
+            TextSpan(text: '${key.isEmpty ? 'Evento' : rawLabel}: $note'),
+          ];
         }
-        return key.isEmpty ? 'Evento' : rawLabel;
+        return [TextSpan(text: key.isEmpty ? 'Evento' : rawLabel)];
     }
   }
 
@@ -1099,18 +1150,41 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     }
 
     final minute = _dynToInt(row['minute']) ?? 0;
-    final summary = _describeLiveEvent(row);
     final half = _eventMatchHalf(row, _resolvedSecondHalfStart());
     final minutePrefix = minute != 0
         ? '${_formatLiveEventMinuteLine(minute, half)} · '
         : '';
-    final confirmed = await _confirmAction(
-      'Eliminar evento',
-      '$minutePrefix$summary\n\n'
-      '¿Eliminar este evento del partido? '
-      'El marcador, las notas y la disciplina se recalcularán.',
+    final baseStyle = Theme.of(context).textTheme.bodyMedium!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar evento'),
+        content: Text.rich(
+          TextSpan(
+            style: baseStyle,
+            children: [
+              if (minutePrefix.isNotEmpty) TextSpan(text: minutePrefix),
+              ..._liveEventDescriptionSpans(row, baseStyle),
+              const TextSpan(
+                text: '\n\n¿Eliminar este evento del partido? '
+                    'El marcador, las notas y la disciplina se recalcularán.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
     );
-    if (!confirmed || !mounted) return;
+    if (confirmed != true || !mounted) return;
 
     try {
       final normalized = Map<String, dynamic>.from(row);
@@ -1217,6 +1291,26 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
+        backgroundColor: error ? Colors.red : Colors.green,
+        duration: error
+            ? const Duration(seconds: 4)
+            : const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _showSnackBarRich({
+    required List<InlineSpan> spans,
+    bool error = false,
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text.rich(
+          TextSpan(
+            style: const TextStyle(color: Colors.white),
+            children: spans,
+          ),
+        ),
         backgroundColor: error ? Colors.red : Colors.green,
         duration: error
             ? const Duration(seconds: 4)
@@ -1445,7 +1539,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         matchId: _match.id,
         playerId1: row['player_id1'] as int?,
         playerId2: row['player_id2'] as int?,
-        minute: (row['minute'] as int?) ?? 0,
+        minute: supabaseInt(row['minute']) ?? 0,
         type: eventType,
         note: row['note'] as String?,
       );
@@ -1659,11 +1753,38 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     if (action == null) return;
 
     final label = _playerActionLabel(action);
-    final confirmed = await _confirmAction(
-      'Confirmar acción',
-      '¿Seguro que quieres registrar "${label}" para ${player.fullName}?',
+    final baseStyle = Theme.of(context).textTheme.bodyMedium!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirmar acción'),
+        content: Text.rich(
+          TextSpan(
+            style: baseStyle,
+            children: [
+              TextSpan(text: '¿Seguro que quieres registrar "$label" para '),
+              ...playerNameSpanList(
+                player,
+                baseStyle,
+                mode: PlayerNameTextMode.matchShort,
+              ),
+              const TextSpan(text: '?'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
     );
-    if (!confirmed) return;
+    if (confirmed != true) return;
 
     await _savePlayerActionEvent(player, action);
   }
@@ -1822,7 +1943,16 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         (_) async {
           await _refreshAfterPlayerAction(type: type, player: player);
           if (mounted) {
-            _showSnack('Acción registrada para ${player.fullName}');
+            _showSnackBarRich(
+              spans: [
+                const TextSpan(text: 'Acción registrada para '),
+                ...playerNameSpanList(
+                  player,
+                  const TextStyle(color: Colors.white),
+                  mode: PlayerNameTextMode.matchShort,
+                ),
+              ],
+            );
           }
         },
       );
@@ -1862,9 +1992,8 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                     itemCount: assistCandidates.length,
                     itemBuilder: (context, index) {
                       final p = assistCandidates[index];
-                      final dorsal = p.number?.toString() ?? '-';
                       return ListTile(
-                        title: Text('$dorsal  ${p.fullName}'),
+                        title: PlayerDorsalNameText(player: p),
                         onTap: () => Navigator.of(ctx).pop(p),
                       );
                     },
@@ -1921,7 +2050,16 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             player: player,
           );
           if (mounted) {
-            _showSnack('Gol registrado para ${player.fullName}');
+            _showSnackBarRich(
+              spans: [
+                const TextSpan(text: 'Gol registrado para '),
+                ...playerNameSpanList(
+                  player,
+                  const TextStyle(color: Colors.white),
+                  mode: PlayerNameTextMode.matchShort,
+                ),
+              ],
+            );
           }
         },
       );
@@ -2220,8 +2358,8 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           );
 
           if (!mounted) return;
-          final getPlayersByTeamUseCase =
-              context.read<GetPlayersByTeamUseCase>();
+          final getPlayersByTeamUseCase = context
+              .read<GetPlayersByTeamUseCase>();
           await Navigator.of(context).pushReplacement(
             MaterialPageRoute<void>(
               builder: (ctx) => BlocProvider(
@@ -2291,10 +2429,7 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Partido en curso'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Partido en curso'), centerTitle: true),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _onRefreshMatchScreen,
@@ -2302,229 +2437,28 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-            if (isExternal)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  color: scheme.secondaryContainer.withValues(alpha: 0.45),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.visibility_outlined,
-                          color: scheme.onSecondaryContainer,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Modo espectador: la pantalla se actualiza sola cuando hay cambios '
-                            '(goles, cambios, formación…). También puedes deslizar hacia abajo.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSecondaryContainer,
-                              fontWeight: FontWeight.w600,
-                              height: 1.35,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.timer_outlined, color: scheme.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Marcador y tiempo',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        Chip(
-                          label: Text(
-                            _phaseDisplayLabel(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                          backgroundColor:
-                              scheme.primaryContainer.withValues(alpha: 0.65),
-                          side: BorderSide.none,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: scheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: scheme.outlineVariant.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              widget.team.name,
-                              textAlign: TextAlign.end,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Text(
-                                  '${_match.goalsScored}',
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: scheme.primary,
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                  ),
-                                  child: Text(
-                                    '—',
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                      color: scheme.outline,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '${_match.goalsConceded}',
-                                  style: theme.textTheme.headlineSmall
-                                      ?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: scheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              _match.opponent,
-                              textAlign: TextAlign.start,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Center(child: clockWidget()),
-                    if (!isExternal) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        'Marcador rápido',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: scheme.error,
-                          foregroundColor: scheme.onError,
-                        ),
-                        onPressed: () => _onAddGoal(ourTeam: false),
-                        icon: const Icon(Icons.sports_soccer, size: 20),
-                        label: const Text('Gol del rival'),
-                      ),
-                      const SizedBox(height: 8),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                       Row(
                         children: [
+                          Icon(Icons.timer_outlined, color: scheme.primary),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _onRemoveGoal(ourTeam: true),
-                              child: const Text('− Nuestro'),
+                            child: Text(
+                              'Marcador y tiempo',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _onRemoveGoal(ourTeam: false),
-                              child: const Text('− Rival'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Los goles a favor se registran desde el campo (jugador) o las acciones.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.stadium_outlined, color: scheme.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Campo y formación',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        if (isExternal)
                           Chip(
                             label: Text(
-                              _selectedFormation,
+                              _phaseDisplayLabel(),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
@@ -2532,298 +2466,486 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                             ),
                             padding: EdgeInsets.zero,
                             visualDensity: VisualDensity.compact,
-                            backgroundColor: scheme.surfaceContainerHighest
-                                .withValues(alpha: 0.65),
+                            backgroundColor: scheme.primaryContainer.withValues(
+                              alpha: 0.65,
+                            ),
                             side: BorderSide.none,
-                          )
-                        else
-                          FilledButton.tonalIcon(
-                            onPressed: _showFormationPicker,
-                            icon: const Icon(Icons.grid_view_rounded, size: 18),
-                            label: Text(_selectedFormation),
-                            style: FilledButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: scheme.outlineVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.team.name,
+                                textAlign: TextAlign.end,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '${_match.goalsScored}',
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          color: scheme.primary,
+                                        ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                    ),
+                                    child: Text(
+                                      '—',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            color: scheme.outline,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${_match.goalsConceded}',
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          color: scheme.onSurface,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                _match.opponent,
+                                textAlign: TextAlign.start,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Center(child: clockWidget()),
+                      if (!isExternal) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          'Marcador rápido',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: scheme.error,
+                            foregroundColor: scheme.onError,
+                          ),
+                          onPressed: () => _onAddGoal(ourTeam: false),
+                          icon: const Icon(Icons.sports_soccer, size: 20),
+                          label: const Text('Gol del rival'),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => _onRemoveGoal(ourTeam: true),
+                                child: const Text('− Nuestro'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => _onRemoveGoal(ourTeam: false),
+                                child: const Text('− Rival'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Los goles a favor se registran desde el campo (jugador) o las acciones.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.stadium_outlined, color: scheme.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Campo y formación',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ExcludeSemantics(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: 420,
-                            maxHeight: 320,
-                          ),
-                          child: AspectRatio(
-                            aspectRatio: 4 / 3,
-                            child: MatchFieldWithFormation(
-                              formationLines: _formationLines,
-                              positionPlayers: _positionPlayers,
-                              selectedPlayer: _selectedPlayer,
-                              sentOffPlayerIds: _sentOffPlayerIds,
-                              currentPlayersOnField: _currentPlayersOnField,
-                              maxPlayersOnField: _maxPlayersOnField,
-                              showSnack: _showSnack,
-                              onPositionsChanged: (newPositions) {
-                                setState(() {
-                                  _positionPlayers = newPositions;
-                                  _selectedPlayer = null;
-                                });
-                                _persistCurrentPositionsToMatchLineup();
-                              },
-                              onSubstitutionRequested: (playerIn, playerOut) {
-                                _saveSubstitutionEvent(
-                                  playerIn: playerIn,
-                                  playerOut: playerOut,
-                                );
-                              },
-                              onPlayerActionRequested: _onPlayerActionRequested,
-                              readOnly: isExternal,
+                          if (isExternal)
+                            Chip(
+                              label: Text(
+                                _selectedFormation,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                              backgroundColor: scheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.65),
+                              side: BorderSide.none,
+                            )
+                          else
+                            FilledButton.tonalIcon(
+                              onPressed: _showFormationPicker,
+                              icon: const Icon(
+                                Icons.grid_view_rounded,
+                                size: 18,
+                              ),
+                              label: Text(_selectedFormation),
+                              style: FilledButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      ExcludeSemantics(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 420,
+                              maxHeight: 320,
+                            ),
+                            child: AspectRatio(
+                              aspectRatio: 4 / 3,
+                              child: MatchFieldWithFormation(
+                                formationLines: _formationLines,
+                                positionPlayers: _positionPlayers,
+                                selectedPlayer: _selectedPlayer,
+                                sentOffPlayerIds: _sentOffPlayerIds,
+                                currentPlayersOnField: _currentPlayersOnField,
+                                maxPlayersOnField: _maxPlayersOnField,
+                                showSnack: _showSnack,
+                                onPositionsChanged: (newPositions) {
+                                  setState(() {
+                                    _positionPlayers = newPositions;
+                                    _selectedPlayer = null;
+                                  });
+                                  _persistCurrentPositionsToMatchLineup();
+                                },
+                                onSubstitutionRequested: (playerIn, playerOut) {
+                                  _saveSubstitutionEvent(
+                                    playerIn: playerIn,
+                                    playerOut: playerOut,
+                                  );
+                                },
+                                onPlayerActionRequested:
+                                    _onPlayerActionRequested,
+                                readOnly: isExternal,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Row(
+              const SizedBox(height: 12),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Row(
+                          children: [
+                            Icon(Icons.groups, color: scheme.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Convocados',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  Text(
+                                    isExternal
+                                        ? 'Modo espectador: la lista y el campo son solo informativos.'
+                                        : 'Toca un jugador para seleccionarlo; toca el campo para alinear o abrir acciones.',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      MatchConvocationTable(
+                        loading: _loadingPlayers,
+                        error: _loadError,
+                        convokedPlayers: _convokedPlayers,
+                        positionPlayers: _positionPlayers,
+                        selectedPlayer: _selectedPlayer,
+                        sentOffPlayerIds: _sentOffPlayerIds,
+                        playerRatings: _playerRatings,
+                        scrollingChild: true,
+                        readOnly: isExternal,
+                        onPlayerTap: (player, isSentOff) {
+                          if (isExternal) return;
+                          if (isSentOff) {
+                            _showSnack(
+                              'Jugador expulsado, no puede volver a entrar',
+                              error: true,
+                            );
+                            return;
+                          }
+                          setState(() {
+                            if (_selectedPlayer?.id == player.id) {
+                              _selectedPlayer = null;
+                            } else {
+                              _selectedPlayer = player;
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
                         children: [
-                          Icon(Icons.groups, color: scheme.primary),
+                          Icon(Icons.history, color: scheme.primary),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Convocados',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  isExternal
-                                      ? 'Modo espectador: la lista y el campo son solo informativos.'
-                                      : 'Toca un jugador para seleccionarlo; toca el campo para alinear o abrir acciones.',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                    height: 1.3,
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              'Eventos del partido',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    MatchConvocationTable(
-                      loading: _loadingPlayers,
-                      error: _loadError,
-                      convokedPlayers: _convokedPlayers,
-                      positionPlayers: _positionPlayers,
-                      selectedPlayer: _selectedPlayer,
-                      sentOffPlayerIds: _sentOffPlayerIds,
-                      playerRatings: _playerRatings,
-                      scrollingChild: true,
-                      readOnly: isExternal,
-                      onPlayerTap: (player, isSentOff) {
-                        if (isExternal) return;
-                        if (isSentOff) {
-                          _showSnack(
-                            'Jugador expulsado, no puede volver a entrar',
-                            error: true,
-                          );
-                          return;
-                        }
-                        setState(() {
-                          if (_selectedPlayer?.id == player.id) {
-                            _selectedPlayer = null;
-                          } else {
-                            _selectedPlayer = player;
-                          }
-                        });
-                      },
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        isExternal
+                            ? 'Cronología del encuentro.'
+                            : 'Toca un evento para eliminarlo. Solo los administradores del equipo pueden borrar eventos.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (_liveEvents.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          child: Text(
+                            'Aún no hay eventos registrados',
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      else
+                        for (int i = 0; i < _liveEvents.length; i++) ...[
+                          if (i > 0)
+                            Divider(
+                              height: 1,
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.35,
+                              ),
+                            ),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: isExternal
+                                  ? null
+                                  : () => _onLiveEventTapped(_liveEvents[i]),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                  horizontal: 4,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 18,
+                                      backgroundColor:
+                                          scheme.surfaceContainerHigh,
+                                      child: Icon(
+                                        _iconForLiveEventKey(
+                                          _canonicalEventTypeKey(
+                                            _liveEvents[i]['type'],
+                                          ),
+                                        ),
+                                        size: 18,
+                                        color: scheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text.rich(
+                                            TextSpan(
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                              children:
+                                                  _liveEventDescriptionSpans(
+                                                _liveEvents[i],
+                                                theme.textTheme.bodyMedium!
+                                                    .copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            softWrap: true,
+                                          ),
+                                          Text(
+                                            () {
+                                              final m =
+                                                  _dynToInt(
+                                                    _liveEvents[i]['minute'],
+                                                  ) ??
+                                                  0;
+                                              final half = _eventMatchHalf(
+                                                _liveEvents[i],
+                                                _resolvedSecondHalfStart(),
+                                              );
+                                              return _formatLiveEventMinuteLine(
+                                                m,
+                                                half,
+                                              );
+                                            }(),
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color:
+                                                      scheme.onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (!isExternal)
+                                      Icon(
+                                        Icons.delete_outline,
+                                        size: 22,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.history, color: scheme.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Eventos del partido',
-                            style: theme.textTheme.titleMedium?.copyWith(
+              const SizedBox(height: 16),
+              BlocBuilder<LoadingCubit, bool>(
+                builder: (context, isLoading) {
+                  final schemeBtn = Theme.of(context).colorScheme;
+                  return FilledButton(
+                    onPressed: (isLoading || isExternal)
+                        ? null
+                        : _onBottomButtonPressed,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: isLoading
+                        ? SizedBox(
+                            width: 26,
+                            height: 26,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: schemeBtn.onPrimary,
+                            ),
+                          )
+                        : Text(
+                            _bottomButtonLabel(),
+                            style: const TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isExternal
-                          ? 'Cronología del encuentro.'
-                          : 'Toca un evento para eliminarlo. Solo los administradores del equipo pueden borrar eventos.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (_liveEvents.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        child: Text(
-                          'Aún no hay eventos registrados',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      )
-                    else
-                      for (int i = 0; i < _liveEvents.length; i++) ...[
-                        if (i > 0)
-                          Divider(
-                            height: 1,
-                            color: scheme.outlineVariant.withValues(
-                              alpha: 0.35,
-                            ),
-                          ),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: isExternal
-                                ? null
-                                : () => _onLiveEventTapped(_liveEvents[i]),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 4,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor:
-                                        scheme.surfaceContainerHigh,
-                                    child: Icon(
-                                      _iconForLiveEventKey(
-                                        _canonicalEventTypeKey(
-                                          _liveEvents[i]['type'],
-                                        ),
-                                      ),
-                                      size: 18,
-                                      color: scheme.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _describeLiveEvent(_liveEvents[i]),
-                                          style: theme.textTheme.bodyMedium
-                                              ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        Text(
-                                          () {
-                                            final m =
-                                                _dynToInt(_liveEvents[i]['minute']) ??
-                                                    0;
-                                            final half = _eventMatchHalf(
-                                              _liveEvents[i],
-                                              _resolvedSecondHalfStart(),
-                                            );
-                                            return _formatLiveEventMinuteLine(
-                                              m,
-                                              half,
-                                            );
-                                          }(),
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                            color: scheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (!isExternal)
-                                    Icon(
-                                      Icons.delete_outline,
-                                      size: 22,
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                  ],
-                ),
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-            BlocBuilder<LoadingCubit, bool>(
-              builder: (context, isLoading) {
-                final schemeBtn = Theme.of(context).colorScheme;
-                return FilledButton(
-                  onPressed: (isLoading || isExternal)
-                      ? null
-                      : _onBottomButtonPressed,
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: isLoading
-                      ? SizedBox(
-                          width: 26,
-                          height: 26,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: schemeBtn.onPrimary,
-                          ),
-                        )
-                      : Text(
-                          _bottomButtonLabel(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                );
-              },
-            ),
-          ],
+            ],
           ),
         ),
       ),

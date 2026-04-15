@@ -13,6 +13,7 @@ class PlayerMapper {
       number: player.number,
       phone: player.phone,
       email: player.email,
+      imgUrl: player.imgUrl,
       positions: player.positions,
       stats: player.stats != null 
           ? PlayerStatsMapper.toModel(player.stats!) 
@@ -29,6 +30,7 @@ class PlayerMapper {
       number: playerModel.number,
       phone: playerModel.phone,
       email: playerModel.email,
+      imgUrl: playerModel.imgUrl,
       positions: playerModel.positions,
       stats: playerModel.stats != null 
           ? PlayerStatsMapper.toEntity(playerModel.stats! as PlayerStatsModel) 

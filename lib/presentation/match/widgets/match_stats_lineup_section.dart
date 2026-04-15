@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 class MatchLineupSection extends StatelessWidget {
   const MatchLineupSection({
@@ -138,8 +139,10 @@ class _MatchLineupPlayerRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                player.fullName,
+              child: PlayerNameText(
+                player: player,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: textTheme.bodyMedium,
               ),
             ),

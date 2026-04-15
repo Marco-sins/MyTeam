@@ -1,3 +1,4 @@
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 
@@ -25,13 +26,13 @@ class MatchEventModel extends MatchEvent {
         : MatchEventEnum.scoreGoal;
 
     return MatchEventModel(
-      id: json['id'],
-      matchId: json['match_id'],
-      playerId1: json['player_id1'],
-      playerId2: json['player_id2'],
+      id: supabaseInt(json['id']) ?? 0,
+      matchId: supabaseInt(json['match_id']) ?? 0,
+      playerId1: supabaseInt(json['player_id1']),
+      playerId2: supabaseInt(json['player_id2']),
       type: parsedType,
-      minute: json['minute'],
-      note: json['note'],
+      minute: supabaseInt(json['minute']) ?? 0,
+      note: json['note'] as String?,
     );
   }
 

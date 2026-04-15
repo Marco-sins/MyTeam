@@ -47,143 +47,154 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
         title: const Text('Eliminar asistencia'),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FutureBuilder(
-          future: _daysFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: FutureBuilder(
+            future: _daysFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (!snapshot.hasData) {
-              return const Center(
-                child: Text('No se han podido cargar los días de asistencia'),
-              );
-            }
-
-            final either = snapshot.data!;
-            return either.fold((failure) => Center(child: Text(failure.message)), (
-              dates,
-            ) {
-              if (dates.isEmpty) {
+              if (!snapshot.hasData) {
                 return const Center(
-                  child: Text('No hay días de entrenamiento registrados'),
+                  child: Text('No se han podido cargar los días de asistencia'),
                 );
               }
 
-              return ListView.builder(
-                itemCount: dates.length,
-                itemBuilder: (context, index) {
-                  final date = dates[index] as DateTime;
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    child: ListTile(
-                      title: Text(_formattedDate(date)),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.red),
-                        onPressed: () async {
-                          final authState = context.read<AuthCubit>().state;
-                          if (authState is! Authenticated) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Debes iniciar sesión para borrar asistencia',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
+              final either = snapshot.data!;
+              return either.fold((failure) => Center(child: Text(failure.message)), (
+                dates,
+              ) {
+                if (dates.isEmpty) {
+                  return const Center(
+                    child: Text('No hay días de entrenamiento registrados'),
+                  );
+                }
 
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Eliminar asistencia'),
-                              content: Text(
-                                '¿Seguro que quieres eliminar la asistencia del día ${_formattedDate(date)}?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(false),
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text(
-                                    'Eliminar',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm != true) return;
-
-                          // Modal de cargando mientras se elimina la asistencia
-                          showDialog<void>(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (ctx) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-
-                          final deleteAttendanceDayUseCase = context
-                              .read<DeleteAttendanceDayUseCase>();
-                          final result = await deleteAttendanceDayUseCase(
-                            date,
-                            widget.team.id,
-                            authState.user,
-                          );
-
-                          result.fold(
-                            (failure) {
-                              Navigator.of(context, rootNavigator: true).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(failure.message),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            },
-                            (_) {
-                              Navigator.of(context, rootNavigator: true).pop();
+                return ListView.builder(
+                  itemCount: dates.length,
+                  itemBuilder: (context, index) {
+                    final date = dates[index] as DateTime;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        title: Text(_formattedDate(date)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () async {
+                            final authState = context.read<AuthCubit>().state;
+                            if (authState is! Authenticated) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Asistencia del día eliminada correctamente',
+                                    'Debes iniciar sesión para borrar asistencia',
                                   ),
-                                  backgroundColor: Colors.green,
-                                  duration: Duration(seconds: 1),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
+                              return;
+                            }
 
-                              // Volvemos al home del equipo
-                              final getPlayersByTeamUseCase = context
-                                  .read<GetPlayersByTeamUseCase>();
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (_) => BlocProvider(
-                                    create: (_) =>
-                                        TeamDetailCubit(getPlayersByTeamUseCase)
-                                          ..loadTeam(widget.team.id),
-                                    child: TeamDetailPage(team: widget.team),
-                                  ),
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Eliminar asistencia'),
+                                content: Text(
+                                  '¿Seguro que quieres eliminar la asistencia del día ${_formattedDate(date)}?',
                                 ),
-                                (route) => route.isFirst,
-                              );
-                            },
-                          );
-                        },
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
+                                    child: const Text(
+                                      'Eliminar',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm != true) return;
+
+                            // Modal de cargando mientras se elimina la asistencia
+                            showDialog<void>(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (ctx) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+
+                            final deleteAttendanceDayUseCase = context
+                                .read<DeleteAttendanceDayUseCase>();
+                            final result = await deleteAttendanceDayUseCase(
+                              date,
+                              widget.team.id,
+                              authState.user,
+                            );
+
+                            result.fold(
+                              (failure) {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(failure.message),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              },
+                              (_) {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Asistencia del día eliminada correctamente',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+
+                                // Volvemos al home del equipo
+                                final getPlayersByTeamUseCase = context
+                                    .read<GetPlayersByTeamUseCase>();
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider(
+                                      create: (_) => TeamDetailCubit(
+                                        getPlayersByTeamUseCase,
+                                      )..loadTeam(widget.team.id),
+                                      child: TeamDetailPage(team: widget.team),
+                                    ),
+                                  ),
+                                  (route) => route.isFirst,
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            });
-          },
+                    );
+                  },
+                );
+              });
+            },
+          ),
         ),
       ),
     );

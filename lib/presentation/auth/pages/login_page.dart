@@ -35,10 +35,10 @@ class _LoginPageState extends State<LoginPage> {
     final textTheme = Theme.of(context).textTheme;
     final body = mustConfirmBeforeLogin
         ? 'Te hemos enviado un enlace a $email. Ábrelo para activar tu '
-            'cuenta antes de iniciar sesión. Revisa también la carpeta de '
-            'correo no deseado (spam).'
+              'cuenta antes de iniciar sesión. Revisa también la carpeta de '
+              'correo no deseado (spam).'
         : 'Tu cuenta ya está activa. Revisa tu bandeja de entrada por si '
-            'recibes un correo de verificación o bienvenida (incluido spam).';
+              'recibes un correo de verificación o bienvenida (incluido spam).';
 
     await showDialog<void>(
       context: context,
@@ -51,7 +51,10 @@ class _LoginPageState extends State<LoginPage> {
             color: scheme.primary,
           ),
           title: const Text('Revisa tu correo'),
-          content: Text(body, style: textTheme.bodyMedium?.copyWith(height: 1.35)),
+          content: Text(
+            body,
+            style: textTheme.bodyMedium?.copyWith(height: 1.35),
+          ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
@@ -71,10 +74,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!context.mounted) return;
       final scheme = Theme.of(context).colorScheme;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.message),
-          backgroundColor: scheme.error,
-        ),
+        SnackBar(content: Text(state.message), backgroundColor: scheme.error),
       );
       return;
     }
@@ -113,15 +113,17 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
+      event,
+    ) {
       if (!mounted) {
         return;
       }
 
       if (event.event == AuthChangeEvent.passwordRecovery) {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ResetPasswordPage()),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const ResetPasswordPage()));
       }
     });
   }
@@ -136,57 +138,57 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: AuthBackground(
-        child: BlocConsumer<AuthCubit, AuthState>(
-          listener: (context, state) {
-            unawaited(_handleAuthSideEffects(context, state));
-          },
-          builder: (context, state) {
-            return Center(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AuthHeader(isRegisterMode: _isRegisterMode),
-                    const SizedBox(height: 24),
+        child: SafeArea(
+          child: BlocConsumer<AuthCubit, AuthState>(
+            listener: (context, state) {
+              unawaited(_handleAuthSideEffects(context, state));
+            },
+            builder: (context, state) {
+              return Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AuthHeader(isRegisterMode: _isRegisterMode),
+                      const SizedBox(height: 24),
 
-                    Container(
-                      constraints: const BoxConstraints(maxWidth: 380),
-                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.2),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.12),
-                            blurRadius: 28,
-                            offset: const Offset(0, 12),
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 380),
+                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.2),
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.12),
+                              blurRadius: 28,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
+                        ),
+                        child: _isRegisterMode
+                            ? const RegisterForm()
+                            : const LoginForm(),
                       ),
-                      child: _isRegisterMode
-                          ? const RegisterForm()
-                          : const LoginForm(),
-                    ),
 
-                    const SizedBox(height: 8),
-                    AuthModeSelector(
-                      isRegisterMode: _isRegisterMode,
-                      onTap: _toggleMode,
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      AuthModeSelector(
+                        isRegisterMode: _isRegisterMode,
+                        onTap: _toggleMode,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

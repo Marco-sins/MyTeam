@@ -7,6 +7,8 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/player/pages/add_player_page.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
 import 'package:football_manager/presentation/team/widgets/team_players_list.dart';
 
@@ -159,16 +161,14 @@ class _ExternalPlayersTable extends StatelessWidget {
             itemBuilder: (context, index) {
               final player = players[index];
               return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: scheme.primaryContainer,
-                  foregroundColor: scheme.onPrimaryContainer,
-                  child: Text(
-                    player.number?.toString() ?? '-',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
+                leading: PlayerAvatar(
+                  player: player,
+                  radius: 22,
                 ),
-                title: Text(
-                  player.fullName,
+                title: PlayerNameText(
+                  player: player,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: player.lastName != null && player.lastName!.isEmpty

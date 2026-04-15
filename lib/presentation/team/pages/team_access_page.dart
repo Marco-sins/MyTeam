@@ -63,7 +63,9 @@ class _TeamAccessPageState extends State<TeamAccessPage>
   void _subscribeTeamMembersRealtime() {
     final teamId = widget.team.id;
     _teamMembersChannel = _supabase
-        .channel('team_access_${teamId}_${_supabase.auth.currentUser?.id ?? 'x'}')
+        .channel(
+          'team_access_${teamId}_${_supabase.auth.currentUser?.id ?? 'x'}',
+        )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -235,9 +237,9 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                   Text(
                     'Rol',
                     style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   SegmentedButton<String>(
@@ -274,9 +276,9 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                     if (email.isEmpty) {
                       return;
                     }
-                    Navigator.of(ctx).pop(
-                      _InviteData(email: email, role: selectedRole),
-                    );
+                    Navigator.of(
+                      ctx,
+                    ).pop(_InviteData(email: email, role: selectedRole));
                   },
                   child: const Text('Enviar invitación'),
                 ),
@@ -344,280 +346,296 @@ class _TeamAccessPageState extends State<TeamAccessPage>
 
     return Scaffold(
       appBar: AppBar(title: const Text('Acceso al equipo')),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: _loading
-            ? RefreshIndicator(
-                onRefresh: _loadMembers,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    SizedBox(
-                      height: MediaQuery.sizeOf(context).height * 0.35,
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                  ],
-                ),
-              )
-            : _error != null
-            ? RefreshIndicator(
-                onRefresh: _loadMembers,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.error_outline_rounded,
-                            size: 48,
-                            color: scheme.error,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _error!,
-                            style: textTheme.bodyLarge,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: _loading
+              ? RefreshIndicator(
+                  onRefresh: _loadMembers,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * 0.35,
+                        child: const Center(child: CircularProgressIndicator()),
                       ),
-                    ),
-                  ],
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    widget.team.name,
-                    style: textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                      color: scheme.onSurface,
-                      height: 1.2,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Card(
-                    margin: EdgeInsets.zero,
-                    color: scheme.surfaceContainerHighest.withValues(
-                      alpha: 0.55,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.people_outline_rounded,
-                                size: 22,
-                                color: scheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Usuarios con acceso',
-                                  style: textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Lista en vivo: se actualiza sola cuando alguien '
-                            'recibe o pierde acceso. Cada fila muestra nombre '
-                            'y correo (tabla perfiles) para identificar a la persona.',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              height: 1.35,
+                )
+              : _error != null
+              ? RefreshIndicator(
+                  onRefresh: _loadMembers,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.error_outline_rounded,
+                              size: 48,
+                              color: scheme.error,
                             ),
-                          ),
-                          if (_members.isNotEmpty) ...[
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 12),
                             Text(
-                              '${_members.length} ${_members.length == 1 ? 'persona' : 'personas'}',
-                              style: textTheme.labelLarge?.copyWith(
-                                color: scheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              _error!,
+                              style: textTheme.bodyLarge,
+                              textAlign: TextAlign.center,
                             ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: _loadMembers,
-                      child: _members.isEmpty
-                          ? ListView(
-                              physics: const AlwaysScrollableScrollPhysics(),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      widget.team.name,
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                        color: scheme.onSurface,
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                    Card(
+                      margin: EdgeInsets.zero,
+                      color: scheme.surfaceContainerHighest.withValues(
+                        alpha: 0.55,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               children: [
-                                SizedBox(
-                                  height:
-                                      MediaQuery.sizeOf(context).height * 0.35,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.group_add_outlined,
-                                        size: 56,
-                                        color: scheme.outline
-                                            .withValues(alpha: 0.65),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        'Nadie más tiene acceso aún.',
-                                        style: textTheme.bodyLarge,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Invita por correo con el botón de abajo.',
-                                        style: textTheme.bodySmall,
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
+                                Icon(
+                                  Icons.people_outline_rounded,
+                                  size: 22,
+                                  color: scheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Usuarios con acceso',
+                                    style: textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               ],
-                            )
-                          : Card(
-                              clipBehavior: Clip.antiAlias,
-                              child: SizedBox.expand(
-                                child: ListView.separated(
-                                  physics:
-                                      const AlwaysScrollableScrollPhysics(),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                  itemCount: _members.length,
-                                  separatorBuilder: (context, index) =>
-                                      Divider(
-                                    height: 1,
-                                    indent: 16,
-                                    endIndent: 16,
-                                    color: scheme.outlineVariant.withValues(
-                                      alpha: 0.45,
-                                    ),
-                                  ),
-                                  itemBuilder: (context, index) {
-                                    final member = _members[index];
-                                    final isCurrentUser =
-                                        member.idUser == _currentUserId;
-
-                                    final displayName = member.name.isNotEmpty
-                                        ? member.name
-                                        : 'Sin nombre en perfil';
-                                    final displayEmail = member.email.isNotEmpty
-                                        ? member.email
-                                        : 'Correo no disponible (revisa el perfil en la app)';
-
-                                    return ListTile(
-                                      isThreeLine: true,
-                                      leading: CircleAvatar(
-                                        backgroundColor:
-                                            scheme.surfaceContainerHighest,
-                                        child: Text(
-                                          (member.name.isNotEmpty
-                                                  ? member.name[0]
-                                                  : '?')
-                                              .toUpperCase(),
-                                          style: TextStyle(
-                                            color: scheme.primary,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                      title: Text(
-                                        'Nombre: $displayName',
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: textTheme.titleSmall?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      subtitle: Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'Correo: $displayEmail',
-                                              style: textTheme.bodySmall
-                                                  ?.copyWith(
-                                                color: member.email.isNotEmpty
-                                                    ? scheme.onSurfaceVariant
-                                                    : scheme.outline,
-                                                fontStyle:
-                                                    member.email.isNotEmpty
-                                                        ? FontStyle.normal
-                                                        : FontStyle.italic,
-                                                height: 1.3,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'Rol: ${_roleLabel(member.role)}',
-                                              style: textTheme.labelLarge
-                                                  ?.copyWith(
-                                                color:
-                                                    scheme.onSurfaceVariant,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      trailing: isCurrentUser
-                                          ? Padding(
-                                              padding: const EdgeInsets.only(
-                                                right: 8,
-                                              ),
-                                              child: Text(
-                                                'Tú',
-                                                style: textTheme.labelLarge
-                                                    ?.copyWith(
-                                                  color: scheme.primary,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            )
-                                          : IconButton(
-                                              icon: Icon(
-                                                Icons.person_remove_outlined,
-                                                color: scheme.error,
-                                              ),
-                                              tooltip: 'Quitar acceso',
-                                              onPressed: () =>
-                                                  _removeMember(member),
-                                            ),
-                                    );
-                                  },
-                                ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Lista en vivo: se actualiza sola cuando alguien '
+                              'recibe o pierde acceso. Cada fila muestra nombre '
+                              'y correo (tabla perfiles) para identificar a la persona.',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                height: 1.35,
                               ),
                             ),
+                            if (_members.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                '${_members.length} ${_members.length == 1 ? 'persona' : 'personas'}',
+                                style: textTheme.labelLarge?.copyWith(
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: _showInviteDialog,
-                    icon: const Icon(Icons.person_add_alt_1_rounded),
-                    label: const Text('Invitar usuario'),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: _loadMembers,
+                        child: _members.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(
+                                    height:
+                                        MediaQuery.sizeOf(context).height *
+                                        0.35,
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.group_add_outlined,
+                                          size: 56,
+                                          color: scheme.outline.withValues(
+                                            alpha: 0.65,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'Nadie más tiene acceso aún.',
+                                          style: textTheme.bodyLarge,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'Invita por correo con el botón de abajo.',
+                                          style: textTheme.bodySmall,
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Card(
+                                clipBehavior: Clip.antiAlias,
+                                child: SizedBox.expand(
+                                  child: ListView.separated(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    itemCount: _members.length,
+                                    separatorBuilder: (context, index) =>
+                                        Divider(
+                                          height: 1,
+                                          indent: 16,
+                                          endIndent: 16,
+                                          color: scheme.outlineVariant
+                                              .withValues(alpha: 0.45),
+                                        ),
+                                    itemBuilder: (context, index) {
+                                      final member = _members[index];
+                                      final isCurrentUser =
+                                          member.idUser == _currentUserId;
+
+                                      final displayName = member.name.isNotEmpty
+                                          ? member.name
+                                          : 'Sin nombre en perfil';
+                                      final displayEmail =
+                                          member.email.isNotEmpty
+                                          ? member.email
+                                          : 'Correo no disponible (revisa el perfil en la app)';
+
+                                      return ListTile(
+                                        isThreeLine: true,
+                                        leading: CircleAvatar(
+                                          backgroundColor:
+                                              scheme.surfaceContainerHighest,
+                                          child: Text(
+                                            (member.name.isNotEmpty
+                                                    ? member.name[0]
+                                                    : '?')
+                                                .toUpperCase(),
+                                            style: TextStyle(
+                                              color: scheme.primary,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                        title: Text(
+                                          'Nombre: $displayName',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        subtitle: Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 4,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                'Correo: $displayEmail',
+                                                style: textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color:
+                                                          member
+                                                              .email
+                                                              .isNotEmpty
+                                                          ? scheme
+                                                                .onSurfaceVariant
+                                                          : scheme.outline,
+                                                      fontStyle:
+                                                          member
+                                                              .email
+                                                              .isNotEmpty
+                                                          ? FontStyle.normal
+                                                          : FontStyle.italic,
+                                                      height: 1.3,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Rol: ${_roleLabel(member.role)}',
+                                                style: textTheme.labelLarge
+                                                    ?.copyWith(
+                                                      color: scheme
+                                                          .onSurfaceVariant,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        trailing: isCurrentUser
+                                            ? Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 8,
+                                                ),
+                                                child: Text(
+                                                  'Tú',
+                                                  style: textTheme.labelLarge
+                                                      ?.copyWith(
+                                                        color: scheme.primary,
+                                                        fontSize: 12,
+                                                      ),
+                                                ),
+                                              )
+                                            : IconButton(
+                                                icon: Icon(
+                                                  Icons.person_remove_outlined,
+                                                  color: scheme.error,
+                                                ),
+                                                tooltip: 'Quitar acceso',
+                                                onPressed: () =>
+                                                    _removeMember(member),
+                                              ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _showInviteDialog,
+                      icon: const Icon(Icons.person_add_alt_1_rounded),
+                      label: const Text('Invitar usuario'),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }

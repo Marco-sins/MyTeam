@@ -8,6 +8,8 @@ import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/player/pages/edit_player_page.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
 import 'package:football_manager/presentation/player/widgets/player_detail_dialog.dart';
 
 class TeamPlayersList extends StatelessWidget {
@@ -39,8 +41,26 @@ class TeamPlayersList extends StatelessWidget {
             itemBuilder: (context, index) {
               final player = players[index];
               return ListTile(
-                title: Text(
-                  '${player.number?.toString() ?? '-'}  ${player.fullName}',
+                leading: PlayerAvatar(player: player, radius: 22),
+                title: Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '${player.number?.toString() ?? '-'}  ',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    Expanded(
+                      child: PlayerNameText(
+                        player: player,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  ],
                 ),
                 onTap: () {
                   showDialog(
@@ -112,8 +132,20 @@ class TeamPlayersList extends StatelessWidget {
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('Borrar jugador'),
-                            content: Text(
-                              '¿Seguro que quieres borrar a ${player.fullName}?',
+                            content: Text.rich(
+                              TextSpan(
+                                style: Theme.of(ctx).textTheme.bodyMedium,
+                                children: [
+                                  const TextSpan(
+                                    text: '¿Seguro que quieres borrar a ',
+                                  ),
+                                  ...playerNameSpanList(
+                                    player,
+                                    Theme.of(ctx).textTheme.bodyMedium!,
+                                  ),
+                                  const TextSpan(text: '?'),
+                                ],
+                              ),
                             ),
                             actions: [
                               TextButton(
@@ -131,6 +163,7 @@ class TeamPlayersList extends StatelessWidget {
                           ),
                         );
                         if (confirm != true) return;
+                        if (!context.mounted) return;
 
                         final deletePlayerUseCase = context
                             .read<DeletePlayerUseCase>();
@@ -139,6 +172,7 @@ class TeamPlayersList extends StatelessWidget {
                           authState.user,
                         );
 
+                        if (!context.mounted) return;
                         result.fold(
                           (failure) {
                             ScaffoldMessenger.of(context).showSnackBar(

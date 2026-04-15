@@ -1,9 +1,76 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/utils/player_name_parts.dart';
 import 'package:football_manager/domain/entities/player.dart';
 
 import 'convocation_image_theme.dart';
+
+/// Tipografía y márgenes de la sección de observaciones (PNG convocatoria).
+const double _kObsTitleFontSize = 23;
+const double _kObsTitleBarW = 6;
+const double _kObsTitleBarH = 34;
+const double _kObsTitleBlockHeight = 54;
+const double _kObsGapBeforeBox = 14;
+const double _kObsBoxPadH = 26;
+const double _kObsBoxPadV = 28;
+const double _kObsBoxRadius = 16;
+const double _kObsNotesFontSize = 24;
+const double _kObsNotesLineHeight = 1.52;
+const int _kObsNotesMaxLines = 64;
+const double _kObsBottomMargin = 36;
+
+void _drawObservationsSectionHeader(Canvas canvas, Rect overlayRect, double y) {
+  final barRect = RRect.fromRectAndRadius(
+    Rect.fromLTWH(overlayRect.left + 28, y + 3, _kObsTitleBarW, _kObsTitleBarH),
+    const Radius.circular(3),
+  );
+  canvas.drawRRect(barRect, Paint()..color = ConvocationImageTheme.goldDeep);
+
+  final builder =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            textAlign: TextAlign.left,
+            fontSize: _kObsTitleFontSize,
+            fontWeight: FontWeight.w900,
+            height: 1.15,
+          ),
+        )
+        ..pushStyle(
+          ui.TextStyle(
+            color: ConvocationImageTheme.onSurface,
+            letterSpacing: -0.35,
+          ),
+        )
+        ..addText('Observaciones');
+
+  final paragraph = builder.build()
+    ..layout(ui.ParagraphConstraints(width: overlayRect.width - 88));
+
+  canvas.drawParagraph(
+    paragraph,
+    Offset(overlayRect.left + 28 + _kObsTitleBarW + 14, y),
+  );
+}
+
+ui.Paragraph _layoutObservationsParagraph(String text, double width) {
+  final measurePara =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: _kObsNotesFontSize,
+            fontWeight: FontWeight.w600,
+            maxLines: _kObsNotesMaxLines,
+            height: _kObsNotesLineHeight,
+          ),
+        )
+        ..pushStyle(
+          ui.TextStyle(color: ConvocationImageTheme.onSecondaryContainer),
+        )
+        ..addText(text);
+  final measured = measurePara.build()
+    ..layout(ui.ParagraphConstraints(width: width));
+  return measured;
+}
 
 /// Altura total del PNG (coincide con el flujo de [drawConvocationBody]).
 double estimateConvocationCanvasHeight({
@@ -13,7 +80,9 @@ double estimateConvocationCanvasHeight({
 }) {
   final m = ConvocationImageTheme.overlayMargin;
   final startY =
-      m + ConvocationImageTheme.headerHeight + ConvocationImageTheme.headerBottomGap;
+      m +
+      ConvocationImageTheme.headerHeight +
+      ConvocationImageTheme.headerBottomGap;
   var detailRows = 3;
   if (awayLocation?.trim().isNotEmpty ?? false) {
     detailRows++;
@@ -22,20 +91,17 @@ double estimateConvocationCanvasHeight({
   final t = notes?.trim() ?? '';
   if (t.isNotEmpty) {
     final innerW = ConvocationImageTheme.exportWidth - 2 * m;
-    final notesLayoutW = innerW - 64;
-    final builder = ui.ParagraphBuilder(
-      ui.ParagraphStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-        maxLines: 24,
-        height: 1.35,
-      ),
-    )
-      ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurface))
-      ..addText(t);
-    final p = builder.build()
-      ..layout(ui.ParagraphConstraints(width: notesLayoutW));
-    y += 96 + p.height;
+    final overlayContentW = innerW - 56;
+    final notesLayoutW = overlayContentW - 2 * _kObsBoxPadH;
+    final p = _layoutObservationsParagraph(t, notesLayoutW);
+    y +=
+        28 +
+        28 +
+        _kObsTitleBlockHeight +
+        _kObsGapBeforeBox +
+        2 * _kObsBoxPadV +
+        p.height +
+        _kObsBottomMargin;
   }
   return (y + 56 + m).ceilToDouble();
 }
@@ -105,26 +171,37 @@ void drawConvocationBody({
     drawHairline(y);
     y += 28;
 
-    _drawSectionTitle(canvas, overlayRect, y, 'Observaciones');
-    y += 40;
+    _drawObservationsSectionHeader(canvas, overlayRect, y);
+    y += _kObsTitleBlockHeight + _kObsGapBeforeBox;
 
-    final textWidth = overlayRect.width - 64;
-    final measurePara = ui.ParagraphBuilder(
-      ui.ParagraphStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-        maxLines: 24,
-        height: 1.35,
-      ),
-    )
-      ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurface))
-      ..addText(trimmedNotes);
-    final measured = measurePara.build()
-      ..layout(ui.ParagraphConstraints(width: textWidth));
+    final boxLeft = overlayRect.left + 28;
+    final boxWidth = overlayRect.width - 56;
+    final textWidth = boxWidth - 2 * _kObsBoxPadH;
+    final measured = _layoutObservationsParagraph(trimmedNotes, textWidth);
+    final boxHeight = 2 * _kObsBoxPadV + measured.height;
+
+    final boxRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(boxLeft, y, boxWidth, boxHeight),
+      const Radius.circular(_kObsBoxRadius),
+    );
+    canvas.drawRRect(
+      boxRect,
+      Paint()
+        ..color = ConvocationImageTheme.secondaryContainer.withValues(
+          alpha: 0.92,
+        ),
+    );
+    canvas.drawRRect(
+      boxRect,
+      Paint()
+        ..color = ConvocationImageTheme.goldDeep.withValues(alpha: 0.85)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5,
+    );
 
     canvas.drawParagraph(
       measured,
-      Offset(overlayRect.left + 32, y),
+      Offset(boxLeft + _kObsBoxPadH, y + _kObsBoxPadV),
     );
   }
 }
@@ -162,14 +239,9 @@ void _drawSectionTitle(
         ..addText(titleText);
 
   final paragraph = builder.build()
-    ..layout(
-      ui.ParagraphConstraints(width: overlayRect.width - 80),
-    );
+    ..layout(ui.ParagraphConstraints(width: overlayRect.width - 80));
 
-  canvas.drawParagraph(
-    paragraph,
-    Offset(overlayRect.left + 32 + barW + 14, y),
-  );
+  canvas.drawParagraph(paragraph, Offset(overlayRect.left + 32 + barW + 14, y));
 }
 
 double _drawDetailRow(
@@ -183,32 +255,32 @@ double _drawDetailRow(
   final lx = overlayRect.left + 32;
   final vx = overlayRect.left + 32 + labelW;
 
-  final labelPara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 17,
-      fontWeight: FontWeight.w600,
-      maxLines: 2,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurfaceVariant))
-    ..addText(label);
+  final labelPara =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            maxLines: 2,
+          ),
+        )
+        ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurfaceVariant))
+        ..addText(label);
   final lp = labelPara.build()
     ..layout(ui.ParagraphConstraints(width: labelW - 8));
   canvas.drawParagraph(lp, Offset(lx, y));
 
-  final valuePara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 19,
-      fontWeight: FontWeight.w700,
-      maxLines: 3,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurface))
-    ..addText(value);
+  final valuePara =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 19,
+            fontWeight: FontWeight.w700,
+            maxLines: 3,
+          ),
+        )
+        ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurface))
+        ..addText(value);
   final vp = valuePara.build()
-    ..layout(
-      ui.ParagraphConstraints(width: overlayRect.width - labelW - 64),
-    );
+    ..layout(ui.ParagraphConstraints(width: overlayRect.width - labelW - 64));
   canvas.drawParagraph(vp, Offset(vx, y));
 
   return y + 38;
@@ -223,12 +295,7 @@ double _drawPlayerRow(
 ) {
   const rowH = 52.0;
   final rowRect = RRect.fromRectAndRadius(
-    Rect.fromLTWH(
-      overlayRect.left + 28,
-      y,
-      overlayRect.width - 56,
-      rowH,
-    ),
+    Rect.fromLTWH(overlayRect.left + 28, y, overlayRect.width - 56, rowH),
     const Radius.circular(12),
   );
 
@@ -236,8 +303,9 @@ double _drawPlayerRow(
     canvas.drawRRect(
       rowRect,
       Paint()
-        ..color =
-            ConvocationImageTheme.surfaceContainer.withValues(alpha: 0.55),
+        ..color = ConvocationImageTheme.surfaceContainer.withValues(
+          alpha: 0.55,
+        ),
     );
   }
 
@@ -262,43 +330,56 @@ double _drawPlayerRow(
     Paint()..color = ConvocationImageTheme.primaryContainer,
   );
 
-  final dPara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w800,
-      textAlign: TextAlign.center,
-      height: 1.0,
-      maxLines: 1,
-    ),
-  )
-    ..pushStyle(
-      ui.TextStyle(color: ConvocationImageTheme.onPrimaryContainer),
-    )
-    ..addText(dorsal);
-  final dp = dPara.build()
-    ..layout(ui.ParagraphConstraints(width: badgeSize));
+  final dPara =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            textAlign: TextAlign.center,
+            height: 1.0,
+            maxLines: 1,
+          ),
+        )
+        ..pushStyle(
+          ui.TextStyle(color: ConvocationImageTheme.onPrimaryContainer),
+        )
+        ..addText(dorsal);
+  final dp = dPara.build()..layout(ui.ParagraphConstraints(width: badgeSize));
   canvas.drawParagraph(
     dp,
-    Offset(
-      badgeLeft,
-      badgeTop + (badgeSize - dp.height) / 2,
-    ),
+    Offset(badgeLeft, badgeTop + (badgeSize - dp.height) / 2),
   );
 
   final nameX = badgeLeft + badgeSize + 12;
+  final nameParts = playerNamePartsMatchShort(p);
+  final givenName =
+      nameParts.given.isEmpty ? 'Jugador' : nameParts.given;
   final namePara = ui.ParagraphBuilder(
     ui.ParagraphStyle(
       fontSize: 18,
-      fontWeight: FontWeight.w600,
       maxLines: 1,
     ),
-  )
-    ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurface))
-    ..addText(p.fullName);
-  final np = namePara.build()
-    ..layout(
-      ui.ParagraphConstraints(width: overlayRect.right - 32 - nameX),
+  );
+  namePara.pushStyle(
+    ui.TextStyle(
+      color: ConvocationImageTheme.onSurface,
+      fontWeight: FontWeight.w700,
+    ),
+  );
+  namePara.addText(givenName);
+  namePara.pop();
+  if (nameParts.family.isNotEmpty) {
+    namePara.pushStyle(
+      ui.TextStyle(
+        color: ConvocationImageTheme.onSurface,
+        fontWeight: FontWeight.w400,
+      ),
     );
+    namePara.addText(' ${nameParts.family}');
+    namePara.pop();
+  }
+  final np = namePara.build()
+    ..layout(ui.ParagraphConstraints(width: overlayRect.right - 32 - nameX));
   canvas.drawParagraph(np, Offset(nameX, y + 14));
 
   return y + rowH + 8;

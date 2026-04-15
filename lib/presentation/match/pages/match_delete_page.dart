@@ -35,139 +35,144 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Eliminar partido'), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: FutureBuilder(
-          future: _matchesFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: FutureBuilder(
+            future: _matchesFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            if (!snapshot.hasData) {
-              return const Center(
-                child: Text('No se han podido cargar los partidos'),
-              );
-            }
-
-            final either = snapshot.data!;
-            return either.fold((failure) => Center(child: Text(failure.message)), (
-              matches,
-            ) {
-              if (matches.isEmpty) {
+              if (!snapshot.hasData) {
                 return const Center(
-                  child: Text('No hay partidos para este equipo'),
+                  child: Text('No se han podido cargar los partidos'),
                 );
               }
 
-              return ListView.builder(
-                itemCount: matches.length,
-                itemBuilder: (_, index) {
-                  final match = matches[index];
-                  final statusText = () {
-                    switch (match.status) {
-                      case MatchStatus.notStarted:
-                        return 'Pendiente';
-                      case MatchStatus.firstHalf:
-                        return '1ª parte';
-                      case MatchStatus.halfTime:
-                        return 'Descanso';
-                      case MatchStatus.secondHalf:
-                        return '2ª parte';
-                      case MatchStatus.finished:
-                        return 'Finalizado';
-                    }
-                  }();
+              final either = snapshot.data!;
+              return either.fold((failure) => Center(child: Text(failure.message)), (
+                matches,
+              ) {
+                if (matches.isEmpty) {
+                  return const Center(
+                    child: Text('No hay partidos para este equipo'),
+                  );
+                }
 
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    child: ListTile(
-                      title: Text(match.opponent),
-                      subtitle: Text(
-                        '${match.date.day.toString().padLeft(2, '0')}/${match.date.month.toString().padLeft(2, '0')} ${match.date.hour.toString().padLeft(2, '0')}:${match.date.minute.toString().padLeft(2, '0')} · $statusText',
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.red),
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          final authState = context.read<AuthCubit>().state;
-                          if (authState is! Authenticated) {
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Debes iniciar sesión para borrar partidos',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
+                return ListView.builder(
+                  itemCount: matches.length,
+                  itemBuilder: (_, index) {
+                    final match = matches[index];
+                    final statusText = () {
+                      switch (match.status) {
+                        case MatchStatus.notStarted:
+                          return 'Pendiente';
+                        case MatchStatus.firstHalf:
+                          return '1ª parte';
+                        case MatchStatus.halfTime:
+                          return 'Descanso';
+                        case MatchStatus.secondHalf:
+                          return '2ª parte';
+                        case MatchStatus.finished:
+                          return 'Finalizado';
+                      }
+                    }();
 
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Eliminar partido'),
-                              content: Text(
-                                '¿Seguro que quieres eliminar el partido contra ${match.opponent}?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(false),
-                                  child: const Text('Cancelar'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text(
-                                    'Eliminar',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm != true) return;
-                          if (!context.mounted) return;
-
-                          final deleteMatchUseCase = context
-                              .read<DeleteMatchUseCase>();
-                          final result = await deleteMatchUseCase(
-                            match,
-                            authState.user,
-                          );
-
-                          if (!context.mounted) return;
-
-                          result.fold(
-                            (failure) {
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text(failure.message),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            },
-                            (_) {
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        title: Text(match.opponent),
+                        subtitle: Text(
+                          '${match.date.day.toString().padLeft(2, '0')}/${match.date.month.toString().padLeft(2, '0')} ${match.date.hour.toString().padLeft(2, '0')}:${match.date.minute.toString().padLeft(2, '0')} · $statusText',
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final authState = context.read<AuthCubit>().state;
+                            if (authState is! Authenticated) {
                               messenger.showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Partido eliminado correctamente',
+                                    'Debes iniciar sesión para borrar partidos',
                                   ),
-                                  backgroundColor: Colors.green,
-                                  duration: Duration(seconds: 1),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
-                              setState(_loadMatches);
-                            },
-                          );
-                        },
+                              return;
+                            }
+
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Eliminar partido'),
+                                content: Text(
+                                  '¿Seguro que quieres eliminar el partido contra ${match.opponent}?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(true),
+                                    child: const Text(
+                                      'Eliminar',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm != true) return;
+                            if (!context.mounted) return;
+
+                            final deleteMatchUseCase = context
+                                .read<DeleteMatchUseCase>();
+                            final result = await deleteMatchUseCase(
+                              match,
+                              authState.user,
+                            );
+
+                            if (!context.mounted) return;
+
+                            result.fold(
+                              (failure) {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(failure.message),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              },
+                              (_) {
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Partido eliminado correctamente',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                                setState(_loadMatches);
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            });
-          },
+                    );
+                  },
+                );
+              });
+            },
+          ),
         ),
       ),
     );

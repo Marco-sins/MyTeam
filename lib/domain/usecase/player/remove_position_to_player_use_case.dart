@@ -37,6 +37,7 @@ class RemovePositionToPlayerUseCase {
       number: player.number,
       phone: player.phone,
       email: player.email,
+      imgUrl: player.imgUrl,
       positions: updatedPositions,
       stats: player.stats,
     );

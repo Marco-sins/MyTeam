@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 /// Tipos de acciones que se pueden registrar para un jugador
 /// desde el gestor de partido.
@@ -82,13 +83,11 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        player.fullName,
+                      child: PlayerNameText(
+                        player: player,
                         style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(

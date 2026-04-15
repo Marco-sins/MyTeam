@@ -12,17 +12,13 @@ class AddNewPlayerUseCase {
 
   AddNewPlayerUseCase(this._playerRepository);
 
-  Future<Either<Failure, void>> call(Player player, AuthUser user) async {
+  Future<Either<Failure, Player>> call(Player player, AuthUser user) async {
     if (user.teamRoles[player.teamId] != UserRole.admin) {
       return Left(
         PermissionFailure('You do not have permission to add a new player.'),
       );
     }
     final PlayerStats initialStats = PlayerStats();
-    final response = await _playerRepository.createPlayer(player, initialStats);
-    if (response.isLeft()) {
-      return response;
-    }
-    return Right(null);
+    return _playerRepository.createPlayer(player, initialStats);
   }
 }

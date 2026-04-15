@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
 import 'package:football_manager/data/models/player_model.dart';
@@ -107,7 +110,58 @@ class PlayerRemoteDatasource {
 
   PlayerRemoteDatasource(this._supabase);
 
-  Future<void> createPlayer(
+  static const String _photoBucket = 'player-photos';
+
+  String? _extractPathFromPlayerPhotoUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final segments = uri.pathSegments;
+      final i = segments.indexOf(_photoBucket);
+      if (i == -1 || i == segments.length - 1) return null;
+      return segments.sublist(i + 1).join('/');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> removePlayerPhotoIfInBucket(String? publicUrl) async {
+    if (publicUrl == null || publicUrl.trim().isEmpty) return;
+    final path = _extractPathFromPlayerPhotoUrl(publicUrl);
+    if (path == null) return;
+    try {
+      await _supabase.storage.from(_photoBucket).remove([path]);
+    } catch (_) {
+      // No bloquear el flujo si el objeto ya no existe.
+    }
+  }
+
+  Future<String> uploadPlayerPhoto({
+    required Uint8List bytes,
+    required String fileName,
+    required int teamId,
+    int? playerId,
+  }) async {
+    try {
+      final sanitized = fileName.replaceAll(' ', '_');
+      final segment = playerId != null ? 'p$playerId' : 'new';
+      final path =
+          '$teamId/${segment}_${DateTime.now().millisecondsSinceEpoch}_$sanitized';
+
+      await _supabase.storage.from(_photoBucket).uploadBinary(
+            path,
+            bytes,
+            fileOptions: const FileOptions(cacheControl: '3600'),
+          );
+
+      return _supabase.storage.from(_photoBucket).getPublicUrl(path);
+    } on StorageException catch (e) {
+      throw ServerException(message: e.message, code: e.statusCode.toString());
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<PlayerModel> createPlayer(
     PlayerModel playerData,
     PlayerStatsModel playerStatsData,
   ) async {
@@ -119,13 +173,16 @@ class PlayerRemoteDatasource {
       if (response.isEmpty) {
         throw ServerException(message: 'Failed to create player', code: '500');
       }
-      final int playerId = (response as List).isNotEmpty
-          ? response[0]['id'] as int
-          : 0;
+      final first = (response as List).first;
+      final map = first is Map<String, dynamic>
+          ? first
+          : Map<String, dynamic>.from(first as Map);
+      final int playerId = supabaseInt(map['id']) ?? 0;
       await _insertPlayerStatsWithSchemaFallback(
         _supabase,
         playerStatsData.copyWith(playerId: playerId).toJson(),
       );
+      return PlayerModel.fromJson(map);
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

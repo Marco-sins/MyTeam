@@ -88,23 +88,25 @@ class _ConvocationMapPickerPageState extends State<ConvocationMapPickerPage> {
                 ),
               },
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: _selected == null
-                ? null
-                : () {
-                    final result = ll.LatLng(
-                      _selected!.latitude,
-                      _selected!.longitude,
-                    );
-                    Navigator.of(context).pop(result);
-                  },
-            icon: const Icon(Icons.check),
-            label: const Text('Confirmar ubicación'),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _selected == null
+                  ? null
+                  : () {
+                      final result = ll.LatLng(
+                        _selected!.latitude,
+                        _selected!.longitude,
+                      );
+                      Navigator.of(context).pop(result);
+                    },
+              icon: const Icon(Icons.check),
+              label: const Text('Confirmar ubicación'),
+            ),
           ),
         ),
       ),
