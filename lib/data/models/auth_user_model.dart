@@ -26,7 +26,7 @@ class AuthUserModel extends AuthUser {
       'email': email,
       'name': name,
       'teamRoles': teamRoles.map(
-        (key, value) => MapEntry(key.toString(), value.name),
+        (key, value) => MapEntry(key.toString(), value.dbValue),
       ),
     };
   }

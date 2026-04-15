@@ -62,7 +62,7 @@ class TeamRemoteDatasource {
       final response = await _supabase.from('team_members').insert({
         'id_user': _supabase.auth.currentUser?.id,
         'id_team': response2[0]['id'],
-        'role': 'admin',
+        'role': 'superadmin',
       }).select();
       if (response.isEmpty) {
         throw ServerException(message: 'Failed to create team', code: '500');

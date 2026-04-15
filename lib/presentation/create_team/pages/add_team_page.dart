@@ -47,8 +47,7 @@ class _AddTeamPageState extends State<AddTeamPage> {
             if (state is CreateTeamSuccess) {
               // Refrescar lista de equipos del Home al crear uno nuevo
               context.read<HomeCubit>().fetchTeams();
-              // Refrescar también los teamRoles del usuario para que sea admin
-              // del nuevo equipo (y pueda, por ejemplo, borrarlo o gestionarlo).
+              // Refrescar teamRoles: el creador queda como superadmin del equipo.
               context.read<AuthCubit>().checkUserSession();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

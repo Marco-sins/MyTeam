@@ -3,7 +3,6 @@ import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
-import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/i_repositories/i_match_repository.dart';
 import 'package:football_manager/domain/i_repositories/i_player_repository.dart';
@@ -15,7 +14,8 @@ class DeleteMatchUseCase {
   DeleteMatchUseCase(this._matchRepository, this._playerRepository);
 
   Future<Either<Failure, void>> call(Match match, AuthUser user) async {
-    if (user.teamRoles[match.teamId] != UserRole.admin) {
+    final teamRole = user.teamRoles[match.teamId];
+    if (teamRole == null || !teamRole.hasAdminPrivileges) {
       return Left(
         PermissionFailure('You do not have permission to delete this match.'),
       );

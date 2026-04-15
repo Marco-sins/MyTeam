@@ -2,7 +2,6 @@ import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
-import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/i_repositories/i_attendance_repository.dart';
 
 class DeleteAttendanceDayUseCase {
@@ -15,7 +14,8 @@ class DeleteAttendanceDayUseCase {
     int teamId,
     AuthUser user,
   ) async {
-    if (user.teamRoles[teamId] != UserRole.admin) {
+    final teamRole = user.teamRoles[teamId];
+    if (teamRole == null || !teamRole.hasAdminPrivileges) {
       return Left(
         PermissionFailure(
           'You do not have permission to delete this attendance.',

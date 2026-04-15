@@ -69,6 +69,8 @@ class MatchStatusChangeItem extends StatelessWidget {
         lower.contains('gana posicion') ||
         lower.contains('recupera posesión') ||
         lower.contains('recupera posesion') ||
+        lower.contains('recuperación') ||
+        lower.contains('recuperacion') ||
         lower.contains('jugada clave') ||
         lower.contains('buena parada') ||
         lower.contains('increíble parada') ||

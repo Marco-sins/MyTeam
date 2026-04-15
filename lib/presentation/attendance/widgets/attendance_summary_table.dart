@@ -303,7 +303,8 @@ class AttendanceSummaryTable extends StatelessWidget {
                             children: [
                               PlayerNameText(
                                 player: player,
-                                maxLines: 1,
+                                mode: PlayerNameTextMode.general,
+                                maxLines: 4,
                                 overflow: TextOverflow.ellipsis,
                                 style: textTheme.titleMedium?.copyWith(
                                   height: 1.25,

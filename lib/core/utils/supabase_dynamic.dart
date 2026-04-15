@@ -26,3 +26,36 @@ int resolveMatchEventMinute(Map<String, dynamic> row) {
   }
   return parsed ?? 0;
 }
+
+/// Normaliza el campo `type` de [match_events] (camelCase, snake_case, guiones,
+/// mayúsculas, etiquetas en español en enums de Postgres).
+String canonicalMatchEventTypeKey(dynamic rawType) {
+  if (rawType == null) return '';
+  var k = rawType.toString().split('.').last.toLowerCase().trim();
+  k = k
+      .replaceAll('_', '')
+      .replaceAll(' ', '')
+      .replaceAll('-', '')
+      .replaceAll('á', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ó', 'o')
+      .replaceAll('ú', 'u')
+      .replaceAll('ñ', 'n');
+
+  const aliases = <String, String>{
+    'buenpase': 'goodpass',
+    'malpase': 'badpass',
+    'buenajugada': 'goodplay',
+    'malajugada': 'badplay',
+    'recuperacion': 'ballrecovery',
+    'paseclave': 'keypass',
+    'tarjetaamarilla': 'yellowcard',
+    'tarjetaroja': 'redcard',
+    'golenpropia': 'owngoal',
+    'golencajado': 'concedegoal',
+    'golrival': 'concedegoal',
+  };
+
+  return aliases[k] ?? k;
+}

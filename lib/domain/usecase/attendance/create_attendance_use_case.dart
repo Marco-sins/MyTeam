@@ -3,7 +3,6 @@ import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
 import 'package:football_manager/domain/entities/attendance.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
-import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/i_repositories/i_attendance_repository.dart';
 
 class CreateAttendanceUseCase {
@@ -15,8 +14,13 @@ class CreateAttendanceUseCase {
     Attendance attendance,
     AuthUser user,
   ) async {
-    if (user.teamRoles[attendance.teamId] != UserRole.admin) {
-      return Left(PermissionFailure('User does not have a role in the team'));
+    final teamRole = user.teamRoles[attendance.teamId];
+    if (teamRole == null || !teamRole.hasAdminPrivileges) {
+      return Left(
+        PermissionFailure(
+          'You do not have permission to create attendance for this team.',
+        ),
+      );
     }
     final response = await _attendanceRepository.createAttendance(attendance);
     if (response.isLeft()) {

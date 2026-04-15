@@ -6,21 +6,13 @@ import 'package:football_manager/presentation/common/widgets/player_name_text.da
 /// desde el gestor de partido.
 enum MatchPlayerActionType {
   goal,
-  ownGoal,
   goodPass,
-  keyPass,
-  badPass,
-  badPlay,
   goodPlay,
-  keyPlay,
-  losePosition,
-  losePossession,
-  winPossession,
-  goodSave,
-  amazingSave,
-  concededGoal,
+  ballRecovery,
   yellowCard,
   redCard,
+  badPass,
+  badPlay,
 }
 
 class MatchPlayerActionButton extends StatelessWidget {
@@ -71,7 +63,7 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 420, minWidth: 280),
+          constraints: const BoxConstraints(maxHeight: 400, minWidth: 280),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -104,7 +96,6 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     children: [
-                      // Buenas acciones (verde)
                       MatchPlayerActionButton(
                         label: 'Gol',
                         textColor: Colors.green,
@@ -119,13 +110,6 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         ).pop(MatchPlayerActionType.goodPass),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Pase clave',
-                        textColor: Colors.green,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.keyPass),
-                      ),
-                      MatchPlayerActionButton(
                         label: 'Buena jugada',
                         textColor: Colors.green,
                         onTap: () => Navigator.of(
@@ -133,41 +117,26 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         ).pop(MatchPlayerActionType.goodPlay),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Jugada clave',
+                        label: 'Recuperación',
                         textColor: Colors.green,
                         onTap: () => Navigator.of(
                           ctx,
-                        ).pop(MatchPlayerActionType.keyPlay),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Gana posesión',
-                        textColor: Colors.green,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.winPossession),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Buena parada',
-                        textColor: Colors.green,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.goodSave),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Increíble parada',
-                        textColor: Colors.green,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.amazingSave),
+                        ).pop(MatchPlayerActionType.ballRecovery),
                       ),
                       const SizedBox(height: 8),
-                      // Malas acciones (rojo)
                       MatchPlayerActionButton(
-                        label: 'Gol en propia',
+                        label: 'Tarjeta amarilla',
                         textColor: Colors.red,
                         onTap: () => Navigator.of(
                           ctx,
-                        ).pop(MatchPlayerActionType.ownGoal),
+                        ).pop(MatchPlayerActionType.yellowCard),
+                      ),
+                      MatchPlayerActionButton(
+                        label: 'Tarjeta roja',
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.redCard),
                       ),
                       MatchPlayerActionButton(
                         label: 'Mal pase',
@@ -182,41 +151,6 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.badPlay),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Pierde posición',
-                        textColor: Colors.red,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.losePosition),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Pierde posesión',
-                        textColor: Colors.red,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.losePossession),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Gol concedido',
-                        textColor: Colors.red,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.concededGoal),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Tarjeta amarilla',
-                        textColor: Colors.red,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.yellowCard),
-                      ),
-                      MatchPlayerActionButton(
-                        label: 'Tarjeta roja',
-                        textColor: Colors.red,
-                        onTap: () => Navigator.of(
-                          ctx,
-                        ).pop(MatchPlayerActionType.redCard),
                       ),
                     ],
                   ),

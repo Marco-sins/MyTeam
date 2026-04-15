@@ -153,7 +153,49 @@ class _TeamAccessPageState extends State<TeamAccessPage>
     }
   }
 
+  bool _memberRoleIsSuperAdmin(String roleStr) {
+    try {
+      return UserRole.fromString(roleStr) == UserRole.superAdmin;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _removeMember(_TeamMember member) async {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) return;
+    final myRole = authState.user.teamRoles[widget.team.id];
+    if (myRole == null || !myRole.hasAdminPrivileges) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Solo un administrador del equipo puede quitar accesos.',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+    UserRole targetRole;
+    try {
+      targetRole = UserRole.fromString(member.role);
+    } catch (_) {
+      targetRole = UserRole.external;
+    }
+    if (targetRole == UserRole.superAdmin && myRole != UserRole.superAdmin) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Solo el creador del equipo (superadmin) puede quitar a otro superadmin.',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -343,6 +385,11 @@ class _TeamAccessPageState extends State<TeamAccessPage>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final authState = context.watch<AuthCubit>().state;
+    final UserRole? myTeamRole = authState is Authenticated
+        ? authState.user.teamRoles[widget.team.id]
+        : null;
+    final bool canManageAccess = myTeamRole?.hasAdminPrivileges ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Acceso al equipo')),
@@ -520,6 +567,16 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                       final member = _members[index];
                                       final isCurrentUser =
                                           member.idUser == _currentUserId;
+                                      final bool hideRemoveForTarget =
+                                          _memberRoleIsSuperAdmin(
+                                                member.role,
+                                              ) &&
+                                              myTeamRole !=
+                                                  UserRole.superAdmin;
+                                      final bool showRemoveButton =
+                                          canManageAccess &&
+                                              !isCurrentUser &&
+                                              !hideRemoveForTarget;
 
                                       final displayName = member.name.isNotEmpty
                                           ? member.name
@@ -611,7 +668,8 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                                       ),
                                                 ),
                                               )
-                                            : IconButton(
+                                            : showRemoveButton
+                                            ? IconButton(
                                                 icon: Icon(
                                                   Icons.person_remove_outlined,
                                                   color: scheme.error,
@@ -619,7 +677,8 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                                 tooltip: 'Quitar acceso',
                                                 onPressed: () =>
                                                     _removeMember(member),
-                                              ),
+                                              )
+                                            : const SizedBox.shrink(),
                                       );
                                     },
                                   ),
@@ -628,11 +687,21 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _showInviteDialog,
-                      icon: const Icon(Icons.person_add_alt_1_rounded),
-                      label: const Text('Invitar usuario'),
-                    ),
+                    if (canManageAccess)
+                      FilledButton.icon(
+                        onPressed: _showInviteDialog,
+                        icon: const Icon(Icons.person_add_alt_1_rounded),
+                        label: const Text('Invitar usuario'),
+                      )
+                    else
+                      Text(
+                        'Solo un administrador del equipo puede invitar o quitar accesos.',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.35,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                   ],
                 ),
         ),
@@ -641,7 +710,10 @@ class _TeamAccessPageState extends State<TeamAccessPage>
   }
 
   String _roleLabel(String role) {
-    switch (role) {
+    switch (role.trim().toLowerCase()) {
+      case 'superadmin':
+      case 'super_admin':
+        return 'Superadmin';
       case 'admin':
         return 'Admin';
       case 'player':

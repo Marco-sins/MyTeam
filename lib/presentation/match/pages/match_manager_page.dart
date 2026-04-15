@@ -51,7 +51,8 @@ class MatchManagerPage extends StatefulWidget {
   State<MatchManagerPage> createState() => _MatchManagerPageState();
 }
 
-class _MatchManagerPageState extends State<MatchManagerPage> {
+class _MatchManagerPageState extends State<MatchManagerPage>
+    with SingleTickerProviderStateMixin {
   static final Map<int, _SavedLineupState> _savedLineups = {};
   static final Map<int, DateTime> _matchStartTimes = {};
   late Match _match;
@@ -87,6 +88,8 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
 
   RealtimeChannel? _spectatorMatchRealtimeChannel;
   Timer? _spectatorRealtimeDebounce;
+
+  late AnimationController _lastEventBlinkController;
 
   bool get _isExternal {
     final authState = context.read<AuthCubit>().state;
@@ -136,10 +139,166 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     } else {
       _phase = _MatchPhase.notStarted;
     }
+
+    _lastEventBlinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+  }
+
+  bool get _showLiveLastEventHighlight {
+    if (_liveEvents.isEmpty) return false;
+    switch (_match.status) {
+      case MatchStatus.firstHalf:
+      case MatchStatus.halfTime:
+      case MatchStatus.secondHalf:
+        return true;
+      case MatchStatus.notStarted:
+      case MatchStatus.finished:
+        return false;
+    }
+  }
+
+  Widget _buildLiveLastEventBlinkBanner(
+    ThemeData theme,
+    ColorScheme scheme,
+    bool isExternal,
+  ) {
+    final row = _liveEvents.first;
+    final baseStyle = theme.textTheme.bodyMedium!.copyWith(
+      fontWeight: FontWeight.w600,
+    );
+    final minute = _dynToInt(row['minute']) ?? 0;
+    final half = _eventMatchHalf(row, _resolvedSecondHalfStart());
+    final minuteLine = _formatLiveEventMinuteLine(minute, half);
+    const radius = 14.0;
+
+    return AnimatedBuilder(
+      animation: _lastEventBlinkController,
+      builder: (context, child) {
+        final raw = _lastEventBlinkController.value;
+        final t = Curves.easeInOutCubic.transform(raw);
+        final breathe = 0.5 - 0.5 * (t - 0.5).abs() * 2;
+        final pulse = 0.35 + 0.65 * t;
+        final scale = 0.988 + 0.012 * t;
+        final glow = 0.12 + 0.38 * pulse;
+        final blur = 10.0 + 18.0 * pulse;
+        final yOff = 2.0 + 5.0 * pulse;
+        final spread = -0.5 + 2.5 * pulse;
+        final fillAlpha = 0.38 + 0.22 * t;
+        final accentGlow = scheme.secondary.withValues(alpha: 0.06 + 0.14 * breathe);
+
+        return Transform.scale(
+          scale: scale,
+          alignment: Alignment.center,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius + 2),
+              boxShadow: [
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: glow),
+                  blurRadius: blur,
+                  spreadRadius: spread,
+                  offset: Offset(0, yOff),
+                ),
+                BoxShadow(
+                  color: accentGlow,
+                  blurRadius: 22 + 12 * breathe,
+                  spreadRadius: 0,
+                  offset: Offset.zero,
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(radius),
+                color: scheme.primaryContainer.withValues(alpha: fillAlpha),
+                border: Border.all(
+                  width: 1.15 + 1.1 * pulse,
+                  color: Color.lerp(
+                    scheme.outline.withValues(alpha: 0.45),
+                    scheme.primary.withValues(alpha: 0.82),
+                    pulse,
+                  )!,
+                ),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(radius),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: isExternal ? null : () => _onLiveEventTapped(row),
+                  borderRadius: BorderRadius.circular(radius),
+                  splashColor: scheme.primary.withValues(alpha: 0.12),
+                  highlightColor: scheme.primary.withValues(alpha: 0.06),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Transform.scale(
+                          scale: 1.0 + 0.07 * pulse,
+                          child: Icon(
+                            _iconForLiveEventKey(
+                              _canonicalEventTypeKey(row['type']),
+                            ),
+                            color: scheme.primary,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Último evento',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: scheme.onPrimaryContainer.withValues(
+                                    alpha: 0.82 + 0.18 * t,
+                                  ),
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.35,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text.rich(
+                                TextSpan(
+                                  style: baseStyle,
+                                  children: [
+                                    TextSpan(
+                                      text: '$minuteLine · ',
+                                      style: baseStyle.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    ..._liveEventDescriptionSpans(row, baseStyle),
+                                  ],
+                                ),
+                                softWrap: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
   void dispose() {
+    _lastEventBlinkController.dispose();
     _timer?.cancel();
     _spectatorRealtimeDebounce?.cancel();
     final ch = _spectatorMatchRealtimeChannel;
@@ -702,14 +861,26 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     return s.isEmpty ? null : s;
   }
 
-  /// Une variantes como scoreGoal, score_goal, MatchEventEnum.scoreGoal.
-  String _canonicalEventTypeKey(dynamic raw) {
-    if (raw == null) return '';
-    final tail = raw.toString().split('.').last;
-    return tail.toLowerCase().replaceAll('_', '');
+  /// Une variantes como scoreGoal, score_goal, enums en español, etc.
+  String _canonicalEventTypeKey(dynamic raw) => canonicalMatchEventTypeKey(raw);
+
+  /// Notas de [statusChange] que marcan el reloj del partido (alineado con estadísticas).
+  bool _isMatchTimeStatusNote(String? note) {
+    if (note == null || note.isEmpty) return false;
+    final lower = note.trim().toLowerCase();
+    const allowed = [
+      'inicio 1ª parte',
+      'inicio 1a parte',
+      'descanso',
+      'inicio 2ª parte',
+      'inicio 2a parte',
+      'final del partido',
+    ];
+    return allowed.any((n) => lower == n.toLowerCase());
   }
 
-  /// Oculta formaciones y sustituciones incompletas (sin jugador que sale).
+  /// Lista de eventos en vivo: solo goles, cambios de tiempo y cambios de jugador.
+  /// Pases, jugadas, recuperaciones, tarjetas, etc. siguen guardados pero no se listan aquí.
   bool _shouldIncludeInLiveEventsList(Map<String, dynamic> row) {
     final key = _canonicalEventTypeKey(row['type']);
     if (key == 'formation') {
@@ -718,7 +889,13 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     if (key == 'substitution') {
       return _dynToInt(row['player_id2']) != null;
     }
-    return true;
+    if (key == 'scoregoal' || key == 'concedegoal' || key == 'owngoal') {
+      return true;
+    }
+    if (key == 'statuschange') {
+      return _isMatchTimeStatusNote(_dynToStr(row['note']));
+    }
+    return false;
   }
 
   DateTime _parseEventCreatedAt(dynamic v) {
@@ -1104,6 +1281,31 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
           const TextSpan(text: 'Pase clave · '),
           ...dorsalSpans(p1),
         ];
+      case 'goodpass':
+        return [
+          const TextSpan(text: 'Buen pase · '),
+          ...dorsalSpans(p1),
+        ];
+      case 'badpass':
+        return [
+          const TextSpan(text: 'Mal pase · '),
+          ...dorsalSpans(p1),
+        ];
+      case 'goodplay':
+        return [
+          const TextSpan(text: 'Buena jugada · '),
+          ...dorsalSpans(p1),
+        ];
+      case 'badplay':
+        return [
+          const TextSpan(text: 'Mala jugada · '),
+          ...dorsalSpans(p1),
+        ];
+      case 'ballrecovery':
+        return [
+          const TextSpan(text: 'Recuperación · '),
+          ...dorsalSpans(p1),
+        ];
       default:
         if (note != null && note.isNotEmpty) {
           return [
@@ -1134,6 +1336,16 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         return Icons.sports_handball;
       case 'keypass':
         return Icons.alt_route;
+      case 'goodpass':
+        return Icons.north_east;
+      case 'badpass':
+        return Icons.south_west;
+      case 'goodplay':
+        return Icons.thumb_up_outlined;
+      case 'badplay':
+        return Icons.thumb_down_outlined;
+      case 'ballrecovery':
+        return Icons.cached;
       default:
         return Icons.event_note;
     }
@@ -1793,36 +2005,20 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
     switch (action) {
       case MatchPlayerActionType.goal:
         return 'Gol';
-      case MatchPlayerActionType.ownGoal:
-        return 'Gol en propia';
       case MatchPlayerActionType.goodPass:
         return 'Buen pase';
-      case MatchPlayerActionType.keyPass:
-        return 'Pase clave';
-      case MatchPlayerActionType.badPass:
-        return 'Mal pase';
-      case MatchPlayerActionType.badPlay:
-        return 'Mala jugada';
       case MatchPlayerActionType.goodPlay:
         return 'Buena jugada';
-      case MatchPlayerActionType.keyPlay:
-        return 'Jugada clave';
-      case MatchPlayerActionType.losePosition:
-        return 'Pierde posición';
-      case MatchPlayerActionType.losePossession:
-        return 'Pierde posesión';
-      case MatchPlayerActionType.winPossession:
-        return 'Gana posesión';
-      case MatchPlayerActionType.goodSave:
-        return 'Buena parada';
-      case MatchPlayerActionType.amazingSave:
-        return 'Increíble parada';
-      case MatchPlayerActionType.concededGoal:
-        return 'Gol concedido';
+      case MatchPlayerActionType.ballRecovery:
+        return 'Recuperación';
       case MatchPlayerActionType.yellowCard:
         return 'Tarjeta amarilla';
       case MatchPlayerActionType.redCard:
         return 'Tarjeta roja';
+      case MatchPlayerActionType.badPass:
+        return 'Mal pase';
+      case MatchPlayerActionType.badPlay:
+        return 'Mala jugada';
     }
   }
 
@@ -1858,57 +2054,25 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
         case MatchPlayerActionType.goal:
           // El caso de gol se maneja antes con _savePlayerGoalWithAssist.
           return;
-        case MatchPlayerActionType.ownGoal:
-          type = MatchEventEnum.ownGoal;
-          note = 'Gol en propia';
-          break;
         case MatchPlayerActionType.goodPass:
-          type = MatchEventEnum.statusChange;
+          type = MatchEventEnum.goodPass;
           note = 'Buen pase';
           break;
-        case MatchPlayerActionType.keyPass:
-          type = MatchEventEnum.keyPass;
-          note = 'Pase clave';
+        case MatchPlayerActionType.goodPlay:
+          type = MatchEventEnum.goodPlay;
+          note = 'Buena jugada';
+          break;
+        case MatchPlayerActionType.ballRecovery:
+          type = MatchEventEnum.ballRecovery;
+          note = 'Recuperación';
           break;
         case MatchPlayerActionType.badPass:
-          type = MatchEventEnum.statusChange;
+          type = MatchEventEnum.badPass;
           note = 'Mal pase';
           break;
         case MatchPlayerActionType.badPlay:
-          type = MatchEventEnum.statusChange;
+          type = MatchEventEnum.badPlay;
           note = 'Mala jugada';
-          break;
-        case MatchPlayerActionType.goodPlay:
-          type = MatchEventEnum.statusChange;
-          note = 'Buena jugada';
-          break;
-        case MatchPlayerActionType.keyPlay:
-          type = MatchEventEnum.statusChange;
-          note = 'Jugada clave';
-          break;
-        case MatchPlayerActionType.losePosition:
-          type = MatchEventEnum.statusChange;
-          note = 'Pierde posición';
-          break;
-        case MatchPlayerActionType.losePossession:
-          type = MatchEventEnum.statusChange;
-          note = 'Pierde posesión';
-          break;
-        case MatchPlayerActionType.winPossession:
-          type = MatchEventEnum.statusChange;
-          note = 'Gana posesión';
-          break;
-        case MatchPlayerActionType.goodSave:
-          type = MatchEventEnum.goodSave;
-          note = 'Buena parada';
-          break;
-        case MatchPlayerActionType.amazingSave:
-          type = MatchEventEnum.goodSave;
-          note = 'Increíble parada';
-          break;
-        case MatchPlayerActionType.concededGoal:
-          type = MatchEventEnum.concedeGoal;
-          note = 'Gol concedido';
           break;
         case MatchPlayerActionType.yellowCard:
           type = MatchEventEnum.yellowCard;
@@ -2700,6 +2864,13 @@ class _MatchManagerPageState extends State<MatchManagerPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              if (_showLiveLastEventHighlight) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: _buildLiveLastEventBlinkBanner(theme, scheme, isExternal),
+                ),
+                const SizedBox(height: 12),
+              ],
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: Padding(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/match.dart';
@@ -13,6 +12,35 @@ import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
 import 'package:football_manager/presentation/match/widgets/match_stats_events_widgets.dart';
 import 'package:football_manager/presentation/match/widgets/match_stats_lineup_section.dart';
+
+/// Tono para acciones guardadas como [statusChange] + nota (datos anteriores al enum dedicado).
+Color _accentForLegacyStatusActionNote(ColorScheme scheme, String label) {
+  final lower = label.toLowerCase();
+  if (lower.contains('mal ') ||
+      lower.contains('mala ') ||
+      lower.contains('pierde ') ||
+      lower.contains('gol concedido') ||
+      lower.contains('gol en propia')) {
+    return scheme.error;
+  }
+  if (lower.contains('buen ') ||
+      lower.contains('buena ') ||
+      lower.contains('pase clave') ||
+      lower.contains('gana posesión') ||
+      lower.contains('gana posicion') ||
+      lower.contains('recupera posesión') ||
+      lower.contains('recupera posesion') ||
+      lower.contains('recuperación') ||
+      lower.contains('recuperacion') ||
+      lower.contains('jugada clave') ||
+      lower.contains('buena parada') ||
+      lower.contains('increíble parada') ||
+      lower.contains('increible parada') ||
+      lower.contains('buen tiro')) {
+    return scheme.tertiary;
+  }
+  return scheme.onSurface;
+}
 
 class MatchStatsPage extends StatelessWidget {
   const MatchStatsPage({super.key, required this.match});
@@ -40,13 +68,12 @@ class MatchStatsPage extends StatelessWidget {
     Map<String, dynamic> event,
   ) {
     final rawType = event['type'];
-    final typeString = rawType?.toString().split('.').last ?? '';
+    final typeKey = canonicalMatchEventTypeKey(rawType);
     final minute = supabaseInt(event['minute']) ?? 0;
     final int? playerId1 = supabaseInt(event['player_id1']);
     final int? playerId2 = supabaseInt(event['player_id2']);
 
-    if (typeString == 'statusChange' ||
-        typeString == MatchEventEnum.statusChange.toString().split('.').last) {
+    if (typeKey == 'statuschange') {
       final rawLabel = (event['note'] as String?) ?? '';
       final lowerLabel = rawLabel.toLowerCase();
       const allowedStatusNotes = [
@@ -67,11 +94,35 @@ class MatchStatsPage extends StatelessWidget {
         return MatchStatusChangeItem(label: label, minute: minute);
       }
 
-      return null;
+      // Resto de statusChange: acciones de jugador antiguas (nota + jugador), no cronología de tiempo.
+      final noteLabel = rawLabel.isEmpty ? 'Acción registrada' : rawLabel;
+      final scheme = Theme.of(context).colorScheme;
+      final accentColor = _accentForLegacyStatusActionNote(scheme, noteLabel);
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: accentColor,
+          );
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: noteLabel,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                TextSpan(text: '$noteLabel · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: noteLabel, minute: minute);
     }
 
-    if (typeString == MatchEventEnum.substitution.toString().split('.').last ||
-        typeString == 'substitution') {
+    if (typeKey == 'substitution') {
       final int? inId = playerId1;
       final int? outId = playerId2;
       if (inId == null || outId == null) {
@@ -88,15 +139,12 @@ class MatchStatsPage extends StatelessWidget {
       );
     }
 
-    if (typeString == MatchEventEnum.scoreGoal.toString().split('.').last ||
-        typeString == 'scoreGoal' ||
-        typeString == MatchEventEnum.concedeGoal.toString().split('.').last ||
-        typeString == 'concedeGoal' ||
-        typeString == MatchEventEnum.ownGoal.toString().split('.').last ||
-        typeString == 'ownGoal') {
-      final isOurGoal = typeString == 'scoreGoal';
+    if (typeKey == 'scoregoal' ||
+        typeKey == 'concedegoal' ||
+        typeKey == 'owngoal') {
+      final isOurGoal = typeKey == 'scoregoal';
       final isAgainstGoal =
-          typeString == 'concedeGoal' || typeString == 'ownGoal';
+          typeKey == 'concedegoal' || typeKey == 'owngoal';
 
       Player? scorerPlayer;
       Player? assistPlayer;
@@ -116,8 +164,7 @@ class MatchStatsPage extends StatelessWidget {
       );
     }
 
-    if (typeString == MatchEventEnum.goodSave.toString().split('.').last ||
-        typeString == 'goodSave') {
+    if (typeKey == 'goodsave') {
       final note = (event['note'] as String?) ?? 'Buena parada';
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
@@ -144,11 +191,172 @@ class MatchStatsPage extends StatelessWidget {
       return MatchStatusChangeItem(label: note, minute: minute);
     }
 
-    if (typeString == MatchEventEnum.yellowCard.toString().split('.').last ||
-        typeString == 'yellowCard' ||
-        typeString == MatchEventEnum.redCard.toString().split('.').last ||
-        typeString == 'redCard') {
-      final isRed = typeString == 'redCard';
+    if (typeKey == 'goodpass') {
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      final scheme = Theme.of(context).colorScheme;
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: scheme.tertiary,
+          );
+      const headline = 'Buen pase';
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: headline,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                const TextSpan(text: '$headline · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'goodplay') {
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      final scheme = Theme.of(context).colorScheme;
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: scheme.tertiary,
+          );
+      const headline = 'Buena jugada';
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: headline,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                const TextSpan(text: '$headline · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'ballrecovery') {
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      final scheme = Theme.of(context).colorScheme;
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: scheme.tertiary,
+          );
+      const headline = 'Recuperación';
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: headline,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                const TextSpan(text: '$headline · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'badpass') {
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      final scheme = Theme.of(context).colorScheme;
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: scheme.error,
+          );
+      const headline = 'Mal pase';
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: headline,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                const TextSpan(text: '$headline · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'badplay') {
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      final scheme = Theme.of(context).colorScheme;
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: scheme.error,
+          );
+      const headline = 'Mala jugada';
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: headline,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                const TextSpan(text: '$headline · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'keypass') {
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      final scheme = Theme.of(context).colorScheme;
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: scheme.tertiary,
+          );
+      final notePass = (event['note'] as String?)?.trim();
+      final headline =
+          (notePass != null && notePass.isNotEmpty) ? notePass : 'Pase clave';
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: headline,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                TextSpan(text: '$headline · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'yellowcard' || typeKey == 'redcard') {
+      final isRed = typeKey == 'redcard';
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       return MatchCardItem(
         minute: minute,
@@ -156,6 +364,39 @@ class MatchStatsPage extends StatelessWidget {
         fallbackPlayerId: playerId1,
         isRed: isRed,
       );
+    }
+
+    // Respaldo: tipos nuevos en BD o etiquetas de enum que no coinciden con el cliente.
+    final noteFallback = (event['note'] as String?)?.trim();
+    if (typeKey != 'formation' &&
+        noteFallback != null &&
+        noteFallback.isNotEmpty) {
+      final scheme = Theme.of(context).colorScheme;
+      final accentColor =
+          _accentForLegacyStatusActionNote(scheme, noteFallback);
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: accentColor,
+          );
+      final player =
+          playerId1 != null ? state.playersById[playerId1] : null;
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: noteFallback,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                TextSpan(text: '$noteFallback · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: noteFallback, minute: minute);
     }
 
     return null;
@@ -764,7 +1005,8 @@ Future<void> _showPlayerMatchStats(
         icon: Icon(Icons.person_rounded, size: 36, color: scheme.primary),
         title: PlayerNameText(
           player: player,
-          maxLines: 1,
+          mode: PlayerNameTextMode.general,
+          maxLines: 4,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
         ),
@@ -841,13 +1083,12 @@ _PlayerMatchStats _calculatePlayerMatchStats(
 
   for (final event in state.events) {
     final rawType = event['type'];
-    final typeString = rawType?.toString().split('.').last ?? '';
+    final typeKey = canonicalMatchEventTypeKey(rawType);
     final int? p1 = event['player_id1'] as int?;
     final int? p2 = event['player_id2'] as int?;
     final String? note = event['note'] as String?;
 
-    if (typeString == MatchEventEnum.scoreGoal.toString().split('.').last ||
-        typeString == 'scoreGoal') {
+    if (typeKey == 'scoregoal') {
       if (p1 == playerId) {
         goals++;
       }
@@ -858,18 +1099,28 @@ _PlayerMatchStats _calculatePlayerMatchStats(
 
     if (p1 != playerId) continue;
 
-    if (note == 'Buen pase') {
+    final isGoodPass = typeKey == 'goodpass';
+    final isBadPass = typeKey == 'badpass';
+    final isGoodPlay = typeKey == 'goodplay';
+    final isBadPlay = typeKey == 'badplay';
+    final isBallRecovery = typeKey == 'ballrecovery';
+
+    if (isGoodPass || note == 'Buen pase') {
       goodPasses++;
-    } else if (note == 'Mal pase') {
+    } else if (isBadPass || note == 'Mal pase') {
       badPasses++;
-    } else if (note == 'Pase clave') {
+    } else if (note == 'Pase clave' || typeKey == 'keypass') {
       goodPlays++;
-    } else if (note == 'Buena jugada' ||
+    } else if (isGoodPlay ||
+        isBallRecovery ||
+        note == 'Buena jugada' ||
+        note == 'Recuperación' ||
         note == 'Buen tiro' ||
         note == 'Recupera posesión' ||
         note == 'Gana posesión') {
       goodPlays++;
-    } else if (note == 'Mala jugada' ||
+    } else if (isBadPlay ||
+        note == 'Mala jugada' ||
         note == 'Pierde marca' ||
         note == 'Pierde posición' ||
         note == 'Pierde posesión' ||
@@ -931,10 +1182,8 @@ int _calculateMinutesPlayed(MatchStatsState state, Player player) {
 
   for (final event in sortedEvents) {
     final rawType = event['type'];
-    final typeString = rawType?.toString().split('.').last ?? '';
-    if (!(typeString ==
-            MatchEventEnum.substitution.toString().split('.').last ||
-        typeString == 'substitution')) {
+    final typeKey = canonicalMatchEventTypeKey(rawType);
+    if (typeKey != 'substitution') {
       continue;
     }
 
@@ -973,10 +1222,9 @@ int _getMatchEndMinute(MatchStatsState state) {
 
   for (final event in state.events) {
     final rawType = event['type'];
-    final typeString = rawType?.toString().split('.').last ?? '';
+    final typeKey = canonicalMatchEventTypeKey(rawType);
     final String? note = event['note'] as String?;
-    if ((typeString == MatchEventEnum.statusChange.toString().split('.').last ||
-            typeString == 'statusChange') &&
+    if (typeKey == 'statuschange' &&
         note != null &&
         note.toLowerCase().contains('final')) {
       final minute = supabaseInt(event['minute']) ?? 0;
