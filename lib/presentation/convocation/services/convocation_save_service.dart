@@ -136,10 +136,19 @@ class ConvocationSaveService {
         final l10n = AppLocalizations.of(context)!;
         final imageCopy = ConvocationImageCopy(
           sectionMatchDetails: l10n.convocationImageSectionMatchDetails,
+          sectionMatchDetailsSubtitle:
+              l10n.convocationImageSectionMatchDetailsSubtitle,
           labelDate: l10n.convocationImageLabelDate,
-          labelMatchTime: l10n.convocationImageLabelMatchTime,
-          labelCallTime: l10n.convocationImageLabelCallTime,
+          labelMatchKickoff: l10n.convocationImageLabelMatchKickoff,
+          labelCallArrival: l10n.convocationImageLabelCallArrival,
+          callTimeReminder: l10n.convocationImageCallTimeReminder,
           labelVenue: l10n.convocationImageLabelVenue,
+          mapLinkIntro: l10n.convocationImageMapLinkIntro,
+          placeHomeHeadline: l10n.convocationImagePlaceHomeHeadline,
+          placeHomeDetail: l10n.convocationImagePlaceHomeDetail,
+          placeAwayHeadline: l10n.convocationImagePlaceAwayHeadline,
+          placeAwayNoAddressDetail:
+              l10n.convocationImagePlaceAwayNoAddressDetail,
           sectionSquadTitle: l10n.convocationImageSectionSquad,
           observationsTitle: l10n.convocationImageObservationsTitle,
           playerFallbackName: l10n.convocationImagePlayerFallback,

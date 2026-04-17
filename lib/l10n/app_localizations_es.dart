@@ -1027,6 +1027,38 @@ class AppLocalizationsEs extends AppLocalizations {
   String get convocationImagePlayerFallback => 'Jugador';
 
   @override
+  String get convocationImageSectionMatchDetailsSubtitle =>
+      'Fecha, horas y lugar — léelo con calma';
+
+  @override
+  String get convocationImageLabelMatchKickoff => 'HORA DEL PARTIDO (INICIO)';
+
+  @override
+  String get convocationImageLabelCallArrival =>
+      'HORA DE CONVOCATORIA (LLEGADA)';
+
+  @override
+  String get convocationImageCallTimeReminder =>
+      'Importante: debes llegar antes de esta hora, no cuando empiece el partido.';
+
+  @override
+  String get convocationImageMapLinkIntro =>
+      'En el móvil puedes abrir este enlace para ver el sitio en el mapa:';
+
+  @override
+  String get convocationImagePlaceHomeHeadline => 'PARTIDO EN CASA';
+
+  @override
+  String get convocationImagePlaceHomeDetail => 'Jugamos en nuestro campo.';
+
+  @override
+  String get convocationImagePlaceAwayHeadline => 'PARTIDO FUERA DE CASA';
+
+  @override
+  String get convocationImagePlaceAwayNoAddressDetail =>
+      'La dirección exacta la confirma el club. Pregunta a tu entrenador.';
+
+  @override
   String matchSummaryVs(String opponent) {
     return 'vs $opponent';
   }

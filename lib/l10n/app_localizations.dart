@@ -1938,6 +1938,60 @@ abstract class AppLocalizations {
   /// **'Jugador'**
   String get convocationImagePlayerFallback;
 
+  /// No description provided for @convocationImageSectionMatchDetailsSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha, horas y lugar — léelo con calma'**
+  String get convocationImageSectionMatchDetailsSubtitle;
+
+  /// No description provided for @convocationImageLabelMatchKickoff.
+  ///
+  /// In es, this message translates to:
+  /// **'HORA DEL PARTIDO (INICIO)'**
+  String get convocationImageLabelMatchKickoff;
+
+  /// No description provided for @convocationImageLabelCallArrival.
+  ///
+  /// In es, this message translates to:
+  /// **'HORA DE CONVOCATORIA (LLEGADA)'**
+  String get convocationImageLabelCallArrival;
+
+  /// No description provided for @convocationImageCallTimeReminder.
+  ///
+  /// In es, this message translates to:
+  /// **'Importante: debes llegar antes de esta hora, no cuando empiece el partido.'**
+  String get convocationImageCallTimeReminder;
+
+  /// No description provided for @convocationImageMapLinkIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'En el móvil puedes abrir este enlace para ver el sitio en el mapa:'**
+  String get convocationImageMapLinkIntro;
+
+  /// No description provided for @convocationImagePlaceHomeHeadline.
+  ///
+  /// In es, this message translates to:
+  /// **'PARTIDO EN CASA'**
+  String get convocationImagePlaceHomeHeadline;
+
+  /// No description provided for @convocationImagePlaceHomeDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'Jugamos en nuestro campo.'**
+  String get convocationImagePlaceHomeDetail;
+
+  /// No description provided for @convocationImagePlaceAwayHeadline.
+  ///
+  /// In es, this message translates to:
+  /// **'PARTIDO FUERA DE CASA'**
+  String get convocationImagePlaceAwayHeadline;
+
+  /// No description provided for @convocationImagePlaceAwayNoAddressDetail.
+  ///
+  /// In es, this message translates to:
+  /// **'La dirección exacta la confirma el club. Pregunta a tu entrenador.'**
+  String get convocationImagePlaceAwayNoAddressDetail;
+
   /// No description provided for @matchSummaryVs.
   ///
   /// In es, this message translates to:

@@ -11,17 +11,39 @@ import 'convocation_image_body.dart';
 import 'convocation_image_header.dart';
 import 'convocation_image_theme.dart';
 
-String _formatDate(DateTime date) {
-  final day = date.day.toString().padLeft(2, '0');
-  final month = date.month.toString().padLeft(2, '0');
-  final year = date.year.toString();
-  return '$day/$month/$year';
+String _formatDateLongSpanish(DateTime date) {
+  const weekdays = [
+    'lunes',
+    'martes',
+    'miércoles',
+    'jueves',
+    'viernes',
+    'sábado',
+    'domingo',
+  ];
+  const months = [
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
+  ];
+  final w = weekdays[date.weekday - 1];
+  final capitalized = '${w[0].toUpperCase()}${w.substring(1)}';
+  return '$capitalized ${date.day} de ${months[date.month - 1]} de ${date.year}';
 }
 
-String _formatTimeOfDay(TimeOfDay time) {
+String _formatTimeWithSuffix(TimeOfDay time) {
   final hour = time.hour.toString().padLeft(2, '0');
   final minute = time.minute.toString().padLeft(2, '0');
-  return '$hour:$minute';
+  return '$hour:$minute h';
 }
 
 Future<ui.Image?> _decodeTeamLogo(Team team) async {
@@ -119,10 +141,36 @@ Future<File?> generateConvocationImage({
     final sortedPlayers = List<Player>.from(selectedPlayers)
       ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
 
-    final totalHeight = estimateConvocationCanvasHeight(
-      playerCount: sortedPlayers.length,
+    final dateLong = _formatDateLongSpanish(matchDate);
+    final matchTimeStr = _formatTimeWithSuffix(matchTime);
+    final callTimeStr = _formatTimeWithSuffix(callTime);
+
+    String? mapUrl;
+    if (!isHome && awayLocation != null && awayLocation.trim().isNotEmpty) {
+      mapUrl =
+          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation.trim())}';
+    }
+
+    final place = convocationPlaceCopy(
+      copy: imageCopy,
+      isHome: isHome,
       awayLocation: awayLocation,
+      mapUrl: mapUrl,
+    );
+    final placeValue = '${place.headline}\n${place.detail}';
+    final String? mapExtra = place.mapNote != null && mapUrl != null
+        ? '${place.mapNote}\n$mapUrl'
+        : null;
+
+    final totalHeight = estimateConvocationCanvasHeight(
+      copy: imageCopy,
+      playerCount: sortedPlayers.length,
       notes: notes,
+      dateLongStr: dateLong,
+      matchTimeStr: matchTimeStr,
+      callTimeStr: callTimeStr,
+      placeValue: placeValue,
+      mapExtra: mapExtra,
     );
     final canvasH = totalHeight.roundToDouble();
 
@@ -182,23 +230,13 @@ Future<File?> generateConvocationImage({
       rivalName: rivalName,
     );
 
-    final dateStr = _formatDate(matchDate);
-    final matchTimeStr = _formatTimeOfDay(matchTime);
-    final callTimeStr = _formatTimeOfDay(callTime);
-
-    String? mapUrl;
-    if (awayLocation != null && awayLocation.trim().isNotEmpty) {
-      mapUrl =
-          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation.trim())}';
-    }
-
     drawConvocationBody(
       canvas: canvas,
       overlayRect: overlayRect,
       palette: palette,
       startY: headerBottomY,
       copy: imageCopy,
-      dateStr: dateStr,
+      dateLongStr: dateLong,
       matchTimeStr: matchTimeStr,
       callTimeStr: callTimeStr,
       mapUrl: mapUrl,

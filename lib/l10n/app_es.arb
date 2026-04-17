@@ -438,6 +438,15 @@
   "convocationImageSectionSquad": "Jugadores convocados",
   "convocationImageObservationsTitle": "Observaciones",
   "convocationImagePlayerFallback": "Jugador",
+  "convocationImageSectionMatchDetailsSubtitle": "Fecha, horas y lugar — léelo con calma",
+  "convocationImageLabelMatchKickoff": "HORA DEL PARTIDO (INICIO)",
+  "convocationImageLabelCallArrival": "HORA DE CONVOCATORIA (LLEGADA)",
+  "convocationImageCallTimeReminder": "Importante: debes llegar antes de esta hora, no cuando empiece el partido.",
+  "convocationImageMapLinkIntro": "En el móvil puedes abrir este enlace para ver el sitio en el mapa:",
+  "convocationImagePlaceHomeHeadline": "PARTIDO EN CASA",
+  "convocationImagePlaceHomeDetail": "Jugamos en nuestro campo.",
+  "convocationImagePlaceAwayHeadline": "PARTIDO FUERA DE CASA",
+  "convocationImagePlaceAwayNoAddressDetail": "La dirección exacta la confirma el club. Pregunta a tu entrenador.",
   "matchSummaryVs": "vs {opponent}",
   "@matchSummaryVs": {
     "placeholders": {

@@ -5,8 +5,9 @@ import 'package:football_manager/core/theme/team_screen_tint.dart';
 abstract final class ConvocationImageTheme {
   static const double exportWidth = 1080;
   static const double overlayMargin = 40;
-  static const double headerHeight = 208;
-  static const double headerBottomGap = 36;
+  /// Cabecera más alta para equipos, chips LOCAL/VISITANTE y título legible.
+  static const double headerHeight = 252;
+  static const double headerBottomGap = 32;
   static const double cardCornerRadius = 32;
 }
 
