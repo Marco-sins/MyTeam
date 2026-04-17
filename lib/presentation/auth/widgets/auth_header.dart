@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:football_manager/core/constants/app_branding.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
 
 class AuthHeader extends StatelessWidget {
@@ -9,10 +9,11 @@ class AuthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Text(
-          AppBranding.mainTitleEs,
+          l10n.appTitle,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.98),
             fontSize: 32,
@@ -33,7 +34,7 @@ class AuthHeader extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         Text(
-          isRegisterMode ? 'Crea tu cuenta' : 'Bienvenido de nuevo',
+          isRegisterMode ? l10n.authCreateAccount : l10n.authWelcomeBack,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.82),
             fontSize: 16,

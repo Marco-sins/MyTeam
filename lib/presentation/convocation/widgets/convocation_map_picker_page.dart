@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:geolocator/geolocator.dart';
@@ -66,7 +67,9 @@ class _ConvocationMapPickerPageState extends State<ConvocationMapPickerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Seleccionar ubicación')),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.screenSelectLocation),
+      ),
       body: gmaps.GoogleMap(
         initialCameraPosition: gmaps.CameraPosition(
           target: _selected ?? _center,

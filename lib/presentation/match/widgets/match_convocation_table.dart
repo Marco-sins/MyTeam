@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 class MatchConvocationTable extends StatelessWidget {
@@ -34,6 +35,7 @@ class MatchConvocationTable extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     if (loading) {
       return Padding(
@@ -66,7 +68,7 @@ class MatchConvocationTable extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
         child: Text(
-          'No hay jugadores convocados para este partido',
+          l10n.matchConvocationTableEmpty,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,

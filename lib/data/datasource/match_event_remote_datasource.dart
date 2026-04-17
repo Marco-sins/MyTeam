@@ -32,8 +32,31 @@ class MatchEventRemoteDatasource {
       final result = await _supabase
           .from('match_events')
           .select()
-          .eq('match_id', matchId);
+          .eq('match_id', matchId)
+          .order('minute', ascending: false)
+          .order('created_at', ascending: false);
       return result.map((e) => MatchEventModel.fromJson(e)).toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<String?> getLatestFormationNoteByMatchId(int matchId) async {
+    try {
+      final rows = await _supabase
+          .from('match_events')
+          .select('note')
+          .eq('match_id', matchId)
+          .eq('type', 'formation')
+          .order('id', ascending: false)
+          .limit(1);
+      if (rows.isEmpty) return null;
+      final raw = rows.first['note'] as String?;
+      final trimmed = raw?.trim();
+      if (trimmed == null || trimmed.isEmpty) return null;
+      return trimmed;
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

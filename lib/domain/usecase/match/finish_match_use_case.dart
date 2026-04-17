@@ -9,9 +9,9 @@ import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
-import 'package:football_manager/domain/i_repositories/i_match_event_repository.dart';
-import 'package:football_manager/domain/i_repositories/i_match_repository.dart';
-import 'package:football_manager/domain/i_repositories/i_player_repository.dart';
+import 'package:football_manager/domain/repositories/i_match_event_repository.dart';
+import 'package:football_manager/domain/repositories/i_match_repository.dart';
+import 'package:football_manager/domain/repositories/i_player_repository.dart';
 import 'package:football_manager/domain/utils/match_minutes_utils.dart';
 
 class FinishMatchUseCase {

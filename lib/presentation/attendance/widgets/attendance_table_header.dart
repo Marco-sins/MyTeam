@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class AttendanceTableHeader extends StatelessWidget {
   const AttendanceTableHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final labelStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
@@ -33,11 +35,11 @@ class AttendanceTableHeader extends StatelessWidget {
             child: Text('#', textAlign: TextAlign.center, style: labelStyle),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text('Jugador', style: labelStyle)),
+          Expanded(child: Text(l10n.tableColumnPlayer, style: labelStyle)),
           SizedBox(
             width: 56,
             child: Text(
-              'Asiste',
+              l10n.tableColumnAttends,
               textAlign: TextAlign.center,
               style: labelStyle,
             ),
@@ -46,7 +48,7 @@ class AttendanceTableHeader extends StatelessWidget {
           SizedBox(
             width: 56,
             child: Text(
-              'Falta',
+              l10n.tableColumnAbsent,
               textAlign: TextAlign.center,
               style: labelStyle,
             ),

@@ -9,7 +9,7 @@ import 'package:football_manager/data/mappers/match_lineup_mapper.dart';
 import 'package:football_manager/data/mappers/match_mapper.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
-import 'package:football_manager/domain/i_repositories/i_match_repository.dart';
+import 'package:football_manager/domain/repositories/i_match_repository.dart';
 
 class MatchRepository implements IMatchRepository {
   final MatchRemoteDatasource _remoteDatasource;

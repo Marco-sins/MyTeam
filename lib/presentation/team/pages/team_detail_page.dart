@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:football_manager/core/constants/app_branding.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/team.dart';
@@ -98,21 +98,19 @@ class _TeamDetailPageState extends State<TeamDetailPage>
       barrierDismissible: false,
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
+        final l10n = AppLocalizations.of(ctx)!;
         return AlertDialog(
           icon: Icon(
             Icons.lock_person_outlined,
             size: 40,
             color: scheme.error,
           ),
-          title: const Text('Sin acceso al equipo'),
-          content: const Text(
-            'Ya no tienes acceso a este equipo. '
-            'Se ha quitado de tu panel y no podrás volver a entrar hasta que un administrador te invite de nuevo.',
-          ),
+          title: Text(l10n.dialogNoAccessTitle),
+          content: Text(l10n.dialogNoAccessBody),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Entendido'),
+              child: Text(l10n.authUnderstand),
             ),
           ],
         );
@@ -123,19 +121,20 @@ class _TeamDetailPageState extends State<TeamDetailPage>
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  String _leaveTeamDialogMessage(Team team, UserRole role) {
+  String _leaveTeamDialogMessage(
+    AppLocalizations l10n,
+    Team team,
+    UserRole role,
+  ) {
     switch (role) {
       case UserRole.external:
-        return '¿Quieres salir de ${team.name}? '
-            'Dejarás de ver la plantilla y los partidos hasta que un administrador te vuelva a invitar.';
+        return l10n.leaveTeamPromptExternal(team.name);
       case UserRole.admin:
-        return '¿Quieres abandonar ${team.name} como administrador? '
-            'Perderás los permisos de gestión; solo podrás volver si un superadmin te invita de nuevo.';
+        return l10n.leaveTeamPromptAdmin(team.name);
       case UserRole.player:
-        return '¿Quieres salir de ${team.name} como jugador? '
-            'Dejarás de figurar en la plantilla hasta que te den de alta de nuevo.';
+        return l10n.leaveTeamPromptPlayer(team.name);
       case UserRole.superAdmin:
-        return '¿Quieres salir de ${team.name}?';
+        return l10n.leaveTeamPromptGeneric(team.name);
     }
   }
 
@@ -150,26 +149,29 @@ class _TeamDetailPageState extends State<TeamDetailPage>
     final scheme = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Abandonar equipo'),
-        content: Text(
-          _leaveTeamDialogMessage(team, myRole),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+      builder: (ctx) {
+        final dlgL10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Text(dlgL10n.dialogLeaveTeamTitle),
+          content: Text(
+            _leaveTeamDialogMessage(dlgL10n, team, myRole),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: scheme.error,
-              foregroundColor: scheme.onError,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(dlgL10n.actionCancel),
             ),
-            child: const Text('Salir del equipo'),
-          ),
-        ],
-      ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.error,
+                foregroundColor: scheme.onError,
+              ),
+              child: Text(dlgL10n.leaveTeamButton),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm != true || !mounted) return;
@@ -194,7 +196,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
         context.read<HomeCubit>().fetchTeams();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Has salido del equipo'),
+            content: Text(AppLocalizations.of(context)!.snackbarLeftTeam),
             backgroundColor: scheme.primary,
             duration: const Duration(seconds: 2),
           ),
@@ -223,7 +225,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
         team: team,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text(AppBranding.mainTitleEs),
+            title: Text(AppLocalizations.of(context)!.appTitle),
             centerTitle: true,
             actions: const [TeamQuickNavAppBarButton()],
           ),
@@ -234,7 +236,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
                 CircularProgressIndicator(color: scheme.primary),
                 const SizedBox(height: 16),
                 Text(
-                  'Comprobando acceso…',
+                  AppLocalizations.of(context)!.teamCheckingAccess,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -250,7 +252,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
       team: team,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(AppBranding.mainTitleEs),
+          title: Text(AppLocalizations.of(context)!.appTitle),
           centerTitle: true,
           actions: const [TeamQuickNavAppBarButton()],
         ),
@@ -271,6 +273,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: BlocBuilder<TeamDetailCubit, TeamDetailState>(
                     builder: (context, state) {
+                      final l10n = AppLocalizations.of(context)!;
                       if (state is TeamDetailLoading ||
                           state is TeamDetailInitial) {
                         return Center(
@@ -285,7 +288,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'Cargando plantilla…',
+                                    l10n.teamLoadingRoster,
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
@@ -342,7 +345,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      'Aún no hay jugadores en la plantilla',
+                                      l10n.teamEmptyRosterTitle,
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleSmall,
@@ -350,7 +353,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
                                     ),
                                     const SizedBox(height: 6),
                                     Text(
-                                      'Añádelos desde Gestión → Modificar plantilla.',
+                                      l10n.teamEmptyRosterHint,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall

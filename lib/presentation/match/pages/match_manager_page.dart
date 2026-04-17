@@ -13,10 +13,12 @@ import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
-import 'package:football_manager/data/models/match_event_model.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
@@ -29,6 +31,7 @@ import 'package:football_manager/presentation/match/pages/match_stats_page.dart'
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 enum _MatchPhase { notStarted, firstHalf, halfTime, secondHalf }
@@ -165,6 +168,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     ThemeData theme,
     ColorScheme scheme,
     bool isExternal,
+    AppLocalizations l10n,
   ) {
     final row = _liveEvents.first;
     final baseStyle = theme.textTheme.bodyMedium!.copyWith(
@@ -258,7 +262,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Último evento',
+                                l10n.matchLastEvent,
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: scheme.onPrimaryContainer.withValues(
                                     alpha: 0.82 + 0.18 * t,
@@ -278,7 +282,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                         color: scheme.onSurfaceVariant,
                                       ),
                                     ),
-                                    ..._liveEventDescriptionSpans(row, baseStyle),
+                                    ..._liveEventDescriptionSpans(
+                                      l10n,
+                                      row,
+                                      baseStyle,
+                                    ),
                                   ],
                                 ),
                                 softWrap: true,
@@ -584,8 +592,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
         return SimpleDialog(
-          title: const Text('Formación'),
+          title: Text(l10n.matchFormation),
           children: [
             for (final key in _formationOptions.keys)
               SimpleDialogOption(
@@ -1166,6 +1175,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       if (!mounted) return;
 
+      final l10n = AppLocalizations.of(context)!;
       _showSnackBarRich(
         error: true,
         spans: [
@@ -1176,8 +1186,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           ),
           TextSpan(
             text: yellowCount >= 2 && !hasRed
-                ? ' expulsado por doble amarilla'
-                : ' expulsado',
+                ? l10n.matchSentOffDoubleYellow
+                : l10n.matchSentOffSimple,
           ),
         ],
       );
@@ -1194,7 +1204,32 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return null;
   }
 
+  String _displayStatusChangeNote(String? note, AppLocalizations l10n) {
+    if (note == null || note.isEmpty) return l10n.matchLivePeriodFallback;
+    switch (note.trim()) {
+      case 'Inicio 1ª parte':
+      case 'Inicio 1a parte':
+        return l10n.matchNoteFirstHalfStart;
+      case 'Descanso':
+        return l10n.matchStatusHalfTime;
+      case 'Inicio 2ª parte':
+      case 'Inicio 2a parte':
+        return l10n.matchNoteSecondHalfStart;
+      case 'Final del partido':
+        return l10n.matchNoteMatchFinished;
+      default:
+        return note;
+    }
+  }
+
+  String _displayConcededGoalNote(String? note, AppLocalizations l10n) {
+    if (note == null || note.isEmpty) return l10n.matchLiveConcededDefault;
+    if (note == 'Gol del rival') return l10n.matchOpponentGoal;
+    return note;
+  }
+
   List<InlineSpan> _liveEventDescriptionSpans(
+    AppLocalizations l10n,
     Map<String, dynamic> row,
     TextStyle base,
   ) {
@@ -1207,7 +1242,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     List<InlineSpan> dorsalSpans(int? id) {
       final pl = _playerFromRoster(id);
       if (pl == null) {
-        return [TextSpan(text: id != null ? 'Jugador $id' : '—')];
+        return [
+          TextSpan(
+            text: id != null ? l10n.matchUnknownPlayerId(id) : '—',
+          ),
+        ];
       }
       return playerDorsalNameSpanList(pl, base);
     }
@@ -1217,113 +1256,118 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         final f = (note != null && note.trim().isNotEmpty) ? note.trim() : null;
         return [
           TextSpan(
-            text: f != null ? 'Formación: $f' : 'Formación registrada',
+            text: f != null
+                ? l10n.matchLiveFormationLine(f)
+                : l10n.matchLiveFormationRegistered,
           ),
         ];
       case 'substitution':
         return [
-          const TextSpan(text: 'Sustitución · Entra '),
+          TextSpan(text: l10n.matchLiveSubstitutionEnters),
           ...dorsalSpans(p1),
-          const TextSpan(text: ' · Sale '),
+          TextSpan(text: l10n.matchLiveSubstitutionLeaves),
           ...dorsalSpans(p2),
         ];
       case 'statuschange':
         return [
           TextSpan(
             text: (note != null && note.isNotEmpty)
-                ? note
-                : 'Cambio de periodo o estado',
+                ? _displayStatusChangeNote(note, l10n)
+                : l10n.matchLivePeriodFallback,
           ),
         ];
       case 'scoregoal':
         final out = <InlineSpan>[
-          const TextSpan(text: 'Gol de '),
+          TextSpan(text: l10n.matchLiveGoalBy),
           ...dorsalSpans(p1),
         ];
         if (p2 != null) {
-          out.add(const TextSpan(text: ' (asistencia de '));
+          out.add(TextSpan(text: l10n.matchLiveAssistOpening));
           out.addAll(dorsalSpans(p2));
-          out.add(const TextSpan(text: ')'));
+          out.add(TextSpan(text: l10n.matchLiveAssistClosing));
         }
         return out;
       case 'concedegoal':
         return [
-          TextSpan(
-            text: (note != null && note.isNotEmpty) ? note : 'Gol en contra',
-          ),
+          TextSpan(text: _displayConcededGoalNote(note, l10n)),
         ];
       case 'owngoal':
         return [
-          const TextSpan(text: 'Autogol · '),
+          TextSpan(text: l10n.matchLiveOwnGoal),
           ...dorsalSpans(p1),
         ];
       case 'yellowcard':
         return [
-          const TextSpan(text: 'Tarjeta amarilla: '),
+          TextSpan(text: l10n.matchLiveYellowCard),
           ...dorsalSpans(p1),
         ];
       case 'redcard':
         return [
-          const TextSpan(text: 'Tarjeta roja: '),
+          TextSpan(text: l10n.matchLiveRedCard),
           ...dorsalSpans(p1),
         ];
       case 'goodsave':
         if (note != null && note.isNotEmpty) {
           if (p1 != null) {
             return [
-              const TextSpan(text: 'Parada de '),
+              TextSpan(text: l10n.matchLiveSaveBy),
               ...dorsalSpans(p1),
               TextSpan(text: ' · $note'),
             ];
           }
-          return [TextSpan(text: 'Parada · $note')];
+          return [TextSpan(text: l10n.matchLiveSaveWithNote(note))];
         }
         if (p1 != null) {
           return [
-            const TextSpan(text: 'Parada de '),
+            TextSpan(text: l10n.matchLiveSaveBy),
             ...dorsalSpans(p1),
           ];
         }
-        return [const TextSpan(text: 'Parada')];
+        return [TextSpan(text: l10n.matchLiveSaveOnly)];
       case 'keypass':
         return [
-          const TextSpan(text: 'Pase clave: '),
+          TextSpan(text: l10n.matchLiveKeyPass),
           ...dorsalSpans(p1),
         ];
       case 'goodpass':
         return [
-          const TextSpan(text: 'Buen pase: '),
+          TextSpan(text: l10n.matchLiveGoodPass),
           ...dorsalSpans(p1),
         ];
       case 'badpass':
         return [
-          const TextSpan(text: 'Pase impreciso: '),
+          TextSpan(text: l10n.matchLiveBadPass),
           ...dorsalSpans(p1),
         ];
       case 'goodplay':
         return [
-          const TextSpan(text: 'Buena jugada: '),
+          TextSpan(text: l10n.matchLiveGoodPlay),
           ...dorsalSpans(p1),
         ];
       case 'badplay':
         return [
-          const TextSpan(text: 'Jugada imprecisa: '),
+          TextSpan(text: l10n.matchLiveBadPlay),
           ...dorsalSpans(p1),
         ];
       case 'ballrecovery':
         return [
-          const TextSpan(text: 'Balón recuperado: '),
+          TextSpan(text: l10n.matchLiveBallRecovery),
           ...dorsalSpans(p1),
         ];
       default:
         if (note != null && note.isNotEmpty) {
           return [
             TextSpan(
-              text: '${key.isEmpty ? 'Evento' : rawLabel}: $note',
+              text: l10n.matchLiveEventLine(
+                key.isEmpty ? l10n.matchLiveEvent : rawLabel,
+                note,
+              ),
             ),
           ];
         }
-        return [TextSpan(text: key.isEmpty ? 'Evento' : rawLabel)];
+        return [
+          TextSpan(text: key.isEmpty ? l10n.matchLiveEvent : rawLabel),
+        ];
     }
   }
 
@@ -1368,7 +1412,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) {
-      _showSnack('Debes iniciar sesión', error: true);
+      _showSnack(AppLocalizations.of(context)!.matchLoginRequiredShort, error: true);
       return;
     }
 
@@ -1380,32 +1424,32 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     final baseStyle = Theme.of(context).textTheme.bodyMedium!;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar evento'),
-        content: Text.rich(
-          TextSpan(
-            style: baseStyle,
-            children: [
-              if (minutePrefix.isNotEmpty) TextSpan(text: minutePrefix),
-              ..._liveEventDescriptionSpans(row, baseStyle),
-              const TextSpan(
-                text: '\n\n¿Eliminar este evento del partido? '
-                    'El marcador, las notas y la disciplina se recalcularán.',
-              ),
-            ],
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Text(l10n.matchDeleteEvent),
+          content: Text.rich(
+            TextSpan(
+              style: baseStyle,
+              children: [
+                if (minutePrefix.isNotEmpty) TextSpan(text: minutePrefix),
+                ..._liveEventDescriptionSpans(l10n, row, baseStyle),
+                TextSpan(text: '\n\n${l10n.matchDeleteEventQuestion}'),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.actionCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.actionConfirm),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true || !mounted) return;
 
@@ -1417,7 +1461,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       normalized['player_id2'] = _dynToInt(row['player_id2']);
       normalized['minute'] = _dynToInt(row['minute']) ?? 0;
 
-      final event = MatchEventModel.fromJson(normalized);
+      final event = MatchEvent.fromSupabaseMap(normalized);
       final deleteMatchEventUseCase = context.read<DeleteMatchEventUseCase>();
       final result = await deleteMatchEventUseCase(
         event,
@@ -1436,13 +1480,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               _canonicalEventTypeKey(row['type']) == 'formation';
           await _refreshDerivedMatchData(reloadFormation: reloadFormation);
           if (mounted) {
-            _showSnack('Evento eliminado');
+            _showSnack(AppLocalizations.of(context)!.matchEventDeleted);
           }
         },
       );
     } catch (e) {
       if (mounted) {
-        _showSnack('No se ha podido eliminar el evento', error: true);
+        _showSnack(AppLocalizations.of(context)!.matchEventDeleteFail, error: true);
       }
     }
   }
@@ -1492,20 +1536,23 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   Future<bool> _confirmAction(String title, String message) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.actionCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.actionConfirm),
+            ),
+          ],
+        );
+      },
     );
     return result == true;
   }
@@ -1645,17 +1692,18 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }
 
   Future<void> _onAddGoal({required bool ourTeam}) async {
+    final l10n = AppLocalizations.of(context)!;
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) {
-      _showSnack('Debes iniciar sesión para registrar goles', error: true);
+      _showSnack(l10n.matchMustLoginRegisterGoals, error: true);
       return;
     }
 
     final confirmed = await _confirmAction(
-      'Confirmar gol',
+      l10n.matchConfirmGoalTitle,
       ourTeam
-          ? '¿Seguro que quieres añadir un gol a tu equipo?'
-          : '¿Seguro que quieres añadir un gol al rival?',
+          ? l10n.matchConfirmAddGoalOur
+          : l10n.matchConfirmAddGoalRival,
     );
     if (!confirmed) return;
 
@@ -1663,7 +1711,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       // Solo permitimos registrar goles del rival desde este botón.
       if (ourTeam) {
         _showSnack(
-          'Los goles de tu equipo se registran desde un jugador en el campo',
+          l10n.matchGoalsOurTeamFromField,
           error: true,
         );
         return;
@@ -1696,33 +1744,34 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         (_) async {
           await _refreshDerivedMatchData();
           if (mounted) {
-            _showSnack('Gol del rival registrado correctamente');
+            _showSnack(l10n.matchOpponentGoalRegisteredOk);
           }
         },
       );
     } catch (e) {
-      _showSnack('No se ha podido registrar el gol', error: true);
+      _showSnack(l10n.matchGoalSaveFail, error: true);
     }
   }
 
   Future<void> _onRemoveGoal({required bool ourTeam}) async {
+    final l10n = AppLocalizations.of(context)!;
     final currentGoals = ourTeam ? _match.goalsScored : _match.goalsConceded;
     if (currentGoals <= 0) {
-      _showSnack('No hay goles que quitar', error: true);
+      _showSnack(l10n.matchNoGoalsToRemove, error: true);
       return;
     }
 
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) {
-      _showSnack('Debes iniciar sesión para quitar goles', error: true);
+      _showSnack(l10n.matchMustLoginRemoveGoals, error: true);
       return;
     }
 
     final confirmed = await _confirmAction(
-      'Quitar gol',
+      l10n.matchRemoveGoalTitle,
       ourTeam
-          ? '¿Seguro que quieres quitar un gol a tu equipo?'
-          : '¿Seguro que quieres quitar un gol al rival?',
+          ? l10n.matchConfirmRemoveGoalOur
+          : l10n.matchConfirmRemoveGoalRival,
     );
     if (!confirmed) return;
 
@@ -1741,7 +1790,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       if (result.isEmpty) {
         _showSnack(
-          'No se ha encontrado el gol en la base de datos',
+          l10n.matchGoalNotFoundInDb,
           error: true,
         );
         return;
@@ -1781,12 +1830,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         (_) async {
           await _refreshDerivedMatchData();
           if (mounted) {
-            _showSnack('Gol eliminado correctamente');
+            _showSnack(l10n.matchGoalRemovedOk);
           }
         },
       );
     } catch (e) {
-      _showSnack('No se ha podido quitar el gol', error: true);
+      _showSnack(l10n.matchGoalRemoveFail, error: true);
     }
   }
 
@@ -1862,8 +1911,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         },
       );
     } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _loadError = 'No se ha podido cargar la convocatoria';
+        _loadError = l10n.matchConvocationLoadError;
         _loadingPlayers = false;
       });
     }
@@ -1934,39 +1985,40 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     });
   }
 
-  String _bottomButtonLabel() {
+  String _bottomButtonLabel(AppLocalizations l10n) {
     switch (_phase) {
       case _MatchPhase.notStarted:
-        return 'Empezar partido';
+        return l10n.matchStartGameButton;
       case _MatchPhase.firstHalf:
-        return 'Descanso';
+        return l10n.matchHalfTimeButton;
       case _MatchPhase.halfTime:
-        return 'Reanudar partido';
+        return l10n.matchResumeGameButton;
       case _MatchPhase.secondHalf:
-        return 'Terminar partido';
+        return l10n.matchEndGame;
     }
   }
 
-  String _phaseDisplayLabel() {
+  String _phaseDisplayLabel(AppLocalizations l10n) {
     if (_match.status == MatchStatus.finished) {
-      return 'Finalizado';
+      return l10n.matchStatusFinished;
     }
     switch (_phase) {
       case _MatchPhase.notStarted:
-        return 'Sin iniciar';
+        return l10n.matchPhaseNotStarted;
       case _MatchPhase.firstHalf:
-        return '1ª parte';
+        return l10n.matchStatusFirstHalf;
       case _MatchPhase.halfTime:
-        return 'Descanso';
+        return l10n.matchStatusHalfTime;
       case _MatchPhase.secondHalf:
-        return '2ª parte';
+        return l10n.matchStatusSecondHalf;
     }
   }
 
   Future<void> _onPlayerActionRequested(Player player) async {
+    final l10n = AppLocalizations.of(context)!;
     if (_isExternal) {
       _showSnack(
-        'Modo espectador: no puedes registrar acciones de jugadores',
+        l10n.matchSpectatorNoPlayerActions,
         error: true,
       );
       return;
@@ -1975,61 +2027,67 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
     if (action == null) return;
 
-    final label = _playerActionLabel(action);
+    final label = _playerActionLabel(action, l10n);
     final baseStyle = Theme.of(context).textTheme.bodyMedium!;
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmar acción'),
-        content: Text.rich(
-          TextSpan(
-            style: baseStyle,
-            children: [
-              TextSpan(text: '¿Seguro que quieres registrar "$label" para '),
-              ...playerNameSpanList(
-                player,
-                baseStyle,
-                mode: PlayerNameTextMode.matchShort,
-              ),
-              const TextSpan(text: '?'),
-            ],
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Text(l10n.matchConfirmAction),
+          content: Text.rich(
+            TextSpan(
+              style: baseStyle,
+              children: [
+                TextSpan(text: l10n.matchRegisterActionIntro(label)),
+                ...playerNameSpanList(
+                  player,
+                  baseStyle,
+                  mode: PlayerNameTextMode.matchShort,
+                ),
+                const TextSpan(text: '?'),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.actionCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.actionConfirm),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true) return;
 
     await _savePlayerActionEvent(player, action);
   }
 
-  String _playerActionLabel(MatchPlayerActionType action) {
+  String _playerActionLabel(
+    MatchPlayerActionType action,
+    AppLocalizations l10n,
+  ) {
     switch (action) {
       case MatchPlayerActionType.goal:
-        return 'Gol';
+        return l10n.matchActionLabelGoal;
       case MatchPlayerActionType.goodPass:
-        return 'Buen pase';
+        return l10n.matchActionLabelGoodPass;
       case MatchPlayerActionType.goodPlay:
-        return 'Buena jugada';
+        return l10n.matchActionLabelGoodPlay;
       case MatchPlayerActionType.ballRecovery:
-        return 'Balón recuperado';
+        return l10n.matchActionLabelBallRecovery;
       case MatchPlayerActionType.yellowCard:
-        return 'Tarjeta amarilla';
+        return l10n.matchActionLabelYellowCard;
       case MatchPlayerActionType.redCard:
-        return 'Tarjeta roja';
+        return l10n.matchActionLabelRedCard;
       case MatchPlayerActionType.badPass:
-        return 'Pase impreciso';
+        return l10n.matchActionLabelBadPass;
       case MatchPlayerActionType.badPlay:
-        return 'Jugada imprecisa';
+        return l10n.matchActionLabelBadPlay;
     }
   }
 
@@ -2037,10 +2095,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     Player player,
     MatchPlayerActionType action,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
-        _showSnack('Debes iniciar sesión para registrar acciones', error: true);
+        _showSnack(l10n.matchActionRegisterLogin, error: true);
         return;
       }
 
@@ -2120,7 +2179,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           if (mounted) {
             _showSnackBarRich(
               spans: [
-                const TextSpan(text: 'Acción registrada para '),
+                TextSpan(text: l10n.matchActionRegisteredPrefix),
                 ...playerNameSpanList(
                   player,
                   const TextStyle(color: Colors.white),
@@ -2132,7 +2191,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         },
       );
     } catch (e) {
-      _showSnack('No se ha podido registrar la acción', error: true);
+      _showSnack(l10n.matchActionRegisterFail, error: true);
     }
   }
 
@@ -2150,15 +2209,16 @@ class _MatchManagerPageState extends State<MatchManagerPage>
             .where((p) => p.id != scorer.id && onFieldIds.contains(p.id))
             .toList();
 
+        final dlgL10n = AppLocalizations.of(ctx)!;
         return AlertDialog(
-          title: const Text('Seleccionar asistente'),
+          title: Text(dlgL10n.matchPickAssistant),
           content: SizedBox(
             width: 320,
             height: 320,
             child: Column(
               children: [
                 ListTile(
-                  title: const Text('Sin asistencia'),
+                  title: Text(dlgL10n.matchNoAttendanceOption),
                   onTap: () => Navigator.of(ctx).pop(null),
                 ),
                 const Divider(height: 1),
@@ -2180,7 +2240,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('Cancelar'),
+              child: Text(dlgL10n.actionCancel),
             ),
           ],
         );
@@ -2194,6 +2254,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     required tfg_auth.AuthUser authUser,
     required SaveMatchEventUseCase saveMatchEventUseCase,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final assistPlayer = await _selectAssistPlayer(player);
 
@@ -2217,7 +2278,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       await goalResult.fold<Future<void>>(
         (failure) async {
-          _showSnack('No se ha podido registrar el gol', error: true);
+          _showSnack(l10n.matchGoalSaveFail, error: true);
         },
         (_) async {
           await _refreshAfterPlayerAction(
@@ -2227,7 +2288,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           if (mounted) {
             _showSnackBarRich(
               spans: [
-                const TextSpan(text: 'Gol registrado para '),
+                TextSpan(text: l10n.matchGoalRegisteredPrefix),
                 ...playerNameSpanList(
                   player,
                   const TextStyle(color: Colors.white),
@@ -2239,20 +2300,19 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         },
       );
     } catch (e) {
-      _showSnack('No se ha podido registrar el gol', error: true);
+      _showSnack(l10n.matchGoalSaveFail, error: true);
     }
   }
 
   Future<void> _onBottomButtonPressed() async {
+    final l10n = AppLocalizations.of(context)!;
     final loadingCubit = context.read<LoadingCubit>();
 
     if (_phase == _MatchPhase.notStarted) {
       if (!_allPositionsFilled) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Debes colocar todos los jugadores antes de empezar el partido',
-            ),
+          SnackBar(
+            content: Text(l10n.matchFillAllPositionsBeforeStart),
             backgroundColor: Colors.red,
           ),
         );
@@ -2262,8 +2322,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Debes iniciar sesión para empezar el partido'),
+          SnackBar(
+            content: Text(l10n.matchMustLoginStart),
             backgroundColor: Colors.red,
           ),
         );
@@ -2271,8 +2331,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       }
 
       final confirmed = await _confirmAction(
-        'Empezar partido',
-        '¿Seguro que quieres empezar el partido?',
+        l10n.matchConfirmStartTitle,
+        l10n.matchConfirmStartBody,
       );
       if (!confirmed) return;
 
@@ -2294,10 +2354,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         },
         (_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Partido empezado correctamente'),
+            SnackBar(
+              content: Text(l10n.matchStartedOk),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+              duration: const Duration(seconds: 1),
             ),
           );
           _matchStartTimes[_match.id] = startTime;
@@ -2330,8 +2390,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       );
     } else if (_phase == _MatchPhase.firstHalf) {
       final confirmed = await _confirmAction(
-        'Ir al descanso',
-        '¿Seguro que quieres pasar al descanso?',
+        l10n.matchConfirmHalfTimeTitle,
+        l10n.matchConfirmHalfTimeBody,
       );
       if (!confirmed) return;
       // Pasar a descanso: paramos el cronómetro y cambiamos de fase
@@ -2359,8 +2419,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Debes iniciar sesión para pausar el partido'),
+          SnackBar(
+            content: Text(l10n.matchMustLoginPause),
             backgroundColor: Colors.red,
           ),
         );
@@ -2376,8 +2436,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               .eq('id', _match.id);
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se ha podido actualizar el estado del partido'),
+            SnackBar(
+              content: Text(l10n.matchStateUpdateFail),
               backgroundColor: Colors.red,
             ),
           );
@@ -2387,8 +2447,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       }
     } else if (_phase == _MatchPhase.halfTime) {
       final confirmed = await _confirmAction(
-        'Reanudar partido',
-        '¿Seguro que quieres empezar la 2ª parte?',
+        l10n.matchConfirmResumeTitle,
+        l10n.matchConfirmResumeBody,
       );
       if (!confirmed) return;
       // Reanudar segunda parte
@@ -2420,8 +2480,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Debes iniciar sesión para reanudar el partido'),
+          SnackBar(
+            content: Text(l10n.matchMustLoginResume),
             backgroundColor: Colors.red,
           ),
         );
@@ -2441,8 +2501,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               .eq('id', _match.id);
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se ha podido actualizar el estado del partido'),
+            SnackBar(
+              content: Text(l10n.matchStateUpdateFail),
               backgroundColor: Colors.red,
             ),
           );
@@ -2458,8 +2518,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Debes iniciar sesión para terminar el partido'),
+          SnackBar(
+            content: Text(l10n.matchMustLoginFinish),
             backgroundColor: Colors.red,
           ),
         );
@@ -2468,25 +2528,26 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       final confirm = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Terminar partido'),
-          content: const Text(
-            '¿Seguro que quieres terminar el partido? Se guardarán las estadísticas.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text(
-                'Terminar',
-                style: TextStyle(color: Colors.red),
+        builder: (ctx) {
+          final dlg = AppLocalizations.of(ctx)!;
+          return AlertDialog(
+            title: Text(dlg.matchEndGame),
+            content: Text(dlg.matchEndGameDialogBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(dlg.actionCancel),
               ),
-            ),
-          ],
-        ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(
+                  dlg.matchEndGameAction,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          );
+        },
       );
 
       if (confirm != true) return;
@@ -2535,12 +2596,25 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           if (!mounted) return;
           final getPlayersByTeamUseCase = context
               .read<GetPlayersByTeamUseCase>();
+          final getMatchEventsByMatchUseCase = context
+              .read<GetMatchEventsByMatchUseCase>();
+          final getMatchLineupsByMatchUseCase = context
+              .read<GetMatchLineupsByMatchUseCase>();
+          final getLatestFormationNoteByMatchUseCase = context
+              .read<GetLatestFormationNoteByMatchUseCase>();
+          final loadErrorMessage =
+              AppLocalizations.of(context)!.matchStatsLoadError;
           await Navigator.of(context).pushReplacement(
             MaterialPageRoute<void>(
               builder: (ctx) => BlocProvider(
                 create: (_) => MatchStatsCubit(
                   match: finishedMatch,
                   getPlayersByTeamUseCase: getPlayersByTeamUseCase,
+                  getMatchEventsByMatchUseCase: getMatchEventsByMatchUseCase,
+                  getMatchLineupsByMatchUseCase: getMatchLineupsByMatchUseCase,
+                  getLatestFormationNoteByMatchUseCase:
+                      getLatestFormationNoteByMatchUseCase,
+                  loadErrorMessage: loadErrorMessage,
                 )..load(),
                 child: MatchStatsPage(match: finishedMatch),
               ),
@@ -2553,6 +2627,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final bool isExternal = _isExternal;
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
@@ -2607,7 +2682,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       team: widget.team,
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Partido en curso'),
+        title: Text(l10n.screenMatchLive),
         centerTitle: true,
         actions: const [TeamQuickNavAppBarButton()],
       ),
@@ -2631,7 +2706,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Marcador y tiempo',
+                              l10n.matchScoreAndTime,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -2639,7 +2714,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           ),
                           Chip(
                             label: Text(
-                              _phaseDisplayLabel(),
+                              _phaseDisplayLabel(l10n),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
@@ -2741,7 +2816,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                       if (!isExternal) ...[
                         const SizedBox(height: 16),
                         Text(
-                          'Marcador rápido',
+                          l10n.matchQuickScore,
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: scheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
@@ -2755,7 +2830,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           ),
                           onPressed: () => _onAddGoal(ourTeam: false),
                           icon: const Icon(Icons.sports_soccer, size: 20),
-                          label: const Text('Gol del rival'),
+                          label: Text(l10n.matchOpponentGoal),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -2763,21 +2838,21 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: () => _onRemoveGoal(ourTeam: true),
-                                child: const Text('− Nuestro'),
+                                child: Text(l10n.matchSubtractOur),
                               ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: () => _onRemoveGoal(ourTeam: false),
-                                child: const Text('− Rival'),
+                                child: Text(l10n.matchSubtractRival),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Los goles a favor se registran desde el campo (jugador) o las acciones.',
+                          l10n.matchGoalsFromFieldHint,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                             height: 1.3,
@@ -2802,7 +2877,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Campo y formación',
+                              l10n.matchFieldAndFormation,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -2884,7 +2959,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               if (_showLiveLastEventHighlight) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: _buildLiveLastEventBlinkBanner(theme, scheme, isExternal),
+                  child: _buildLiveLastEventBlinkBanner(
+                    theme,
+                    scheme,
+                    isExternal,
+                    l10n,
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],
@@ -2906,14 +2986,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Convocados',
+                                    l10n.matchSquadTitle,
                                     style: theme.textTheme.titleMedium
                                         ?.copyWith(fontWeight: FontWeight.w700),
                                   ),
                                   Text(
                                     isExternal
-                                        ? 'Modo espectador: la lista y el campo son solo informativos.'
-                                        : 'Toca un jugador para seleccionarlo; toca el campo para alinear o abrir acciones.',
+                                        ? l10n.matchSquadHintSpectator
+                                        : l10n.matchSquadHintCoach,
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: scheme.onSurfaceVariant,
                                       height: 1.3,
@@ -2940,7 +3020,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           if (isExternal) return;
                           if (isSentOff) {
                             _showSnack(
-                              'Jugador expulsado, no puede volver a entrar',
+                              l10n.matchPlayerSentOffCannotReturn,
                               error: true,
                             );
                             return;
@@ -2972,7 +3052,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Eventos del partido',
+                              l10n.matchEventsTitle,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -2983,8 +3063,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                       const SizedBox(height: 4),
                       Text(
                         isExternal
-                            ? 'Cronología del encuentro.'
-                            : 'Toca un evento para eliminarlo. Solo los administradores del equipo pueden borrar eventos.',
+                            ? l10n.matchEventsHintSpectator
+                            : l10n.matchEventsHintCoach,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                           height: 1.3,
@@ -2995,7 +3075,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           child: Text(
-                            'Aún no hay eventos registrados',
+                            l10n.matchEventsEmpty,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: scheme.onSurfaceVariant,
@@ -3053,6 +3133,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                                   ),
                                               children:
                                                   _liveEventDescriptionSpans(
+                                                l10n,
                                                 _liveEvents[i],
                                                 theme.textTheme.bodyMedium!
                                                     .copyWith(
@@ -3124,7 +3205,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                             ),
                           )
                         : Text(
-                            _bottomButtonLabel(),
+                            _bottomButtonLabel(l10n),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,

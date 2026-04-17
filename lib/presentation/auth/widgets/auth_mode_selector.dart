@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class AuthModeSelector extends StatelessWidget {
   final bool isRegisterMode;
@@ -12,9 +13,10 @@ class AuthModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final label = isRegisterMode
-        ? '¿Ya tienes cuenta? Inicia sesión'
-        : '¿No tienes cuenta? Regístrate';
+        ? l10n.authHaveAccountLogin
+        : l10n.authNoAccountRegister;
 
     return TextButton(
       onPressed: onTap,

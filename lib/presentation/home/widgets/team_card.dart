@@ -8,6 +8,7 @@ import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class TeamCard extends StatelessWidget {
   final Team team;
@@ -16,13 +17,14 @@ class TeamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final getPlayersByTeamUseCase = context.read<GetPlayersByTeamUseCase>();
     final authState = context.read<AuthCubit>().state;
     String? roleLabel;
     if (authState is Authenticated) {
       final role = authState.user.teamRoles[team.id];
       if (role != null) {
-        roleLabel = _roleLabel(role);
+        roleLabel = _roleLabel(role, l10n);
       }
     }
 
@@ -213,16 +215,16 @@ class TeamCard extends StatelessWidget {
     );
   }
 
-  String _roleLabel(UserRole role) {
+  String _roleLabel(UserRole role, AppLocalizations l10n) {
     switch (role) {
       case UserRole.superAdmin:
-        return 'Superadmin';
+        return l10n.roleSuperAdmin;
       case UserRole.admin:
-        return 'Admin';
+        return l10n.roleAdmin;
       case UserRole.player:
-        return 'Jugador';
+        return l10n.rolePlayer;
       case UserRole.external:
-        return 'Externo';
+        return l10n.roleExternal;
     }
   }
 

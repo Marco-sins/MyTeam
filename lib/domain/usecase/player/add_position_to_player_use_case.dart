@@ -4,7 +4,7 @@ import 'package:football_manager/core/errors/failure/permission_failure.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
-import 'package:football_manager/domain/i_repositories/i_player_repository.dart';
+import 'package:football_manager/domain/repositories/i_player_repository.dart';
 
 class AddPositionToPlayerUseCase {
   final IPlayerRepository _playerRepository;

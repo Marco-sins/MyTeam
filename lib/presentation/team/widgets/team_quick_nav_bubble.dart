@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
+import 'package:football_manager/presentation/common/widgets/app_language_selector.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
@@ -15,7 +17,7 @@ class TeamQuickNavAppBarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.menu_rounded),
-      tooltip: 'Menú del equipo',
+      tooltip: AppLocalizations.of(context)!.navMenuTooltip,
       onPressed: () => openTeamQuickNavPanel(context),
     );
   }
@@ -41,6 +43,7 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
     barrierColor: Colors.black45,
     transitionDuration: const Duration(milliseconds: 200),
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
+      final l10n = AppLocalizations.of(hostContext)!;
       final padding = MediaQuery.paddingOf(dialogContext);
       const textPrimary = Color(0xFF1C1B1F);
       const textSecondary = Color(0xFF49454F);
@@ -78,11 +81,11 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                   const Divider(height: 1, thickness: 1),
                   Expanded(
                     child: ListView(
-                      padding: EdgeInsets.only(bottom: padding.bottom + 24),
+                      padding: const EdgeInsets.only(bottom: 8),
                       children: [
                         _PanelTile(
                           icon: Icons.home_outlined,
-                          title: 'Mis equipos',
+                          title: l10n.navMyTeams,
                           onTap: () {
                             Navigator.pop(dialogContext);
                             TeamSessionNavigation.popToAppHome(hostContext);
@@ -93,7 +96,7 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                         _PanelTile(
                           icon: Icons.groups_2_outlined,
                           title: team.name,
-                          subtitle: 'Inicio del equipo',
+                          subtitle: l10n.navTeamHomeSubtitle,
                           onTap: () {
                             Navigator.pop(dialogContext);
                             TeamSessionNavigation.goToTeamHome(hostContext);
@@ -105,7 +108,7 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                         if (!isExternal) ...[
                           _PanelTile(
                             icon: Icons.check_circle_outline,
-                            title: 'Asistencia',
+                            title: l10n.navAttendance,
                             onTap: () {
                               Navigator.pop(dialogContext);
                               TeamSessionNavigation.openAttendance(hostContext);
@@ -115,7 +118,7 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                           ),
                           _PanelTile(
                             icon: Icons.list_alt,
-                            title: 'Convocatoria',
+                            title: l10n.navConvocation,
                             onTap: () {
                               Navigator.pop(dialogContext);
                               TeamSessionNavigation.openConvocation(hostContext);
@@ -126,7 +129,7 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                         ],
                         _PanelTile(
                           icon: Icons.sports_soccer,
-                          title: 'Partido',
+                          title: l10n.navMatch,
                           onTap: () {
                             Navigator.pop(dialogContext);
                             TeamSessionNavigation.openMatchList(hostContext);
@@ -137,7 +140,7 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                         if (!isExternal)
                           _PanelTile(
                             icon: Icons.settings_outlined,
-                            title: 'Gestión',
+                            title: l10n.navManagement,
                             onTap: () {
                               Navigator.pop(dialogContext);
                               TeamSessionNavigation.openManagement(hostContext);
@@ -146,6 +149,22 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                             textSecondary: textSecondary,
                           ),
                       ],
+                    ),
+                  ),
+                  const Divider(height: 1, thickness: 1),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      12,
+                      16,
+                      padding.bottom + 16,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: AppLanguageSelector(
+                        variant: AppLanguageSelectorVariant.lightSurface,
+                        menuOpensOver: true,
+                      ),
                     ),
                   ),
                 ],

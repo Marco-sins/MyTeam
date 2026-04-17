@@ -6,9 +6,8 @@ import 'package:football_manager/core/errors/failure/server_failure.dart';
 import 'package:football_manager/core/errors/failure/unknow_failure.dart';
 import 'package:football_manager/data/datasource/match_event_remote_datasource.dart';
 import 'package:football_manager/data/mappers/match_event_mapper.dart';
-import 'package:football_manager/data/models/match_event_model.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
-import 'package:football_manager/domain/i_repositories/i_match_event_repository.dart';
+import 'package:football_manager/domain/repositories/i_match_event_repository.dart';
 
 class MatchEventRepository implements IMatchEventRepository {
   final MatchEventRemoteDatasource _remoteDatasource;
@@ -33,14 +32,31 @@ class MatchEventRepository implements IMatchEventRepository {
   ) async {
     try {
       final result = await _remoteDatasource.getMatchEventsByMatch(matchId);
-      List<MatchEventModel> events = result
-          .map((e) => MatchEventMapper.toModel(e))
-          .toList();
-      return Right(events);
+      return Right(result.map(MatchEventMapper.toEntity).toList());
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure('Unexpected error: $e'));
     } catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
+      return Left(UnknowFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String?>> getLatestFormationNoteByMatchId(
+    int matchId,
+  ) async {
+    try {
+      final note = await _remoteDatasource.getLatestFormationNoteByMatchId(
+        matchId,
+      );
+      return Right(note);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(UnknowFailure('Unexpected error: $e'));
+    } catch (e) {
+      return Left(UnknowFailure('Unexpected error: $e'));
     }
   }
 

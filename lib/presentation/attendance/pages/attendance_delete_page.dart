@@ -9,6 +9,7 @@ import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 class AttendanceDeletePage extends StatefulWidget {
@@ -49,7 +50,7 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
       team: team,
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Eliminar asistencia'),
+        title: Text(AppLocalizations.of(context)!.screenDeleteAttendance),
         centerTitle: true,
         actions: const [TeamQuickNavAppBarButton()],
       ),
@@ -62,13 +63,14 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
             child: FutureBuilder(
             future: _daysFuture,
             builder: (context, snapshot) {
+              final l10n = AppLocalizations.of(context)!;
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
               if (!snapshot.hasData) {
-                return const Center(
-                  child: Text('No se han podido cargar los días de asistencia'),
+                return Center(
+                  child: Text(l10n.attendanceDeleteLoadError),
                 );
               }
 
@@ -77,8 +79,8 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
                 dates,
               ) {
                 if (dates.isEmpty) {
-                  return const Center(
-                    child: Text('No hay días de entrenamiento registrados'),
+                  return Center(
+                    child: Text(l10n.attendanceDeleteEmpty),
                   );
                 }
 
@@ -96,9 +98,10 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
                             final authState = context.read<AuthCubit>().state;
                             if (authState is! Authenticated) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Debes iniciar sesión para borrar asistencia',
+                                    AppLocalizations.of(context)!
+                                        .attendanceDeleteNeedLogin,
                                   ),
                                   backgroundColor: Colors.red,
                                 ),
@@ -108,27 +111,34 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
 
                             final confirm = await showDialog<bool>(
                               context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Eliminar asistencia'),
-                                content: Text(
-                                  '¿Seguro que quieres eliminar la asistencia del día ${_formattedDate(date)}?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(true),
-                                    child: const Text(
-                                      'Eliminar',
-                                      style: TextStyle(color: Colors.red),
+                              builder: (ctx) {
+                                final dlgL10n = AppLocalizations.of(context)!;
+                                return AlertDialog(
+                                  title: Text(dlgL10n.screenDeleteAttendance),
+                                  content: Text(
+                                    dlgL10n.attendanceDeleteConfirmBody(
+                                      _formattedDate(date),
                                     ),
                                   ),
-                                ],
-                              ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: Text(dlgL10n.actionCancel),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: Text(
+                                        dlgL10n.actionRemove,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             );
 
                             if (confirm != true) return;

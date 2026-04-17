@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class HomeEmpty extends StatelessWidget {
   const HomeEmpty({super.key});
@@ -7,6 +8,7 @@ class HomeEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Center(
       child: Padding(
@@ -34,7 +36,7 @@ class HomeEmpty extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Aún no tienes equipos',
+                    l10n.homeEmptyTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -42,7 +44,7 @@ class HomeEmpty extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Crea tu primer equipo con el botón flotante o revisa si tienes invitaciones pendientes.',
+                    l10n.homeEmptySubtitle,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                       height: 1.4,
@@ -67,14 +69,14 @@ class HomeEmpty extends StatelessWidget {
                       children: [
                         _HintRow(
                           icon: Icons.add_circle_outline,
-                          text: 'Nuevo equipo: datos básicos y escudo',
+                          text: l10n.homeEmptyHintNewTeam,
                           scheme: scheme,
                           theme: theme,
                         ),
                         const SizedBox(height: 10),
                         _HintRow(
                           icon: Icons.forward_to_inbox_rounded,
-                          text: 'Invitaciones: únete a un equipo existente',
+                          text: l10n.homeEmptyHintInvitations,
                           scheme: scheme,
                           theme: theme,
                         ),

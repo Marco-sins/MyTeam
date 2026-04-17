@@ -8,7 +8,7 @@ import 'package:football_manager/core/errors/failure/server_failure.dart';
 import 'package:football_manager/data/datasource/team_remote_datasource.dart';
 import 'package:football_manager/data/mappers/team_mapper.dart';
 import 'package:football_manager/domain/entities/team.dart';
-import 'package:football_manager/domain/i_repositories/i_team_repository.dart';
+import 'package:football_manager/domain/repositories/i_team_repository.dart';
 
 class TeamRepository implements ITeamRepository {
   final TeamRemoteDatasource _datasource;

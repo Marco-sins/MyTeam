@@ -110,6 +110,7 @@ Future<File?> generateConvocationImage({
   String? awayLocation,
   String? notes,
   required List<Player> selectedPlayers,
+  required ConvocationImageCopy imageCopy,
 }) async {
   ui.Image? teamLogo;
   try {
@@ -196,6 +197,7 @@ Future<File?> generateConvocationImage({
       overlayRect: overlayRect,
       palette: palette,
       startY: headerBottomY,
+      copy: imageCopy,
       dateStr: dateStr,
       matchTimeStr: matchTimeStr,
       callTimeStr: callTimeStr,

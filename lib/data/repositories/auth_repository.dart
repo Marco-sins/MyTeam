@@ -9,7 +9,7 @@ import 'package:football_manager/data/datasource/auth_remote_datasource.dart';
 import 'package:football_manager/data/mappers/auth_user_mapper.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/sign_up_success.dart';
-import 'package:football_manager/domain/i_repositories/i_auth_repository.dart';
+import 'package:football_manager/domain/repositories/i_auth_repository.dart';
 
 class AuthRepository implements IAuthRepository {
   final AuthRemoteDatasource _datasource;

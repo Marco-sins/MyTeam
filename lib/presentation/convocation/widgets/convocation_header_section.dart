@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class ConvocationHeaderSection extends StatelessWidget {
   final TextEditingController rivalController;
@@ -18,6 +19,7 @@ class ConvocationHeaderSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -31,7 +33,7 @@ class ConvocationHeaderSection extends StatelessWidget {
                 Icon(Icons.sports_soccer, size: 22, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Partido',
+                  l10n.convSectionMatch,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -43,7 +45,7 @@ class ConvocationHeaderSection extends StatelessWidget {
               controller: rivalController,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
-                labelText: 'Rival',
+                labelText: l10n.convRivalLabel,
                 prefixIcon: const Icon(Icons.groups_outlined),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -56,7 +58,7 @@ class ConvocationHeaderSection extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Sede',
+              l10n.convVenueLabel,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: scheme.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
@@ -97,7 +99,7 @@ class ConvocationHeaderSection extends StatelessWidget {
                   ButtonSegment<bool>(
                     value: true,
                     label: Text(
-                      'Casa',
+                      l10n.convHome,
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -109,7 +111,7 @@ class ConvocationHeaderSection extends StatelessWidget {
                   ButtonSegment<bool>(
                     value: false,
                     label: Text(
-                      'Fuera',
+                      l10n.convAway,
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -131,8 +133,8 @@ class ConvocationHeaderSection extends StatelessWidget {
               controller: awayLocationController,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText: 'Lugar (opcional)',
-                hintText: 'Pabellón o dirección · aparece en la imagen',
+                labelText: l10n.convLocationHint,
+                hintText: l10n.convLocationFieldHint,
                 prefixIcon: const Icon(Icons.place_outlined),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),

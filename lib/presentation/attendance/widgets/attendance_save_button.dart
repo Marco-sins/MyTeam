@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/attendance/cubit/attendance_cubit.dart';
@@ -14,6 +15,7 @@ class AttendanceSaveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return SizedBox(
       width: double.infinity,
@@ -27,9 +29,7 @@ class AttendanceSaveButton extends StatelessWidget {
           if (authState is! Authenticated) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text(
-                  'Debes iniciar sesión para guardar la asistencia',
-                ),
+                content: Text(l10n.attendanceSaveNeedLogin),
                 backgroundColor: scheme.error,
               ),
             );
@@ -40,9 +40,7 @@ class AttendanceSaveButton extends StatelessWidget {
           if (teamState is! TeamDetailLoaded) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text(
-                  'No se ha podido cargar la plantilla del equipo',
-                ),
+                content: Text(l10n.attendanceSaveTeamLoadError),
                 backgroundColor: scheme.error,
               ),
             );
@@ -63,7 +61,7 @@ class AttendanceSaveButton extends StatelessWidget {
                         CircularProgressIndicator(color: scheme.primary),
                         const SizedBox(height: 16),
                         Text(
-                          'Guardando…',
+                          l10n.attendanceSaveInProgress,
                           style: Theme.of(ctx).textTheme.bodyMedium,
                         ),
                       ],
@@ -98,7 +96,7 @@ class AttendanceSaveButton extends StatelessWidget {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Asistencia guardada correctamente'),
+              content: Text(l10n.attendanceSaveSuccess),
               backgroundColor: scheme.primary,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
@@ -111,9 +109,9 @@ class AttendanceSaveButton extends StatelessWidget {
           );
         },
         icon: const Icon(Icons.save_rounded),
-        label: const Text(
-          'Guardar asistencia',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        label: Text(
+          l10n.attendanceSaveButton,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );

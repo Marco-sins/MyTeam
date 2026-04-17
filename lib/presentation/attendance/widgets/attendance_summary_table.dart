@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:football_manager/data/datasource/attendance_remote_datasource.dart';
-import 'package:football_manager/data/repositories/attendance_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/attendance.dart';
+import 'package:football_manager/domain/usecase/attendance/get_attendances_use_case.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class AttendanceSummaryTable extends StatelessWidget {
   final Team team;
@@ -19,12 +19,10 @@ class AttendanceSummaryTable extends StatelessWidget {
     required this.players,
   });
 
-  Future<_AttendanceMatrix> _loadMatrix() async {
-    final supabase = Supabase.instance.client;
-    final attendanceRepository = AttendanceRepository(
-      AttendanceRemoteDatasource(supabase),
-    );
-    final result = await attendanceRepository.getAttendances();
+  Future<_AttendanceMatrix> _loadMatrix(
+    GetAttendancesUseCase getAttendances,
+  ) async {
+    final result = await getAttendances();
     return result.fold((failure) => const _AttendanceMatrix.empty(), (
       attendances,
     ) {
@@ -73,8 +71,9 @@ class AttendanceSummaryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final getAttendances = context.read<GetAttendancesUseCase>();
     return FutureBuilder<_AttendanceMatrix>(
-      future: _loadMatrix(),
+      future: _loadMatrix(getAttendances),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -87,6 +86,7 @@ class AttendanceSummaryTable extends StatelessWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
+            final l10n = AppLocalizations.of(context)!;
             // Ancho mínimo de la tabla adaptable al tamaño de pantalla
             // (más estrecha en móviles, más ancha en pantallas grandes).
             final double tableMinWidth = constraints.maxWidth.clamp(0.0, 700.0);
@@ -120,10 +120,12 @@ class AttendanceSummaryTable extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const DataColumn(
+                          DataColumn(
                             label: Text(
-                              'Jugador',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              l10n.tableColumnPlayer,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           for (final date in matrix.dates)

@@ -1,4 +1,3 @@
-import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 
@@ -14,25 +13,15 @@ class MatchEventModel extends MatchEvent {
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
-    // En la BD solo hay un campo de tipo ("type"), lo normalizamos
-    // para aceptar tanto "scoreGoal" como "MatchEventEnum.scoreGoal".
-    final rawType = json['type'];
-    final String? typeString = rawType?.toString().split('.').last;
-    final MatchEventEnum parsedType = typeString != null
-        ? MatchEventEnum.values.firstWhere(
-            (e) => e.toString().split('.').last == typeString,
-            orElse: () => MatchEventEnum.scoreGoal,
-          )
-        : MatchEventEnum.scoreGoal;
-
+    final e = MatchEvent.fromSupabaseMap(json);
     return MatchEventModel(
-      id: supabaseInt(json['id']) ?? 0,
-      matchId: supabaseInt(json['match_id']) ?? 0,
-      playerId1: supabaseInt(json['player_id1']),
-      playerId2: supabaseInt(json['player_id2']),
-      type: parsedType,
-      minute: supabaseInt(json['minute']) ?? 0,
-      note: json['note'] as String?,
+      id: e.id,
+      matchId: e.matchId,
+      playerId1: e.playerId1,
+      playerId2: e.playerId2,
+      minute: e.minute,
+      type: e.type,
+      note: e.note,
     );
   }
 

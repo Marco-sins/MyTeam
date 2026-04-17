@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/player/add_new_player_use_case.dart';
@@ -19,6 +20,7 @@ class TeamRosterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final authState = context.read<AuthCubit>().state;
     bool isExternal = false;
@@ -37,7 +39,7 @@ class TeamRosterWidget extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'Plantilla',
+            l10n.screenRoster,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: scheme.primary,
                   fontWeight: FontWeight.w800,
@@ -62,9 +64,7 @@ class TeamRosterWidget extends StatelessWidget {
                 if (authState is! Authenticated) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text(
-                        'Debes iniciar sesión para añadir jugadores',
-                      ),
+                      content: Text(l10n.teamMustLoginAddPlayers),
                       backgroundColor: scheme.error,
                     ),
                   );
@@ -88,7 +88,7 @@ class TeamRosterWidget extends StatelessWidget {
                 context.read<TeamDetailCubit>().loadTeam(team.id);
               },
               icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text('Añadir jugador'),
+              label: Text(l10n.screenAddPlayer),
             ),
           ),
         ],
@@ -104,6 +104,7 @@ class _ExternalPlayersTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
 
     return BlocBuilder<TeamDetailCubit, TeamDetailState>(
@@ -138,7 +139,7 @@ class _ExternalPlayersTable extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'No hay jugadores en la plantilla',
+                      l10n.convocationEmptyRoster,
                       style: Theme.of(context).textTheme.titleSmall,
                       textAlign: TextAlign.center,
                     ),

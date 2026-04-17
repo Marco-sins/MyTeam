@@ -6,6 +6,29 @@ import 'package:football_manager/domain/entities/player.dart';
 
 import 'convocation_image_theme.dart';
 
+/// Textos del PNG exportado; deben venir de [AppLocalizations] en tiempo de guardado.
+class ConvocationImageCopy {
+  const ConvocationImageCopy({
+    required this.sectionMatchDetails,
+    required this.labelDate,
+    required this.labelMatchTime,
+    required this.labelCallTime,
+    required this.labelVenue,
+    required this.sectionSquadTitle,
+    required this.observationsTitle,
+    required this.playerFallbackName,
+  });
+
+  final String sectionMatchDetails;
+  final String labelDate;
+  final String labelMatchTime;
+  final String labelCallTime;
+  final String labelVenue;
+  final String sectionSquadTitle;
+  final String observationsTitle;
+  final String playerFallbackName;
+}
+
 /// Tipografía y márgenes de la sección de observaciones (PNG convocatoria).
 const double _kObsTitleFontSize = 23;
 const double _kObsTitleBarW = 6;
@@ -25,6 +48,7 @@ void _drawObservationsSectionHeader(
   Rect overlayRect,
   double y,
   ConvocationImagePalette palette,
+  String observationsTitle,
 ) {
   final barRect = RRect.fromRectAndRadius(
     Rect.fromLTWH(overlayRect.left + 28, y + 3, _kObsTitleBarW, _kObsTitleBarH),
@@ -47,7 +71,7 @@ void _drawObservationsSectionHeader(
             letterSpacing: -0.35,
           ),
         )
-        ..addText('Observaciones');
+        ..addText(observationsTitle);
 
   final paragraph = builder.build()
     ..layout(ui.ParagraphConstraints(width: overlayRect.width - 88));
@@ -120,6 +144,7 @@ void drawConvocationBody({
   required Rect overlayRect,
   required ConvocationImagePalette palette,
   required double startY,
+  required ConvocationImageCopy copy,
   required String dateStr,
   required String matchTimeStr,
   required String callTimeStr,
@@ -145,16 +170,16 @@ void drawConvocationBody({
   drawHairline(y);
   y += 28;
 
-  _drawSectionTitle(canvas, overlayRect, y, palette, 'Detalles del partido');
+  _drawSectionTitle(canvas, overlayRect, y, palette, copy.sectionMatchDetails);
   y += 40;
 
-  y = _drawDetailRow(canvas, overlayRect, y, palette, 'Fecha', dateStr);
+  y = _drawDetailRow(canvas, overlayRect, y, palette, copy.labelDate, dateStr);
   y = _drawDetailRow(
     canvas,
     overlayRect,
     y,
     palette,
-    'Hora del partido',
+    copy.labelMatchTime,
     matchTimeStr,
   );
   y = _drawDetailRow(
@@ -162,7 +187,7 @@ void drawConvocationBody({
     overlayRect,
     y,
     palette,
-    'Hora convocatoria',
+    copy.labelCallTime,
     callTimeStr,
   );
 
@@ -172,7 +197,7 @@ void drawConvocationBody({
       overlayRect,
       y,
       palette,
-      'Lugar',
+      copy.labelVenue,
       awayLocation.trim(),
     );
   }
@@ -187,14 +212,14 @@ void drawConvocationBody({
     overlayRect,
     y,
     palette,
-    'Jugadores convocados',
+    copy.sectionSquadTitle,
     subtitle: '${players.length}',
   );
   y += 44;
 
   for (var i = 0; i < players.length; i++) {
     final p = players[i];
-    y = _drawPlayerRow(canvas, overlayRect, y, palette, p, i.isEven);
+    y = _drawPlayerRow(canvas, overlayRect, y, palette, p, i.isEven, copy);
   }
 
   y += 28;
@@ -203,7 +228,13 @@ void drawConvocationBody({
     drawHairline(y);
     y += 28;
 
-    _drawObservationsSectionHeader(canvas, overlayRect, y, palette);
+    _drawObservationsSectionHeader(
+      canvas,
+      overlayRect,
+      y,
+      palette,
+      copy.observationsTitle,
+    );
     y += _kObsTitleBlockHeight + _kObsGapBeforeBox;
 
     final boxLeft = overlayRect.left + 28;
@@ -328,6 +359,7 @@ double _drawPlayerRow(
   ConvocationImagePalette palette,
   Player p,
   bool alternate,
+  ConvocationImageCopy copy,
 ) {
   const rowH = 52.0;
   final rowRect = RRect.fromRectAndRadius(
@@ -389,7 +421,7 @@ double _drawPlayerRow(
   final nameX = badgeLeft + badgeSize + 12;
   final nameParts = playerNamePartsMatchShort(p);
   final givenName =
-      nameParts.given.isEmpty ? 'Jugador' : nameParts.given;
+      nameParts.given.isEmpty ? copy.playerFallbackName : nameParts.given;
   final namePara = ui.ParagraphBuilder(
     ui.ParagraphStyle(
       fontSize: 18,

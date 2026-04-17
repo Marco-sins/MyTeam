@@ -3,7 +3,7 @@ import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
-import 'package:football_manager/domain/i_repositories/i_team_repository.dart';
+import 'package:football_manager/domain/repositories/i_team_repository.dart';
 
 /// Abandono voluntario del equipo (elimina la fila en `team_members`).
 /// Permitido para [UserRole.external], [UserRole.admin] y [UserRole.player].

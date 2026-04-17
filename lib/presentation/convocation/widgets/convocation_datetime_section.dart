@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class ConvocationDateTimeSection extends StatelessWidget {
   final String formattedDate;
@@ -22,6 +23,7 @@ class ConvocationDateTimeSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     Widget timeRow({
       required IconData icon,
@@ -67,7 +69,7 @@ class ConvocationDateTimeSection extends StatelessWidget {
             IconButton.filledTonal(
               onPressed: onPick,
               icon: Icon(pickIcon, size: 20),
-              tooltip: 'Cambiar',
+              tooltip: l10n.tooltipChange,
             ),
           ],
         ),
@@ -86,7 +88,7 @@ class ConvocationDateTimeSection extends StatelessWidget {
                 Icon(Icons.event, size: 22, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Fecha y horarios',
+                  l10n.convDatetimeSectionTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -119,7 +121,7 @@ class ConvocationDateTimeSection extends StatelessWidget {
                   IconButton.filledTonal(
                     onPressed: onPickDate,
                     icon: const Icon(Icons.edit_calendar_outlined, size: 20),
-                    tooltip: 'Elegir fecha',
+                    tooltip: l10n.convPickDateTooltip,
                   ),
                 ],
               ),
@@ -127,7 +129,7 @@ class ConvocationDateTimeSection extends StatelessWidget {
             const SizedBox(height: 10),
             timeRow(
               icon: Icons.sports_soccer,
-              label: 'Hora del partido',
+              label: l10n.convocationImageLabelMatchTime,
               value: formattedMatchTime,
               onPick: onPickMatchTime,
               pickIcon: Icons.schedule,
@@ -135,7 +137,7 @@ class ConvocationDateTimeSection extends StatelessWidget {
             const SizedBox(height: 10),
             timeRow(
               icon: Icons.groups,
-              label: 'Hora de convocatoria',
+              label: l10n.convocationImageLabelCallTime,
               value: formattedCallTime,
               onPick: onPickCallTime,
               pickIcon: Icons.alarm,

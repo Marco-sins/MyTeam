@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class TeamManagementHeaderRow extends StatelessWidget {
   final TextEditingController nameController;
@@ -18,6 +19,7 @@ class TeamManagementHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final hasLocal = selectedLogoPath != null && selectedLogoPath!.isNotEmpty;
     final hasRemote = logoUrl != null &&
@@ -68,14 +70,14 @@ class TeamManagementHeaderRow extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Escudo',
+              l10n.teamManagementLogoLabel,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
             ),
             Text(
-              'Toca para cambiar',
+              l10n.teamManagementLogoTapHint,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: scheme.outline,
                   ),
@@ -87,9 +89,9 @@ class TeamManagementHeaderRow extends StatelessWidget {
           child: TextFormField(
             controller: nameController,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Nombre del equipo',
-              hintText: 'Ej. CD Mi Equipo',
+            decoration: InputDecoration(
+              labelText: l10n.teamManagementNameLabel,
+              hintText: l10n.teamManagementNameHint,
               alignLabelWithHint: true,
             ),
           ),

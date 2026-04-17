@@ -9,6 +9,8 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_cubit.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
+import 'package:football_manager/presentation/convocation/image/convocation_image_body.dart';
 import 'package:football_manager/presentation/convocation/image/convocation_image_generator.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_image_page.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
@@ -131,6 +133,17 @@ class ConvocationSaveService {
         );
       },
       (_) async {
+        final l10n = AppLocalizations.of(context)!;
+        final imageCopy = ConvocationImageCopy(
+          sectionMatchDetails: l10n.convocationImageSectionMatchDetails,
+          labelDate: l10n.convocationImageLabelDate,
+          labelMatchTime: l10n.convocationImageLabelMatchTime,
+          labelCallTime: l10n.convocationImageLabelCallTime,
+          labelVenue: l10n.convocationImageLabelVenue,
+          sectionSquadTitle: l10n.convocationImageSectionSquad,
+          observationsTitle: l10n.convocationImageObservationsTitle,
+          playerFallbackName: l10n.convocationImagePlayerFallback,
+        );
         final file = await generateConvocationImage(
           team: team,
           isHome: isHome,
@@ -141,11 +154,14 @@ class ConvocationSaveService {
           awayLocation: awayLocation,
           notes: notesController.text,
           selectedPlayers: selectedPlayers,
+          imageCopy: imageCopy,
         );
 
+        if (!context.mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Convocatoria guardada correctamente'),
+          SnackBar(
+            content: Text(l10n.convocationSavedSuccess),
             backgroundColor: Colors.green,
           ),
         );

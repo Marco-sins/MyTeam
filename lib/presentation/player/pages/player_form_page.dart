@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
 import 'package:football_manager/domain/entities/player.dart';
@@ -319,7 +320,11 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEdit ? 'Editar jugador' : 'Añadir jugador'),
+        title: Text(
+          isEdit
+              ? AppLocalizations.of(context)!.screenEditPlayer
+              : AppLocalizations.of(context)!.screenAddPlayer,
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
