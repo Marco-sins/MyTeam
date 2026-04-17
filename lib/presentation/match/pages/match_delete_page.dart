@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/match/delete_match_use_case.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
+import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 
 class MatchDeletePage extends StatefulWidget {
   final Team team;
@@ -33,13 +36,18 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final team = context.watch<TeamContextCubit>().state;
+    return TeamBrandedScope(
+      team: team,
+      child: Scaffold(
       appBar: AppBar(title: const Text('Eliminar partido'), centerTitle: true),
       body: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: FutureBuilder(
+        child: TeamAreaBackground(
+          team: team,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: FutureBuilder(
             future: _matchesFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -174,7 +182,9 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
             },
           ),
         ),
+        ),
       ),
+    ),
     );
   }
 }

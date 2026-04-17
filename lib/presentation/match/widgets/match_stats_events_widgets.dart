@@ -80,9 +80,12 @@ class MatchStatusChangeItem extends StatelessWidget {
 
     if (lower.contains('mal ') ||
         lower.contains('mala ') ||
+        lower.contains('pase impreciso') ||
+        lower.contains('jugada imprecisa') ||
         lower.contains('pierde ') ||
         lower.contains('gol concedido') ||
-        lower.contains('gol en propia')) {
+        lower.contains('gol en propia') ||
+        lower.contains('autogol')) {
       accent = scheme.error;
     }
 
@@ -292,7 +295,7 @@ class MatchCardItem extends StatelessWidget {
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: '$label · ',
+                            text: '$label: ',
                             style: textTheme.bodyMedium!.copyWith(
                               fontWeight: FontWeight.w600,
                               color: textColor,
@@ -336,6 +339,7 @@ class MatchGoalItem extends StatelessWidget {
     required this.minute,
     required this.isOurGoal,
     required this.isAgainstGoal,
+    this.isOwnGoal = false,
     this.scorerPlayer,
     this.assistPlayer,
   });
@@ -343,6 +347,8 @@ class MatchGoalItem extends StatelessWidget {
   final int minute;
   final bool isOurGoal;
   final bool isAgainstGoal;
+  /// [true] si el gol es en propia puerta (distinto de un gol encajado del rival).
+  final bool isOwnGoal;
   final Player? scorerPlayer;
   final Player? assistPlayer;
 
@@ -435,7 +441,9 @@ class MatchGoalItem extends StatelessWidget {
                   ],
                 ),
                 child: Text(
-                  isOurGoal ? 'Gol a favor' : 'Gol encajado',
+                  isOurGoal
+                      ? 'Gol a favor'
+                      : (isOwnGoal ? 'Autogol' : 'Gol en contra'),
                   style: textTheme.labelLarge?.copyWith(
                     color: chipFg,
                     fontWeight: FontWeight.w800,

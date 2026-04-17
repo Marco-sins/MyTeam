@@ -28,6 +28,7 @@ import 'package:football_manager/presentation/match/widgets/match_player_action_
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 
 enum _MatchPhase { notStarted, firstHalf, halfTime, secondHalf }
 
@@ -1212,27 +1213,34 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
     switch (key) {
       case 'formation':
-        return [TextSpan(text: 'Formación ${note ?? '—'}')];
+        final f = (note != null && note.trim().isNotEmpty) ? note.trim() : null;
+        return [
+          TextSpan(
+            text: f != null ? 'Formación: $f' : 'Formación registrada',
+          ),
+        ];
       case 'substitution':
         return [
-          const TextSpan(text: 'Cambio: '),
+          const TextSpan(text: 'Sustitución · Entra '),
           ...dorsalSpans(p1),
-          const TextSpan(text: ' entra · '),
+          const TextSpan(text: ' · Sale '),
           ...dorsalSpans(p2),
-          const TextSpan(text: ' sale'),
         ];
       case 'statuschange':
         return [
           TextSpan(
             text: (note != null && note.isNotEmpty)
-                ? note!
-                : 'Cambio de tiempo / estado',
+                ? note
+                : 'Cambio de periodo o estado',
           ),
         ];
       case 'scoregoal':
-        final out = <InlineSpan>[const TextSpan(text: 'Gol '), ...dorsalSpans(p1)];
+        final out = <InlineSpan>[
+          const TextSpan(text: 'Gol de '),
+          ...dorsalSpans(p1),
+        ];
         if (p2 != null) {
-          out.add(const TextSpan(text: ' (asist. '));
+          out.add(const TextSpan(text: ' (asistencia de '));
           out.addAll(dorsalSpans(p2));
           out.add(const TextSpan(text: ')'));
         }
@@ -1240,76 +1248,78 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       case 'concedegoal':
         return [
           TextSpan(
-            text: (note != null && note.isNotEmpty) ? note! : 'Gol encajado',
+            text: (note != null && note.isNotEmpty) ? note : 'Gol en contra',
           ),
         ];
       case 'owngoal':
         return [
-          const TextSpan(text: 'Gol en propia · '),
+          const TextSpan(text: 'Autogol · '),
           ...dorsalSpans(p1),
         ];
       case 'yellowcard':
         return [
-          const TextSpan(text: 'Tarjeta amarilla · '),
+          const TextSpan(text: 'Tarjeta amarilla: '),
           ...dorsalSpans(p1),
         ];
       case 'redcard':
         return [
-          const TextSpan(text: 'Tarjeta roja · '),
+          const TextSpan(text: 'Tarjeta roja: '),
           ...dorsalSpans(p1),
         ];
       case 'goodsave':
         if (note != null && note.isNotEmpty) {
           if (p1 != null) {
             return [
-              const TextSpan(text: 'Parada · '),
+              const TextSpan(text: 'Parada de '),
               ...dorsalSpans(p1),
-              TextSpan(text: ' — $note'),
+              TextSpan(text: ' · $note'),
             ];
           }
-          return [TextSpan(text: 'Parada — $note')];
+          return [TextSpan(text: 'Parada · $note')];
         }
         if (p1 != null) {
           return [
-            const TextSpan(text: 'Parada · '),
+            const TextSpan(text: 'Parada de '),
             ...dorsalSpans(p1),
           ];
         }
         return [const TextSpan(text: 'Parada')];
       case 'keypass':
         return [
-          const TextSpan(text: 'Pase clave · '),
+          const TextSpan(text: 'Pase clave: '),
           ...dorsalSpans(p1),
         ];
       case 'goodpass':
         return [
-          const TextSpan(text: 'Buen pase · '),
+          const TextSpan(text: 'Buen pase: '),
           ...dorsalSpans(p1),
         ];
       case 'badpass':
         return [
-          const TextSpan(text: 'Mal pase · '),
+          const TextSpan(text: 'Pase impreciso: '),
           ...dorsalSpans(p1),
         ];
       case 'goodplay':
         return [
-          const TextSpan(text: 'Buena jugada · '),
+          const TextSpan(text: 'Buena jugada: '),
           ...dorsalSpans(p1),
         ];
       case 'badplay':
         return [
-          const TextSpan(text: 'Mala jugada · '),
+          const TextSpan(text: 'Jugada imprecisa: '),
           ...dorsalSpans(p1),
         ];
       case 'ballrecovery':
         return [
-          const TextSpan(text: 'Recuperación · '),
+          const TextSpan(text: 'Balón recuperado: '),
           ...dorsalSpans(p1),
         ];
       default:
         if (note != null && note.isNotEmpty) {
           return [
-            TextSpan(text: '${key.isEmpty ? 'Evento' : rawLabel}: $note'),
+            TextSpan(
+              text: '${key.isEmpty ? 'Evento' : rawLabel}: $note',
+            ),
           ];
         }
         return [TextSpan(text: key.isEmpty ? 'Evento' : rawLabel)];
@@ -2010,15 +2020,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       case MatchPlayerActionType.goodPlay:
         return 'Buena jugada';
       case MatchPlayerActionType.ballRecovery:
-        return 'Recuperación';
+        return 'Balón recuperado';
       case MatchPlayerActionType.yellowCard:
         return 'Tarjeta amarilla';
       case MatchPlayerActionType.redCard:
         return 'Tarjeta roja';
       case MatchPlayerActionType.badPass:
-        return 'Mal pase';
+        return 'Pase impreciso';
       case MatchPlayerActionType.badPlay:
-        return 'Mala jugada';
+        return 'Jugada imprecisa';
     }
   }
 
@@ -2064,15 +2074,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           break;
         case MatchPlayerActionType.ballRecovery:
           type = MatchEventEnum.ballRecovery;
-          note = 'Recuperación';
+          note = 'Balón recuperado';
           break;
         case MatchPlayerActionType.badPass:
           type = MatchEventEnum.badPass;
-          note = 'Mal pase';
+          note = 'Pase impreciso';
           break;
         case MatchPlayerActionType.badPlay:
           type = MatchEventEnum.badPlay;
-          note = 'Mala jugada';
+          note = 'Jugada imprecisa';
           break;
         case MatchPlayerActionType.yellowCard:
           type = MatchEventEnum.yellowCard;
@@ -2592,7 +2602,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       );
     }
 
-    return Scaffold(
+    return TeamBrandedScope(
+      team: widget.team,
+      child: Scaffold(
       appBar: AppBar(title: const Text('Partido en curso'), centerTitle: true),
       body: SafeArea(
         child: RefreshIndicator(
@@ -3120,6 +3132,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           ),
         ),
       ),
+    ),
     );
   }
 }

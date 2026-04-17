@@ -16,6 +16,14 @@ class ConvocationCubit extends Cubit<ConvocationState> {
     emit(state.copyWith(calledUp: updated));
   }
 
+  void callUpAll(Iterable<int> playerIds) {
+    final updated = Map<int, bool>.from(state.calledUp);
+    for (final id in playerIds) {
+      updated[id] = true;
+    }
+    emit(state.copyWith(calledUp: updated));
+  }
+
   bool isCalledUp(int playerId) => state.calledUp[playerId] ?? false;
 
   int calledCountFor(Iterable<int> playerIds) {

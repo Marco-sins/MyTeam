@@ -63,44 +63,86 @@ class ConvocationHeaderSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment<bool>(
-                  value: true,
-                  label: Text('Casa'),
-                  icon: Icon(Icons.home_outlined),
-                ),
-                ButtonSegment<bool>(
-                  value: false,
-                  label: Text('Fuera'),
-                  icon: Icon(Icons.flight_takeoff),
-                ),
-              ],
-              selected: {isHome},
-              onSelectionChanged: (selection) {
-                if (selection.isEmpty) return;
-                onHomeAwayChanged(selection.first);
-              },
-            ),
-            if (!isHome) ...[
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: awayLocationController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'Pabellón o dirección (opcional)',
-                  hintText: 'Aparecerá en la imagen de convocatoria',
-                  prefixIcon: const Icon(Icons.place_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: scheme.surfaceContainerHighest.withValues(
-                    alpha: 0.35,
+            Theme(
+              data: theme.copyWith(
+                segmentedButtonTheme: SegmentedButtonThemeData(
+                  style: ButtonStyle(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    padding: const WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                    minimumSize: const WidgetStatePropertyAll(Size(0, 34)),
+                    maximumSize: const WidgetStatePropertyAll(Size.fromHeight(40)),
+                    shape: WidgetStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    side: WidgetStateProperty.resolveWith((states) {
+                      final selected = states.contains(WidgetState.selected);
+                      return BorderSide(
+                        color: selected
+                            ? scheme.primary
+                            : scheme.outlineVariant.withValues(alpha: 0.55),
+                        width: selected ? 1.25 : 1,
+                      );
+                    }),
                   ),
                 ),
               ),
-            ],
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment<bool>(
+                    value: true,
+                    label: Text(
+                      'Casa',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                    icon: const Icon(Icons.home_rounded, size: 17),
+                  ),
+                  ButtonSegment<bool>(
+                    value: false,
+                    label: Text(
+                      'Fuera',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                    icon: const Icon(Icons.flight_takeoff_rounded, size: 17),
+                  ),
+                ],
+                selected: {isHome},
+                onSelectionChanged: (selection) {
+                  if (selection.isEmpty) return;
+                  onHomeAwayChanged(selection.first);
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: awayLocationController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: 'Lugar (opcional)',
+                hintText: 'Pabellón o dirección · aparece en la imagen',
+                prefixIcon: const Icon(Icons.place_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest.withValues(
+                  alpha: 0.35,
+                ),
+              ),
+            ),
           ],
         ),
       ),

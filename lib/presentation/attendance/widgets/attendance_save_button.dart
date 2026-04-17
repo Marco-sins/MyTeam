@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/player.dart';
-import 'package:football_manager/domain/entities/team.dart';
-import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/attendance/cubit/attendance_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/team_session_routes.dart';
 
 class AttendanceSaveButton extends StatelessWidget {
-  final Team team;
-
-  const AttendanceSaveButton({super.key, required this.team});
+  const AttendanceSaveButton({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -109,16 +105,8 @@ class AttendanceSaveButton extends StatelessWidget {
             ),
           );
 
-          final getPlayersByTeamUseCase =
-              context.read<GetPlayersByTeamUseCase>();
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => BlocProvider(
-                create: (_) =>
-                    TeamDetailCubit(getPlayersByTeamUseCase)..loadTeam(team.id),
-                child: TeamDetailPage(team: team),
-              ),
-            ),
+            TeamSessionRoutes.detailHomeReplacingStack(context),
             (route) => route.isFirst,
           );
         },

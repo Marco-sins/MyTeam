@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/get_attendance_by_date_use_case.dart';
@@ -12,16 +11,19 @@ import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/convocation/pages/convocation_page.dart';
 import 'package:football_manager/presentation/match/pages/match_list_page.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_management_page.dart';
 
+/// Requiere [TeamContextCubit] en el árbol.
 class TeamBottomBar extends StatelessWidget {
-  final Team team;
-
-  const TeamBottomBar({super.key, required this.team});
+  const TeamBottomBar({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final team = context.watch<TeamContextCubit>().state;
+    final teamContext = context.read<TeamContextCubit>();
+
     final authState = context.watch<AuthCubit>().state;
     bool isExternal = false;
     if (authState is Authenticated) {
@@ -41,6 +43,7 @@ class TeamBottomBar extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => MultiBlocProvider(
                   providers: [
+                    BlocProvider.value(value: teamContext),
                     BlocProvider.value(value: context.read<TeamDetailCubit>()),
                     BlocProvider<AttendanceCubit>(
                       create: (ctx) => AttendanceCubit(
@@ -52,7 +55,7 @@ class TeamBottomBar extends StatelessWidget {
                       ),
                     ),
                   ],
-                  child: AttendancePage(team: team),
+                  child: const AttendancePage(),
                 ),
               ),
             );
@@ -67,10 +70,11 @@ class TeamBottomBar extends StatelessWidget {
               MaterialPageRoute(
                 builder: (_) => MultiBlocProvider(
                   providers: [
+                    BlocProvider.value(value: teamContext),
                     BlocProvider.value(value: context.read<TeamDetailCubit>()),
                     BlocProvider<LoadingCubit>(create: (_) => LoadingCubit()),
                   ],
-                  child: ConvocationPage(team: team),
+                  child: const ConvocationPage(),
                 ),
               ),
             );
@@ -79,7 +83,6 @@ class TeamBottomBar extends StatelessWidget {
       ]);
     }
 
-    // El apartado de partidos siempre está disponible
     buttons.add(
       _BottomBarButton(
         label: 'Partido',
@@ -88,9 +91,12 @@ class TeamBottomBar extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<TeamDetailCubit>(),
-                child: MatchListPage(team: team),
+              builder: (_) => MultiBlocProvider(
+                providers: [
+                  BlocProvider.value(value: teamContext),
+                  BlocProvider.value(value: context.read<TeamDetailCubit>()),
+                ],
+                child: const MatchListPage(),
               ),
             ),
           );
@@ -104,12 +110,15 @@ class TeamBottomBar extends StatelessWidget {
           label: 'Gestión',
           icon: Icons.settings,
           onTap: () {
-            Navigator.push(
+            Navigator.push<void>(
               context,
               MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<TeamDetailCubit>(),
-                  child: TeamManagementPage(team: team),
+                builder: (_) => MultiBlocProvider(
+                  providers: [
+                    BlocProvider.value(value: teamContext),
+                    BlocProvider.value(value: context.read<TeamDetailCubit>()),
+                  ],
+                  child: const TeamManagementPage(),
                 ),
               ),
             );
@@ -171,10 +180,10 @@ class _BottomBarButton extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: scheme.onSurface,
-              ),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
             ),
           ],
         ),

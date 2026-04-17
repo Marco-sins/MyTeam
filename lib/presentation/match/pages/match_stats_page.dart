@@ -18,9 +18,12 @@ Color _accentForLegacyStatusActionNote(ColorScheme scheme, String label) {
   final lower = label.toLowerCase();
   if (lower.contains('mal ') ||
       lower.contains('mala ') ||
+      lower.contains('pase impreciso') ||
+      lower.contains('jugada imprecisa') ||
       lower.contains('pierde ') ||
       lower.contains('gol concedido') ||
-      lower.contains('gol en propia')) {
+      lower.contains('gol en propia') ||
+      lower.contains('autogol')) {
     return scheme.error;
   }
   if (lower.contains('buen ') ||
@@ -32,6 +35,8 @@ Color _accentForLegacyStatusActionNote(ColorScheme scheme, String label) {
       lower.contains('recupera posesion') ||
       lower.contains('recuperación') ||
       lower.contains('recuperacion') ||
+      lower.contains('balón recuperado') ||
+      lower.contains('balon recuperado') ||
       lower.contains('jugada clave') ||
       lower.contains('buena parada') ||
       lower.contains('increíble parada') ||
@@ -112,7 +117,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                TextSpan(text: '$noteLabel · '),
+                TextSpan(text: '$noteLabel: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -143,6 +148,7 @@ class MatchStatsPage extends StatelessWidget {
         typeKey == 'concedegoal' ||
         typeKey == 'owngoal') {
       final isOurGoal = typeKey == 'scoregoal';
+      final isOwnGoal = typeKey == 'owngoal';
       final isAgainstGoal =
           typeKey == 'concedegoal' || typeKey == 'owngoal';
 
@@ -159,13 +165,14 @@ class MatchStatsPage extends StatelessWidget {
         minute: minute,
         isOurGoal: isOurGoal,
         isAgainstGoal: isAgainstGoal,
+        isOwnGoal: isOwnGoal,
         scorerPlayer: scorerPlayer,
         assistPlayer: assistPlayer,
       );
     }
 
     if (typeKey == 'goodsave') {
-      final note = (event['note'] as String?) ?? 'Buena parada';
+      final noteRaw = (event['note'] as String?)?.trim() ?? '';
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
@@ -175,20 +182,24 @@ class MatchStatsPage extends StatelessWidget {
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
-          label: note,
+          label: noteRaw.isNotEmpty ? noteRaw : 'Parada',
           labelWidget: RichText(
             textAlign: TextAlign.center,
             text: TextSpan(
               style: accentStyle,
               children: [
+                const TextSpan(text: 'Parada de '),
                 ...playerDorsalNameSpanList(player, accentStyle),
-                TextSpan(text: ' · $note'),
+                if (noteRaw.isNotEmpty) TextSpan(text: ' · $noteRaw'),
               ],
             ),
           ),
         );
       }
-      return MatchStatusChangeItem(label: note, minute: minute);
+      return MatchStatusChangeItem(
+        label: noteRaw.isNotEmpty ? noteRaw : 'Parada',
+        minute: minute,
+      );
     }
 
     if (typeKey == 'goodpass') {
@@ -208,7 +219,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline · '),
+                const TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -235,7 +246,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline · '),
+                const TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -252,7 +263,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.tertiary,
           );
-      const headline = 'Recuperación';
+      const headline = 'Balón recuperado';
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -262,7 +273,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline · '),
+                const TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -279,7 +290,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.error,
           );
-      const headline = 'Mal pase';
+      const headline = 'Pase impreciso';
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -289,7 +300,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline · '),
+                const TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -306,7 +317,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.error,
           );
-      const headline = 'Mala jugada';
+      const headline = 'Jugada imprecisa';
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -316,7 +327,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline · '),
+                const TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -345,7 +356,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                TextSpan(text: '$headline · '),
+                TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -389,7 +400,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                TextSpan(text: '$noteFallback · '),
+                TextSpan(text: '$noteFallback: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -550,7 +561,7 @@ class MatchStatsPage extends StatelessWidget {
                                     color: scheme.primary,
                                   ),
                                   label: Text(
-                                    'Formación ${state.formationLabel}',
+                                    'Formación: ${state.formationLabel}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -1107,7 +1118,9 @@ _PlayerMatchStats _calculatePlayerMatchStats(
 
     if (isGoodPass || note == 'Buen pase') {
       goodPasses++;
-    } else if (isBadPass || note == 'Mal pase') {
+    } else if (isBadPass ||
+        note == 'Mal pase' ||
+        note == 'Pase impreciso') {
       badPasses++;
     } else if (note == 'Pase clave' || typeKey == 'keypass') {
       goodPlays++;
@@ -1115,12 +1128,14 @@ _PlayerMatchStats _calculatePlayerMatchStats(
         isBallRecovery ||
         note == 'Buena jugada' ||
         note == 'Recuperación' ||
+        note == 'Balón recuperado' ||
         note == 'Buen tiro' ||
         note == 'Recupera posesión' ||
         note == 'Gana posesión') {
       goodPlays++;
     } else if (isBadPlay ||
         note == 'Mala jugada' ||
+        note == 'Jugada imprecisa' ||
         note == 'Pierde marca' ||
         note == 'Pierde posición' ||
         note == 'Pierde posesión' ||

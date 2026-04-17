@@ -43,8 +43,10 @@ double calculatePlayerRating(
       continue;
     }
 
-    // Gol en propia
-    if (typeKey == 'owngoal' || noteLower == 'gol en propia') {
+    // Gol en propia / autogol
+    if (typeKey == 'owngoal' ||
+        noteLower == 'gol en propia' ||
+        noteLower == 'autogol') {
       rating -= 1.0;
       continue;
     }
@@ -147,15 +149,21 @@ double calculatePlayerRating(
       continue;
     }
 
-    // Mal pase
-    if (noteLower == 'mal pase') {
+    // Mal pase / pase impreciso
+    if (noteLower == 'mal pase' || noteLower == 'pase impreciso') {
       rating -= 0.1;
       continue;
     }
 
-    // Mala jugada
-    if (noteLower == 'mala jugada') {
+    // Mala jugada / jugada imprecisa
+    if (noteLower == 'mala jugada' || noteLower == 'jugada imprecisa') {
       rating -= 0.3;
+      continue;
+    }
+
+    // Recuperación (solo nota, sin tipo dedicado)
+    if (noteLower == 'balón recuperado' || noteLower == 'balon recuperado') {
+      rating += 0.3;
       continue;
     }
 

@@ -8,6 +8,7 @@ import 'convocation_image_theme.dart';
 double drawConvocationHeader({
   required Canvas canvas,
   required Rect overlayRect,
+  required ConvocationImagePalette palette,
   required Team team,
   required bool isHome,
   required String rivalName,
@@ -27,8 +28,8 @@ double drawConvocationHeader({
   final headerPaint = Paint()
     ..shader = LinearGradient(
       colors: [
-        ConvocationImageTheme.pitch,
-        ConvocationImageTheme.pitchBright,
+        palette.pitch,
+        palette.pitchBright,
       ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -48,7 +49,7 @@ double drawConvocationHeader({
   );
   canvas.drawRRect(
     goldStripe,
-    Paint()..color = ConvocationImageTheme.gold,
+    Paint()..color = palette.gold,
   );
 
   double y = overlayRect.top + 22;
@@ -147,7 +148,7 @@ double drawConvocationHeader({
     final versusParagraph = buildParagraph(
       versusText,
       versusFontSize,
-      ConvocationImageTheme.gold,
+      palette.gold,
       FontWeight.w700,
     );
     final awayParagraph = buildParagraph(
@@ -190,9 +191,9 @@ double drawConvocationHeader({
     const Radius.circular(10),
   );
 
-  final chipFill = Paint()..color = ConvocationImageTheme.secondaryContainer;
+  final chipFill = Paint()..color = palette.secondaryContainer;
   final chipBorder = Paint()
-    ..color = ConvocationImageTheme.goldDeep.withValues(alpha: 0.35)
+    ..color = palette.goldDeep.withValues(alpha: 0.35)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1;
 
@@ -214,7 +215,7 @@ double drawConvocationHeader({
           )
           ..pushStyle(
             ui.TextStyle(
-              color: ConvocationImageTheme.onSecondaryContainer,
+              color: palette.onSecondaryContainer,
               letterSpacing: 0.6,
             ),
           )
@@ -229,13 +230,8 @@ double drawConvocationHeader({
     canvas.drawParagraph(paragraph, offset);
   }
 
-  if (isHome) {
-    drawChipLabel('LOCAL', localChipRect);
-    drawChipLabel('VISITANTE', awayChipRect);
-  } else {
-    drawChipLabel('VISITANTE', localChipRect);
-    drawChipLabel('LOCAL', awayChipRect);
-  }
+  drawChipLabel('LOCAL', localChipRect);
+  drawChipLabel('VISITANTE', awayChipRect);
 
   return headerRRect.outerRect.bottom + ConvocationImageTheme.headerBottomGap;
 }

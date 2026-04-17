@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/core/constants/app_branding.dart';
-import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
+import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/team/leave_team_as_external_use_case.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/home/cubit/home_cubit.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
+import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/widgets/team_detail_header.dart';
 import 'package:football_manager/presentation/team/widgets/team_attendance_section.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 import 'package:football_manager/presentation/team/widgets/team_roster_widget.dart';
 
+/// Requiere un [TeamContextCubit] ancestro con el equipo actual.
 class TeamDetailPage extends StatefulWidget {
-  final Team team;
-
-  const TeamDetailPage({super.key, required this.team});
+  const TeamDetailPage({super.key});
 
   @override
   State<TeamDetailPage> createState() => _TeamDetailPageState();
@@ -54,12 +56,14 @@ class _TeamDetailPageState extends State<TeamDetailPage>
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) return;
 
+    final teamId = context.read<TeamContextCubit>().state.id;
+
     try {
       final row = await Supabase.instance.client
           .from('team_members')
           .select('id_team')
           .eq('id_user', authState.user.id)
-          .eq('id_team', widget.team.id)
+          .eq('id_team', teamId)
           .maybeSingle();
 
       if (!mounted || _handledNoAccess) return;
@@ -118,9 +122,29 @@ class _TeamDetailPageState extends State<TeamDetailPage>
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  Future<void> _confirmAndLeaveTeamAsExternal() async {
+  String _leaveTeamDialogMessage(Team team, UserRole role) {
+    switch (role) {
+      case UserRole.external:
+        return '¿Quieres salir de ${team.name}? '
+            'Dejarás de ver la plantilla y los partidos hasta que un administrador te vuelva a invitar.';
+      case UserRole.admin:
+        return '¿Quieres abandonar ${team.name} como administrador? '
+            'Perderás los permisos de gestión; solo podrás volver si un superadmin te invita de nuevo.';
+      case UserRole.player:
+        return '¿Quieres salir de ${team.name} como jugador? '
+            'Dejarás de figurar en la plantilla hasta que te den de alta de nuevo.';
+      case UserRole.superAdmin:
+        return '¿Quieres salir de ${team.name}?';
+    }
+  }
+
+  Future<void> _confirmAndLeaveTeam() async {
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) return;
+
+    final team = context.read<TeamContextCubit>().state;
+    final myRole = authState.user.teamRoles[team.id];
+    if (myRole == null) return;
 
     final scheme = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
@@ -128,8 +152,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
       builder: (ctx) => AlertDialog(
         title: const Text('Abandonar equipo'),
         content: Text(
-          '¿Quieres salir de ${widget.team.name}? '
-          'Dejarás de ver la plantilla y los partidos hasta que un administrador te vuelva a invitar.',
+          _leaveTeamDialogMessage(team, myRole),
         ),
         actions: [
           TextButton(
@@ -151,7 +174,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
     if (confirm != true || !mounted) return;
 
     final useCase = context.read<LeaveTeamAsExternalUseCase>();
-    final result = await useCase(widget.team.id, authState.user);
+    final result = await useCase(team.id, authState.user);
     if (!mounted) return;
 
     await result.fold<Future<void>>(
@@ -182,176 +205,191 @@ class _TeamDetailPageState extends State<TeamDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final team = context.watch<TeamContextCubit>().state;
     final scheme = Theme.of(context).colorScheme;
 
-    bool isExternal = false;
+    UserRole? myTeamRole;
     final authForHeader = context.watch<AuthCubit>().state;
     if (authForHeader is Authenticated) {
-      isExternal =
-          authForHeader.user.teamRoles[widget.team.id] == UserRole.external;
+      myTeamRole = authForHeader.user.teamRoles[team.id];
     }
+    final canLeaveTeam = myTeamRole == UserRole.external ||
+        myTeamRole == UserRole.admin ||
+        myTeamRole == UserRole.player;
 
     if (!_accessVerified) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text(AppBranding.mainTitleEs),
-          centerTitle: true,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: scheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                'Comprobando acceso…',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
+      return TeamBrandedScope(
+        team: team,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text(AppBranding.mainTitleEs),
+            centerTitle: true,
+          ),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: scheme.primary),
+                const SizedBox(height: 16),
+                Text(
+                  'Comprobando acceso…',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppBranding.mainTitleEs),
-        centerTitle: true,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TeamDetailHeader(
-              team: widget.team,
-              onLeaveTeam: isExternal ? _confirmAndLeaveTeamAsExternal : null,
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: BlocBuilder<TeamDetailCubit, TeamDetailState>(
-                builder: (context, state) {
-                  if (state is TeamDetailLoading || state is TeamDetailInitial) {
-                    return Center(
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(
-                                color: scheme.primary,
+    return TeamBrandedScope(
+      team: team,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(AppBranding.mainTitleEs),
+          centerTitle: true,
+        ),
+        body: TeamAreaBackground(
+          team: team,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: TeamDetailHeader(
+                  team: team,
+                  onLeaveTeam: canLeaveTeam ? _confirmAndLeaveTeam : null,
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: BlocBuilder<TeamDetailCubit, TeamDetailState>(
+                    builder: (context, state) {
+                      if (state is TeamDetailLoading ||
+                          state is TeamDetailInitial) {
+                        return Center(
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(
+                                    color: scheme.primary,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Cargando plantilla…',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Cargando plantilla…',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  if (state is TeamDetailError) {
-                    return Center(
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.cloud_off_outlined,
-                                size: 48,
-                                color: scheme.error,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                state.message,
-                                style: Theme.of(context).textTheme.bodyLarge,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  if (state is TeamDetailLoaded) {
-                    if (state.players.isEmpty) {
-                      return Center(
-                        child: Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.group_off_outlined,
-                                  size: 56,
-                                  color:
-                                      scheme.outline.withValues(alpha: 0.65),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Aún no hay jugadores en la plantilla',
-                                  style:
-                                      Theme.of(context).textTheme.titleSmall,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Añádelos desde Gestión → Modificar plantilla.',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
                             ),
                           ),
-                        ),
-                      );
-                    }
+                        );
+                      }
+                      if (state is TeamDetailError) {
+                        return Center(
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.cloud_off_outlined,
+                                    size: 48,
+                                    color: scheme.error,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    state.message,
+                                    style:
+                                        Theme.of(context).textTheme.bodyLarge,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      if (state is TeamDetailLoaded) {
+                        if (state.players.isEmpty) {
+                          return Center(
+                            child: Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.group_off_outlined,
+                                      size: 56,
+                                      color: scheme.outline
+                                          .withValues(alpha: 0.65),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Aún no hay jugadores en la plantilla',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Añádelos desde Gestión → Modificar plantilla.',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }
 
-                    final authState = context.read<AuthCubit>().state;
-                    bool isExternal = false;
-                    if (authState is Authenticated) {
-                      isExternal =
-                          authState.user.teamRoles[widget.team.id] ==
-                              UserRole.external;
-                    }
+                        final authState = context.read<AuthCubit>().state;
+                        var loadedIsExternal = false;
+                        if (authState is Authenticated) {
+                          loadedIsExternal =
+                              authState.user.teamRoles[team.id] ==
+                                  UserRole.external;
+                        }
 
-                    if (isExternal) {
-                      return TeamRosterWidget(team: widget.team);
-                    }
+                        if (loadedIsExternal) {
+                          return TeamRosterWidget(team: team);
+                        }
 
-                    return TeamAttendanceSection(
-                      team: widget.team,
-                      players: state.players,
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
+                        return TeamAttendanceSection(
+                          team: team,
+                          players: state.players,
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
+        bottomNavigationBar: const TeamBottomBar(),
       ),
-      bottomNavigationBar: TeamBottomBar(team: widget.team),
     );
   }
 }

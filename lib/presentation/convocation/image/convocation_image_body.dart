@@ -20,12 +20,17 @@ const double _kObsNotesLineHeight = 1.52;
 const int _kObsNotesMaxLines = 64;
 const double _kObsBottomMargin = 36;
 
-void _drawObservationsSectionHeader(Canvas canvas, Rect overlayRect, double y) {
+void _drawObservationsSectionHeader(
+  Canvas canvas,
+  Rect overlayRect,
+  double y,
+  ConvocationImagePalette palette,
+) {
   final barRect = RRect.fromRectAndRadius(
     Rect.fromLTWH(overlayRect.left + 28, y + 3, _kObsTitleBarW, _kObsTitleBarH),
     const Radius.circular(3),
   );
-  canvas.drawRRect(barRect, Paint()..color = ConvocationImageTheme.goldDeep);
+  canvas.drawRRect(barRect, Paint()..color = palette.goldDeep);
 
   final builder =
       ui.ParagraphBuilder(
@@ -38,7 +43,7 @@ void _drawObservationsSectionHeader(Canvas canvas, Rect overlayRect, double y) {
         )
         ..pushStyle(
           ui.TextStyle(
-            color: ConvocationImageTheme.onSurface,
+            color: palette.onSurface,
             letterSpacing: -0.35,
           ),
         )
@@ -53,7 +58,11 @@ void _drawObservationsSectionHeader(Canvas canvas, Rect overlayRect, double y) {
   );
 }
 
-ui.Paragraph _layoutObservationsParagraph(String text, double width) {
+ui.Paragraph _layoutObservationsParagraph(
+  String text,
+  double width,
+  ConvocationImagePalette palette,
+) {
   final measurePara =
       ui.ParagraphBuilder(
           ui.ParagraphStyle(
@@ -64,7 +73,7 @@ ui.Paragraph _layoutObservationsParagraph(String text, double width) {
           ),
         )
         ..pushStyle(
-          ui.TextStyle(color: ConvocationImageTheme.onSecondaryContainer),
+          ui.TextStyle(color: palette.onSecondaryContainer),
         )
         ..addText(text);
   final measured = measurePara.build()
@@ -93,7 +102,7 @@ double estimateConvocationCanvasHeight({
     final innerW = ConvocationImageTheme.exportWidth - 2 * m;
     final overlayContentW = innerW - 56;
     final notesLayoutW = overlayContentW - 2 * _kObsBoxPadH;
-    final p = _layoutObservationsParagraph(t, notesLayoutW);
+    final p = _layoutObservationsParagraph(t, notesLayoutW, ConvocationImagePalette.classic);
     y +=
         28 +
         28 +
@@ -109,6 +118,7 @@ double estimateConvocationCanvasHeight({
 void drawConvocationBody({
   required Canvas canvas,
   required Rect overlayRect,
+  required ConvocationImagePalette palette,
   required double startY,
   required String dateStr,
   required String matchTimeStr,
@@ -123,7 +133,7 @@ void drawConvocationBody({
 
   void drawHairline(double dy) {
     final p = Paint()
-      ..color = ConvocationImageTheme.outlineVariant.withValues(alpha: 0.65)
+      ..color = palette.outlineVariant.withValues(alpha: 0.65)
       ..strokeWidth = 1;
     canvas.drawLine(
       Offset(overlayRect.left + 32, dy),
@@ -135,15 +145,36 @@ void drawConvocationBody({
   drawHairline(y);
   y += 28;
 
-  _drawSectionTitle(canvas, overlayRect, y, 'Detalles del partido');
+  _drawSectionTitle(canvas, overlayRect, y, palette, 'Detalles del partido');
   y += 40;
 
-  y = _drawDetailRow(canvas, overlayRect, y, 'Fecha', dateStr);
-  y = _drawDetailRow(canvas, overlayRect, y, 'Hora del partido', matchTimeStr);
-  y = _drawDetailRow(canvas, overlayRect, y, 'Hora convocatoria', callTimeStr);
+  y = _drawDetailRow(canvas, overlayRect, y, palette, 'Fecha', dateStr);
+  y = _drawDetailRow(
+    canvas,
+    overlayRect,
+    y,
+    palette,
+    'Hora del partido',
+    matchTimeStr,
+  );
+  y = _drawDetailRow(
+    canvas,
+    overlayRect,
+    y,
+    palette,
+    'Hora convocatoria',
+    callTimeStr,
+  );
 
   if (awayLocation != null && awayLocation.trim().isNotEmpty) {
-    y = _drawDetailRow(canvas, overlayRect, y, 'Lugar', awayLocation.trim());
+    y = _drawDetailRow(
+      canvas,
+      overlayRect,
+      y,
+      palette,
+      'Lugar',
+      awayLocation.trim(),
+    );
   }
 
   y += 20;
@@ -155,6 +186,7 @@ void drawConvocationBody({
     canvas,
     overlayRect,
     y,
+    palette,
     'Jugadores convocados',
     subtitle: '${players.length}',
   );
@@ -162,7 +194,7 @@ void drawConvocationBody({
 
   for (var i = 0; i < players.length; i++) {
     final p = players[i];
-    y = _drawPlayerRow(canvas, overlayRect, y, p, i.isEven);
+    y = _drawPlayerRow(canvas, overlayRect, y, palette, p, i.isEven);
   }
 
   y += 28;
@@ -171,13 +203,14 @@ void drawConvocationBody({
     drawHairline(y);
     y += 28;
 
-    _drawObservationsSectionHeader(canvas, overlayRect, y);
+    _drawObservationsSectionHeader(canvas, overlayRect, y, palette);
     y += _kObsTitleBlockHeight + _kObsGapBeforeBox;
 
     final boxLeft = overlayRect.left + 28;
     final boxWidth = overlayRect.width - 56;
     final textWidth = boxWidth - 2 * _kObsBoxPadH;
-    final measured = _layoutObservationsParagraph(trimmedNotes, textWidth);
+    final measured =
+        _layoutObservationsParagraph(trimmedNotes, textWidth, palette);
     final boxHeight = 2 * _kObsBoxPadV + measured.height;
 
     final boxRect = RRect.fromRectAndRadius(
@@ -187,14 +220,14 @@ void drawConvocationBody({
     canvas.drawRRect(
       boxRect,
       Paint()
-        ..color = ConvocationImageTheme.secondaryContainer.withValues(
+        ..color = palette.secondaryContainer.withValues(
           alpha: 0.92,
         ),
     );
     canvas.drawRRect(
       boxRect,
       Paint()
-        ..color = ConvocationImageTheme.goldDeep.withValues(alpha: 0.85)
+        ..color = palette.goldDeep.withValues(alpha: 0.85)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5,
     );
@@ -210,6 +243,7 @@ void _drawSectionTitle(
   Canvas canvas,
   Rect overlayRect,
   double y,
+  ConvocationImagePalette palette,
   String title, {
   String? subtitle,
 }) {
@@ -219,7 +253,7 @@ void _drawSectionTitle(
     Rect.fromLTWH(overlayRect.left + 32, y + 2, barW, barH),
     const Radius.circular(2),
   );
-  canvas.drawRRect(barRect, Paint()..color = ConvocationImageTheme.goldDeep);
+  canvas.drawRRect(barRect, Paint()..color = palette.goldDeep);
 
   final titleText = subtitle != null ? '$title · $subtitle' : title;
   final builder =
@@ -232,7 +266,7 @@ void _drawSectionTitle(
         )
         ..pushStyle(
           ui.TextStyle(
-            color: ConvocationImageTheme.onSurface,
+            color: palette.onSurface,
             letterSpacing: -0.3,
           ),
         )
@@ -248,6 +282,7 @@ double _drawDetailRow(
   Canvas canvas,
   Rect overlayRect,
   double y,
+  ConvocationImagePalette palette,
   String label,
   String value,
 ) {
@@ -263,7 +298,7 @@ double _drawDetailRow(
             maxLines: 2,
           ),
         )
-        ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurfaceVariant))
+        ..pushStyle(ui.TextStyle(color: palette.onSurfaceVariant))
         ..addText(label);
   final lp = labelPara.build()
     ..layout(ui.ParagraphConstraints(width: labelW - 8));
@@ -277,7 +312,7 @@ double _drawDetailRow(
             maxLines: 3,
           ),
         )
-        ..pushStyle(ui.TextStyle(color: ConvocationImageTheme.onSurface))
+        ..pushStyle(ui.TextStyle(color: palette.onSurface))
         ..addText(value);
   final vp = valuePara.build()
     ..layout(ui.ParagraphConstraints(width: overlayRect.width - labelW - 64));
@@ -290,6 +325,7 @@ double _drawPlayerRow(
   Canvas canvas,
   Rect overlayRect,
   double y,
+  ConvocationImagePalette palette,
   Player p,
   bool alternate,
 ) {
@@ -303,7 +339,7 @@ double _drawPlayerRow(
     canvas.drawRRect(
       rowRect,
       Paint()
-        ..color = ConvocationImageTheme.surfaceContainer.withValues(
+        ..color = palette.surfaceContainer.withValues(
           alpha: 0.55,
         ),
     );
@@ -312,7 +348,7 @@ double _drawPlayerRow(
   canvas.drawRRect(
     rowRect,
     Paint()
-      ..color = ConvocationImageTheme.outlineVariant.withValues(alpha: 0.4)
+      ..color = palette.outlineVariant.withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1,
   );
@@ -327,7 +363,7 @@ double _drawPlayerRow(
   );
   canvas.drawRRect(
     badge,
-    Paint()..color = ConvocationImageTheme.primaryContainer,
+    Paint()..color = palette.primaryContainer,
   );
 
   final dPara =
@@ -341,7 +377,7 @@ double _drawPlayerRow(
           ),
         )
         ..pushStyle(
-          ui.TextStyle(color: ConvocationImageTheme.onPrimaryContainer),
+          ui.TextStyle(color: palette.onPrimaryContainer),
         )
         ..addText(dorsal);
   final dp = dPara.build()..layout(ui.ParagraphConstraints(width: badgeSize));
@@ -362,7 +398,7 @@ double _drawPlayerRow(
   );
   namePara.pushStyle(
     ui.TextStyle(
-      color: ConvocationImageTheme.onSurface,
+      color: palette.onSurface,
       fontWeight: FontWeight.w700,
     ),
   );
@@ -371,7 +407,7 @@ double _drawPlayerRow(
   if (nameParts.family.isNotEmpty) {
     namePara.pushStyle(
       ui.TextStyle(
-        color: ConvocationImageTheme.onSurface,
+        color: palette.onSurface,
         fontWeight: FontWeight.w400,
       ),
     );

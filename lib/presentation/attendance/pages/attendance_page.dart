@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:football_manager/domain/entities/team.dart';
-import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/attendance/cubit/attendance_cubit.dart';
@@ -10,14 +9,14 @@ import 'package:football_manager/presentation/attendance/widgets/attendance_head
 import 'package:football_manager/presentation/attendance/widgets/attendance_player_list.dart';
 import 'package:football_manager/presentation/attendance/widgets/attendance_table_header.dart';
 import 'package:football_manager/presentation/attendance/widgets/attendance_save_button.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/team_session_routes.dart';
 
+/// Requiere [TeamContextCubit] en el árbol.
 class AttendancePage extends StatefulWidget {
-  final Team team;
-
-  const AttendancePage({super.key, required this.team});
+  const AttendancePage({super.key});
 
   @override
   State<AttendancePage> createState() => _AttendancePageState();
@@ -43,28 +42,22 @@ class _AttendancePageState extends State<AttendancePage> {
 
   @override
   Widget build(BuildContext context) {
+    final team = context.watch<TeamContextCubit>().state;
     final attendanceState = context.watch<AttendanceCubit>().state;
     final formattedDate = _formattedDate(attendanceState.selectedDate);
     final scheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
+    return TeamBrandedScope(
+      team: team,
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Asistencia'),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            final getPlayersByTeamUseCase = context
-                .read<GetPlayersByTeamUseCase>();
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => BlocProvider(
-                  create: (_) =>
-                      TeamDetailCubit(getPlayersByTeamUseCase)
-                        ..loadTeam(widget.team.id),
-                  child: TeamDetailPage(team: widget.team),
-                ),
-              ),
+              TeamSessionRoutes.detailHomeReplacingStack(context),
               (route) => route.isFirst,
             );
           },
@@ -75,7 +68,7 @@ class _AttendancePageState extends State<AttendancePage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: AttendanceHeader(team: widget.team),
+            child: AttendanceHeader(team: team),
           ),
           Expanded(
             child: Padding(
@@ -111,10 +104,11 @@ class _AttendancePageState extends State<AttendancePage> {
                     ),
               ),
               const SizedBox(height: 8),
-              AttendanceSaveButton(team: widget.team),
+              const AttendanceSaveButton(),
             ],
           ),
         ),
+      ),
       ),
     );
   }

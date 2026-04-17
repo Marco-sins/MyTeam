@@ -52,19 +52,51 @@ class ConvocationPlayersSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(Icons.person_search, size: 22, color: scheme.primary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Convocados',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
+                    FilledButton.tonalIcon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        iconSize: 16,
+                        textStyle: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          letterSpacing: 0.15,
+                        ),
+                      ),
+                      onPressed: () => context
+                          .read<ConvocationCubit>()
+                          .callUpAll(sortedPlayers.map((p) => p.id)),
+                      icon: Icon(
+                        Icons.done_all_rounded,
+                        size: 16,
+                        color: scheme.primary,
+                      ),
+                      label: const Text('Todos'),
+                    ),
+                    const SizedBox(width: 4),
                     Chip(
                       label: Text(
                         '$calledCount / ${sortedPlayers.length}',
@@ -187,7 +219,7 @@ class ConvocationPlayersSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                 child: Text(
-                  'Toca el botón de cada jugador para alternar entre Sí y No.',
+                  'Puedes convocar a todos de una vez o tocar cada jugador para alternar Sí / No.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
