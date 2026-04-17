@@ -4,21 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
-import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
 import 'package:football_manager/presentation/match/pages/match_manager_page.dart';
-import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
+import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
+import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 
+/// Requiere [TeamContextCubit] en el árbol.
 class MatchListPage extends StatefulWidget {
-  final Team team;
-
-  const MatchListPage({super.key, required this.team});
+  const MatchListPage({super.key});
 
   @override
   State<MatchListPage> createState() => _MatchListPageState();
@@ -62,8 +62,9 @@ class _MatchListPageState extends State<MatchListPage> {
   }
 
   void _loadMatches() {
+    final teamId = context.read<TeamContextCubit>().state.id;
     _matchesFuture = context.read<GetMatchesByTeamUseCase>().call(
-      widget.team.id,
+      teamId,
     );
     _liveGoalsScored.clear();
     _liveGoalsConceded.clear();
@@ -167,34 +168,30 @@ class _MatchListPageState extends State<MatchListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final team = context.watch<TeamContextCubit>().state;
+    return TeamBrandedScope(
+      team: team,
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Partidos'),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            final getPlayersByTeamUseCase = context
-                .read<GetPlayersByTeamUseCase>();
             Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => BlocProvider(
-                  create: (_) =>
-                      TeamDetailCubit(getPlayersByTeamUseCase)
-                        ..loadTeam(widget.team.id),
-                  child: TeamDetailPage(team: widget.team),
-                ),
-              ),
+              TeamSessionRoutes.detailHomeReplacingStack(context),
               (route) => route.isFirst,
             );
           },
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: FutureBuilder(
+      body: TeamAreaBackground(
+        team: team,
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: FutureBuilder(
             future: _matchesFuture,
             builder: (context, snapshot) {
               final scheme = Theme.of(context).colorScheme;
@@ -453,7 +450,7 @@ class _MatchListPageState extends State<MatchListPage> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                widget.team.name,
+                                team.name,
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyMedium
@@ -493,7 +490,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                 builder: (_) => BlocProvider(
                                   create: (_) => LoadingCubit(),
                                   child: MatchManagerPage(
-                                    team: widget.team,
+                                    team: team,
                                     match: match,
                                   ),
                                 ),
@@ -512,7 +509,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                 builder: (_) => BlocProvider(
                                   create: (_) => LoadingCubit(),
                                   child: MatchManagerPage(
-                                    team: widget.team,
+                                    team: team,
                                     match: match,
                                   ),
                                 ),
@@ -627,7 +624,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        widget.team.name,
+                                        team.name,
                                         textAlign: TextAlign.end,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -771,8 +768,10 @@ class _MatchListPageState extends State<MatchListPage> {
             },
           ),
         ),
+        ),
       ),
-      bottomNavigationBar: TeamBottomBar(team: widget.team),
+      bottomNavigationBar: const TeamBottomBar(),
+      ),
     );
   }
 }

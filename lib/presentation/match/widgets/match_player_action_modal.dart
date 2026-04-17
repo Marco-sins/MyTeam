@@ -117,7 +117,7 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         ).pop(MatchPlayerActionType.goodPlay),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Recuperación',
+                        label: 'Balón recuperado',
                         textColor: Colors.green,
                         onTap: () => Navigator.of(
                           ctx,
@@ -139,14 +139,14 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         ).pop(MatchPlayerActionType.redCard),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Mal pase',
+                        label: 'Pase impreciso',
                         textColor: Colors.red,
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.badPass),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Mala jugada',
+                        label: 'Jugada imprecisa',
                         textColor: Colors.red,
                         onTap: () => Navigator.of(
                           ctx,

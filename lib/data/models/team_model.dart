@@ -6,6 +6,7 @@ class TeamModel extends Team {
     required super.name,
     required super.category,
     super.logoUrl,
+    super.color,
   });
 
   factory TeamModel.fromJson(Map<String, dynamic> json) {
@@ -14,11 +15,17 @@ class TeamModel extends Team {
       name: json['name'],
       category: json['category'],
       logoUrl: json['logo_url'],
+      color: json['color'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'name': name, 'category': category, 'logo_url': logoUrl};
+    return {
+      'name': name,
+      'category': category,
+      'logo_url': logoUrl,
+      'color': color,
+    };
   }
 
   TeamModel copyWith({
@@ -26,12 +33,14 @@ class TeamModel extends Team {
     String? name,
     String? category,
     String? logoUrl,
+    String? color,
   }) {
     return TeamModel(
       id: id ?? this.id,
       name: name ?? this.name,
       category: category ?? this.category,
       logoUrl: logoUrl ?? this.logoUrl,
+      color: color ?? this.color,
     );
   }
 }

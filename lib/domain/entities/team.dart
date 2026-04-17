@@ -4,10 +4,14 @@ class Team {
   final String category;
   final String? logoUrl;
 
+  /// Hex guardado en Supabase (`teams.color`), p. ej. `#14532D`. Vacío → acento por defecto.
+  final String? color;
+
   const Team({
     this.id = 0,
     required this.name,
     required this.category,
     this.logoUrl,
+    this.color,
   });
 }

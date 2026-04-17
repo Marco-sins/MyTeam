@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
-import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/match/create_match_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
@@ -12,14 +11,14 @@ import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_cubit.dart';
 import 'package:football_manager/presentation/convocation/image/convocation_image_generator.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_image_page.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/team_session_routes.dart';
 
 class ConvocationSaveService {
   static Future<void> save({
     required BuildContext context,
-    required Team team,
     required TextEditingController rivalController,
     required TextEditingController notesController,
     required bool isHome,
@@ -42,6 +41,8 @@ class ConvocationSaveService {
       );
       return;
     }
+
+    final team = context.read<TeamContextCubit>().state;
 
     final teamState = context.read<TeamDetailCubit>().state;
     if (teamState is! TeamDetailLoaded) {
@@ -150,22 +151,25 @@ class ConvocationSaveService {
         );
 
         if (file != null) {
+          final teamContext = context.read<TeamContextCubit>();
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => ConvocationImagePage(team: team, imageFile: file),
+              builder: (_) => MultiBlocProvider(
+                providers: [
+                  BlocProvider.value(value: teamContext),
+                  BlocProvider(
+                    create: (ctx) => TeamDetailCubit(
+                      ctx.read<GetPlayersByTeamUseCase>(),
+                    )..loadTeam(team.id),
+                  ),
+                ],
+                child: ConvocationImagePage(imageFile: file),
+              ),
             ),
           );
         } else {
-          final getPlayersByTeamUseCase = context
-              .read<GetPlayersByTeamUseCase>();
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => BlocProvider(
-                create: (_) =>
-                    TeamDetailCubit(getPlayersByTeamUseCase)..loadTeam(team.id),
-                child: TeamDetailPage(team: team),
-              ),
-            ),
+            TeamSessionRoutes.detailHomeReplacingStack(context),
             (route) => route.isFirst,
           );
         }

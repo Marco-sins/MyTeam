@@ -8,6 +8,7 @@ class TeamMapper {
       name: team.name,
       category: team.category,
       logoUrl: team.logoUrl,
+      color: team.color,
     );
   }
 
@@ -17,6 +18,7 @@ class TeamMapper {
       name: teamModel.name,
       category: teamModel.category,
       logoUrl: teamModel.logoUrl,
+      color: teamModel.color,
     );
   }
 }

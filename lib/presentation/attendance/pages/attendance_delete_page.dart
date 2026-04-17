@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_day_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/get_attendance_days_by_team_use_case.dart';
-import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
-import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
+import 'package:football_manager/presentation/team/team_session_routes.dart';
+import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 
 class AttendanceDeletePage extends StatefulWidget {
   final Team team;
@@ -42,16 +43,21 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final team = context.watch<TeamContextCubit>().state;
+    return TeamBrandedScope(
+      team: team,
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Eliminar asistencia'),
         centerTitle: true,
       ),
       body: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: FutureBuilder(
+        child: TeamAreaBackground(
+          team: team,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: FutureBuilder(
             future: _daysFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -138,7 +144,7 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
                                 .read<DeleteAttendanceDayUseCase>();
                             final result = await deleteAttendanceDayUseCase(
                               date,
-                              widget.team.id,
+                              team.id,
                               authState.user,
                             );
 
@@ -170,17 +176,9 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
                                   ),
                                 );
 
-                                // Volvemos al home del equipo
-                                final getPlayersByTeamUseCase = context
-                                    .read<GetPlayersByTeamUseCase>();
                                 Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(
-                                    builder: (_) => BlocProvider(
-                                      create: (_) => TeamDetailCubit(
-                                        getPlayersByTeamUseCase,
-                                      )..loadTeam(widget.team.id),
-                                      child: TeamDetailPage(team: widget.team),
-                                    ),
+                                  TeamSessionRoutes.detailHomeReplacingStack(
+                                    context,
                                   ),
                                   (route) => route.isFirst,
                                 );
@@ -196,7 +194,9 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
             },
           ),
         ),
+        ),
       ),
+    ),
     );
   }
 }

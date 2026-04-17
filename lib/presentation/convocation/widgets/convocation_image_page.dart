@@ -3,42 +3,32 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:football_manager/domain/entities/team.dart';
-import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
+import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 
+/// Requiere [TeamContextCubit] y normalmente [TeamDetailCubit] en el árbol.
 class ConvocationImagePage extends StatelessWidget {
-  final Team team;
   final File imageFile;
 
   const ConvocationImagePage({
     super.key,
-    required this.team,
     required this.imageFile,
   });
 
   void _goToTeamHome(BuildContext context) {
-    final getPlayersByTeamUseCase = context.read<GetPlayersByTeamUseCase>();
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => BlocProvider(
-          create: (_) =>
-              TeamDetailCubit(getPlayersByTeamUseCase)..loadTeam(team.id),
-          child: TeamDetailPage(team: team),
-        ),
-      ),
+      TeamSessionRoutes.detailHomeReplacingStack(context),
       (route) => route.isFirst,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (ctx) =>
-          TeamDetailCubit(ctx.read<GetPlayersByTeamUseCase>())
-            ..loadTeam(team.id),
+    final team = context.watch<TeamContextCubit>().state;
+    return TeamBrandedScope(
+      team: team,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Convocatoria generada'),
@@ -83,7 +73,7 @@ class ConvocationImagePage extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: TeamBottomBar(team: team),
+        bottomNavigationBar: const TeamBottomBar(),
       ),
     );
   }

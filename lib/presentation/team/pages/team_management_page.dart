@@ -6,25 +6,26 @@ import 'package:path/path.dart' as p;
 import 'package:football_manager/core/utils/local_image_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/team/delete_team_use_case.dart';
 import 'package:football_manager/domain/usecase/team/update_team_use_case.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/home/cubit/home_cubit.dart';
-import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/match/pages/match_delete_page.dart';
 import 'package:football_manager/presentation/attendance/pages/attendance_delete_page.dart';
 import 'package:football_manager/presentation/team/pages/team_roster_page.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
+import 'package:football_manager/core/theme/team_screen_tint.dart';
+import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/widgets/team_management_header_row.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_access_page.dart';
 
 class TeamManagementPage extends StatefulWidget {
-  final Team team;
-
-  const TeamManagementPage({super.key, required this.team});
+  const TeamManagementPage({super.key});
 
   @override
   State<TeamManagementPage> createState() => _TeamManagementPageState();
@@ -33,12 +34,137 @@ class TeamManagementPage extends StatefulWidget {
 class _TeamManagementPageState extends State<TeamManagementPage> {
   late final TextEditingController _nameController;
   String? _selectedLogoPath;
+  late String? _colorHex;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.team.name);
-    context.read<TeamDetailCubit>().loadTeam(widget.team.id);
+    final t = context.read<TeamContextCubit>().state;
+    _nameController = TextEditingController(text: t.name);
+    final raw = t.color?.trim();
+    _colorHex = (raw == null || raw.isEmpty) ? null : raw;
+    context.read<TeamDetailCubit>().loadTeam(t.id);
+  }
+
+  Team _previewTeamForBackground() {
+    final base = context.read<TeamContextCubit>().state;
+    final name = _nameController.text.trim();
+    return Team(
+      id: base.id,
+      name: name.isEmpty ? base.name : name,
+      category: base.category,
+      logoUrl: _selectedLogoPath ?? base.logoUrl,
+      color: _colorHex,
+    );
+  }
+
+  Future<void> _openColorPalette() async {
+    final scheme = Theme.of(context).colorScheme;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Color del equipo',
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Barra superior, botones y acentos dentro del equipo. '
+                  'Tarjetas y zonas suaves se tiñen con tu color (misma suavidad que el verde de la app). Vacío = verde por defecto.',
+                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: Icon(Icons.restart_alt, color: scheme.primary),
+                  title: const Text('Predeterminado (verde app)'),
+                  onTap: () {
+                    setState(() => _colorHex = null);
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 220,
+                  child: GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.15,
+                    ),
+                    itemCount: TeamScreenTint.palette.length,
+                    itemBuilder: (context, i) {
+                      final e = TeamScreenTint.palette[i];
+                      final c = TeamScreenTint.accentColor(e.hex);
+                      final selected = _colorHex != null &&
+                          _colorHex!.toUpperCase() == e.hex.toUpperCase();
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() => _colorHex = e.hex);
+                            Navigator.of(ctx).pop();
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              color: c,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selected
+                                    ? scheme.onSurface
+                                    : Colors.white.withValues(alpha: 0.35),
+                                width: selected ? 3 : 1,
+                              ),
+                            ),
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: Text(
+                                  e.label,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    shadows: [
+                                      Shadow(
+                                        blurRadius: 4,
+                                        color: Colors.black54,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -57,7 +183,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
       final file = result.files.first;
       if (file.bytes != null) {
         final ext = p.extension(file.name);
-        final safeName = 'team_logo_${widget.team.id}$ext';
+        final safeName = 'team_logo_${context.read<TeamContextCubit>().state.id}$ext';
         final localPath = await LocalImageSaver.saveImageLocally(
           file.bytes!,
           safeName,
@@ -140,74 +266,119 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final team = context.watch<TeamContextCubit>().state;
+    final authState = context.watch<AuthCubit>().state;
+    final canDeleteTeam = authState is Authenticated &&
+        authState.user.teamRoles[team.id] == UserRole.superAdmin;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final teamContext = context.read<TeamContextCubit>();
+    final detailCubit = context.read<TeamDetailCubit>();
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: const Text('Gestión de equipo'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            final getPlayersByTeamUseCase = context
-                .read<GetPlayersByTeamUseCase>();
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => BlocProvider(
-                  create: (_) =>
-                      TeamDetailCubit(getPlayersByTeamUseCase)
-                        ..loadTeam(widget.team.id),
-                  child: TeamDetailPage(team: widget.team),
-                ),
-              ),
-              (route) => route.isFirst,
-            );
-          },
+    return TeamBrandedScope(
+      team: _previewTeamForBackground(),
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          title: const Text('Gestión de equipo'),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _sectionTitle(context, 'Datos del equipo'),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TeamManagementHeaderRow(
-                        nameController: _nameController,
-                        selectedLogoPath: _selectedLogoPath,
-                        logoUrl: widget.team.logoUrl,
-                        onLogoTap: _onLogoTap,
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: Chip(
-                          avatar: Icon(
-                            Icons.category_outlined,
-                            size: 18,
-                            color: scheme.onSecondaryContainer,
-                          ),
-                          label: Text(
-                            widget.team.category,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          backgroundColor: scheme.secondaryContainer
-                              .withValues(alpha: 0.65),
-                          side: BorderSide.none,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
+        body: SafeArea(
+          child: TeamAreaBackground(
+            team: _previewTeamForBackground(),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                _sectionTitle(context, 'Datos del equipo'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TeamManagementHeaderRow(
+                          nameController: _nameController,
+                          selectedLogoPath: _selectedLogoPath,
+                          logoUrl: team.logoUrl,
+                          onLogoTap: _onLogoTap,
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Chip(
+                            avatar: Icon(
+                              Icons.category_outlined,
+                              size: 18,
+                              color: scheme.onSecondaryContainer,
+                            ),
+                            label: Text(
+                              team.category,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            backgroundColor: scheme.secondaryContainer
+                                .withValues(alpha: 0.65),
+                            side: BorderSide.none,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Text(
+                              'Color del equipo',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Tooltip(
+                              message: 'Toca para elegir color',
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: _openColorPalette,
+                                  borderRadius: BorderRadius.circular(9),
+                                  child: Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      color: TeamScreenTint.accentColor(
+                                        _colorHex,
+                                      ),
+                                      borderRadius: BorderRadius.circular(9),
+                                      border: Border.all(
+                                        color: scheme.outline
+                                            .withValues(alpha: 0.5),
+                                        width: 1.2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.07),
+                                          blurRadius: 3,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
                           onPressed: () async {
                             final authState = context.read<AuthCubit>().state;
                             if (authState is! Authenticated) {
@@ -223,14 +394,14 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                             }
 
                             String? newLogoUrl =
-                                _selectedLogoPath ?? widget.team.logoUrl;
+                                _selectedLogoPath ?? team.logoUrl;
                             if (_selectedLogoPath != null &&
                                 !_selectedLogoPath!.startsWith('http')) {
                               final repo = context.read<ITeamRepository>();
                               final file = File(_selectedLogoPath!);
                               final bytes = await file.readAsBytes();
                               final fileName =
-                                  'team_logo_${widget.team.id}${p.extension(_selectedLogoPath!)}';
+                                  'team_logo_${team.id}${p.extension(_selectedLogoPath!)}';
                               final result =
                                   await repo.uploadLogo(bytes, fileName);
                               result.fold(
@@ -252,10 +423,11 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
 
                             final newName = _nameController.text.trim();
                             final updatedTeam = Team(
-                              id: widget.team.id,
+                              id: team.id,
                               name: newName,
-                              category: widget.team.category,
+                              category: team.category,
                               logoUrl: newLogoUrl,
+                              color: _colorHex,
                             );
 
                             final updateTeamUseCase =
@@ -277,6 +449,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                               },
                               (_) {
                                 context.read<HomeCubit>().fetchTeams();
+                                teamContext.setTeam(updatedTeam);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: const Text(
@@ -291,13 +464,13 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                             );
                           },
                           icon: const Icon(Icons.save_outlined),
-                          label: const Text('Guardar nombre y escudo'),
+                          label: const Text('Guardar datos del equipo'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
               _sectionTitle(context, 'Plantilla y acceso'),
               Card(
                 clipBehavior: Clip.antiAlias,
@@ -312,9 +485,12 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => BlocProvider.value(
-                              value: context.read<TeamDetailCubit>(),
-                              child: TeamRosterPage(team: widget.team),
+                            builder: (_) => MultiBlocProvider(
+                              providers: [
+                                BlocProvider.value(value: teamContext),
+                                BlocProvider.value(value: detailCubit),
+                              ],
+                              child: TeamRosterPage(team: team),
                             ),
                           ),
                         );
@@ -330,7 +506,10 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => TeamAccessPage(team: widget.team),
+                            builder: (_) => BlocProvider.value(
+                              value: teamContext,
+                              child: TeamAccessPage(team: team),
+                            ),
                           ),
                         );
                       },
@@ -353,8 +532,13 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                MatchDeletePage(team: widget.team),
+                            builder: (_) => MultiBlocProvider(
+                              providers: [
+                                BlocProvider.value(value: teamContext),
+                                BlocProvider.value(value: detailCubit),
+                              ],
+                              child: MatchDeletePage(team: team),
+                            ),
                           ),
                         );
                       },
@@ -370,8 +554,13 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                AttendanceDeletePage(team: widget.team),
+                            builder: (_) => MultiBlocProvider(
+                              providers: [
+                                BlocProvider.value(value: teamContext),
+                                BlocProvider.value(value: detailCubit),
+                              ],
+                              child: AttendanceDeletePage(team: team),
+                            ),
                           ),
                         ).then((result) {
                           if (result == true && mounted) {
@@ -383,6 +572,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   ],
                 ),
               ),
+              if (canDeleteTeam) ...[
               _sectionTitle(context, 'Zona crítica'),
               Card(
                 color: scheme.errorContainer.withValues(alpha: 0.22),
@@ -401,8 +591,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     subtitle: 'Elimina el club y deja de verlo en inicio',
                     danger: true,
                     onTap: () async {
-                      final authState = context.read<AuthCubit>().state;
-                      if (authState is! Authenticated) {
+                      final authForDelete = context.read<AuthCubit>().state;
+                      if (authForDelete is! Authenticated) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: const Text(
@@ -442,8 +632,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                       final deleteTeamUseCase =
                           context.read<DeleteTeamUseCase>();
                       final result = await deleteTeamUseCase(
-                        widget.team,
-                        authState.user,
+                        team,
+                        authForDelete.user,
                       );
 
                       if (!mounted) return;
@@ -473,7 +663,10 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   ),
                 ),
               ),
-            ],
+              ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -125,6 +125,8 @@ Future<File?> generateConvocationImage({
     );
     final canvasH = totalHeight.roundToDouble();
 
+    final palette = ConvocationImagePalette.fromTeamColor(team.color);
+
     teamLogo = await _decodeTeamLogo(team);
 
     final recorder = ui.PictureRecorder();
@@ -137,15 +139,15 @@ Future<File?> generateConvocationImage({
     final bgPaint = Paint()
       ..shader = LinearGradient(
         colors: [
-          ConvocationImageTheme.pitch,
-          ConvocationImageTheme.pitchBright,
+          palette.pitch,
+          palette.pitchBright,
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);
     canvas.drawRect(rect, bgPaint);
 
-    final overlayPaint = Paint()..color = ConvocationImageTheme.surface;
+    final overlayPaint = Paint()..color = palette.surface;
     final overlayMargin = ConvocationImageTheme.overlayMargin;
     final overlayRect = Rect.fromLTWH(
       overlayMargin,
@@ -161,7 +163,7 @@ Future<File?> generateConvocationImage({
     canvas.drawRRect(
       rrect,
       Paint()
-        ..color = ConvocationImageTheme.outlineVariant.withValues(alpha: 0.55)
+        ..color = palette.outlineVariant.withValues(alpha: 0.55)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
@@ -173,6 +175,7 @@ Future<File?> generateConvocationImage({
     final headerBottomY = drawConvocationHeader(
       canvas: canvas,
       overlayRect: overlayRect,
+      palette: palette,
       team: team,
       isHome: isHome,
       rivalName: rivalName,
@@ -183,14 +186,15 @@ Future<File?> generateConvocationImage({
     final callTimeStr = _formatTimeOfDay(callTime);
 
     String? mapUrl;
-    if (!isHome && awayLocation != null && awayLocation.isNotEmpty) {
+    if (awayLocation != null && awayLocation.trim().isNotEmpty) {
       mapUrl =
-          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation)}';
+          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation.trim())}';
     }
 
     drawConvocationBody(
       canvas: canvas,
       overlayRect: overlayRect,
+      palette: palette,
       startY: headerBottomY,
       dateStr: dateStr,
       matchTimeStr: matchTimeStr,

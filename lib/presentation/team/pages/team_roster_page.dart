@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/presentation/team/widgets/team_roster_widget.dart';
 
@@ -9,13 +10,16 @@ class TeamRosterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Plantilla'), centerTitle: true),
-      body: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: TeamRosterWidget(team: team),
+    return TeamBrandedScope(
+      team: team,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Plantilla'), centerTitle: true),
+        body: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TeamRosterWidget(team: team),
+          ),
         ),
       ),
     );

@@ -9,8 +9,11 @@ import 'package:football_manager/domain/entities/invitation.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/usecase/profile/get_profiles_by_ids_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/create_invitation_use_case.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
+import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 
 class TeamAccessPage extends StatefulWidget {
   const TeamAccessPage({super.key, required this.team});
@@ -383,21 +386,26 @@ class _TeamAccessPageState extends State<TeamAccessPage>
 
   @override
   Widget build(BuildContext context) {
+    final brandingTeam = context.watch<TeamContextCubit>().state;
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final authState = context.watch<AuthCubit>().state;
     final UserRole? myTeamRole = authState is Authenticated
-        ? authState.user.teamRoles[widget.team.id]
+        ? authState.user.teamRoles[brandingTeam.id]
         : null;
     final bool canManageAccess = myTeamRole?.hasAdminPrivileges ?? false;
 
-    return Scaffold(
+    return TeamBrandedScope(
+      team: brandingTeam,
+      child: Scaffold(
       appBar: AppBar(title: const Text('Acceso al equipo')),
       body: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: _loading
+        child: TeamAreaBackground(
+          team: brandingTeam,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: _loading
               ? RefreshIndicator(
                   onRefresh: _loadMembers,
                   child: ListView(
@@ -442,7 +450,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      widget.team.name,
+                      brandingTeam.name,
                       style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.4,
@@ -704,8 +712,10 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                       ),
                   ],
                 ),
+          ),
         ),
       ),
+    ),
     );
   }
 

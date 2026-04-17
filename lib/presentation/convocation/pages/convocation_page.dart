@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:football_manager/domain/entities/team.dart';
-import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_cubit.dart';
 import 'package:football_manager/presentation/convocation/services/convocation_save_service.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_actions_row.dart';
@@ -9,15 +7,17 @@ import 'package:football_manager/presentation/convocation/widgets/convocation_da
 import 'package:football_manager/presentation/convocation/widgets/convocation_header_section.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_notes_field.dart';
 import 'package:football_manager/presentation/convocation/widgets/convocation_players_section.dart';
+import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
-import 'package:football_manager/presentation/team/pages/team_detail_page.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
+import 'package:football_manager/presentation/team/team_session_routes.dart';
+import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 
+/// Requiere [TeamContextCubit] en el árbol.
 class ConvocationPage extends StatefulWidget {
-  final Team team;
-
-  const ConvocationPage({super.key, required this.team});
+  const ConvocationPage({super.key});
 
   @override
   State<ConvocationPage> createState() => _ConvocationPageState();
@@ -107,7 +107,6 @@ class _ConvocationPageState extends State<ConvocationPage> {
     final away = _awayLocationController.text.trim();
     await ConvocationSaveService.save(
       context: context,
-      team: widget.team,
       rivalController: _rivalController,
       notesController: _notesController,
       isHome: _isHome,
@@ -121,6 +120,7 @@ class _ConvocationPageState extends State<ConvocationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final team = context.watch<TeamContextCubit>().state;
     final String formattedDate = _formattedDate(_selectedDate);
     final String formattedMatchTime = _formattedTime(_selectedTime);
     final String formattedCallTime = _formattedTime(_callTime);
@@ -129,110 +129,110 @@ class _ConvocationPageState extends State<ConvocationPage> {
 
     return BlocProvider.value(
       value: _convocationCubit,
-      child: Scaffold(
+      child: TeamBrandedScope(
+        team: team,
+        child: Scaffold(
         appBar: AppBar(
           title: const Text('Convocatoria'),
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
-              final getPlayersByTeamUseCase = context
-                  .read<GetPlayersByTeamUseCase>();
               Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(
-                  builder: (_) => BlocProvider(
-                    create: (_) =>
-                        TeamDetailCubit(getPlayersByTeamUseCase)
-                          ..loadTeam(widget.team.id),
-                    child: TeamDetailPage(team: widget.team),
-                  ),
-                ),
+                TeamSessionRoutes.detailHomeReplacingStack(context),
                 (route) => route.isFirst,
               );
             },
           ),
         ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ConvocationHeaderSection(
-                  rivalController: _rivalController,
-                  awayLocationController: _awayLocationController,
-                  isHome: _isHome,
-                  onHomeAwayChanged: (home) {
-                    setState(() {
-                      _isHome = home;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                ConvocationDateTimeSection(
-                  formattedDate: formattedDate,
-                  formattedMatchTime: formattedMatchTime,
-                  formattedCallTime: formattedCallTime,
-                  onPickDate: _pickDate,
-                  onPickMatchTime: _pickTime,
-                  onPickCallTime: _pickCallTime,
-                ),
-                const SizedBox(height: 12),
-                BlocBuilder<TeamDetailCubit, TeamDetailState>(
-                  builder: (context, state) {
-                    if (state is TeamDetailLoading ||
-                        state is TeamDetailInitial) {
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: Theme.of(context).colorScheme.primary,
+        body: TeamAreaBackground(
+          team: team,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ConvocationHeaderSection(
+                    rivalController: _rivalController,
+                    awayLocationController: _awayLocationController,
+                    isHome: _isHome,
+                    onHomeAwayChanged: (home) {
+                      setState(() {
+                        _isHome = home;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  ConvocationDateTimeSection(
+                    formattedDate: formattedDate,
+                    formattedMatchTime: formattedMatchTime,
+                    formattedCallTime: formattedCallTime,
+                    onPickDate: _pickDate,
+                    onPickMatchTime: _pickTime,
+                    onPickCallTime: _pickCallTime,
+                  ),
+                  const SizedBox(height: 12),
+                  BlocBuilder<TeamDetailCubit, TeamDetailState>(
+                    builder: (context, state) {
+                      if (state is TeamDetailLoading ||
+                          state is TeamDetailInitial) {
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }
-                    if (state is TeamDetailError) {
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  state.message,
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                        );
+                      }
+                      if (state is TeamDetailError) {
+                        return Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    state.message,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                    if (state is TeamDetailLoaded) {
-                      return ConvocationPlayersSection(players: state.players);
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                const SizedBox(height: 12),
-                ConvocationNotesField(notesController: _notesController),
-                const SizedBox(height: 8),
-                ConvocationActionsRow(
-                  onCancel: () => Navigator.of(context).pop(),
-                  onSave: _onSavePressed,
-                ),
-              ],
+                        );
+                      }
+                      if (state is TeamDetailLoaded) {
+                        return ConvocationPlayersSection(
+                            players: state.players);
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  ConvocationNotesField(notesController: _notesController),
+                  const SizedBox(height: 8),
+                  ConvocationActionsRow(
+                    onCancel: () => Navigator.of(context).pop(),
+                    onSave: _onSavePressed,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        bottomNavigationBar: TeamBottomBar(team: widget.team),
+        bottomNavigationBar: const TeamBottomBar(),
+        ),
       ),
     );
   }
