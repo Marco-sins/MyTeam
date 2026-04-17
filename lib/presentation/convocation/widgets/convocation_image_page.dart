@@ -7,6 +7,7 @@ import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 /// Requiere [TeamContextCubit] y normalmente [TeamDetailCubit] en el árbol.
 class ConvocationImagePage extends StatelessWidget {
@@ -46,6 +47,7 @@ class ConvocationImagePage extends StatelessWidget {
                 ], text: 'Convocatoria de ${team.name}');
               },
             ),
+            const TeamQuickNavAppBarButton(),
           ],
         ),
         body: SafeArea(

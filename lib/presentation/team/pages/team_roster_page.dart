@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 import 'package:football_manager/presentation/team/widgets/team_roster_widget.dart';
 
 class TeamRosterPage extends StatelessWidget {
@@ -13,7 +14,11 @@ class TeamRosterPage extends StatelessWidget {
     return TeamBrandedScope(
       team: team,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Plantilla'), centerTitle: true),
+        appBar: AppBar(
+          title: const Text('Plantilla'),
+          centerTitle: true,
+          actions: const [TeamQuickNavAppBarButton()],
+        ),
         body: SafeArea(
           top: false,
           child: Padding(

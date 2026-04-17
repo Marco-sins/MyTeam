@@ -9,6 +9,7 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 class MatchDeletePage extends StatefulWidget {
   final Team team;
@@ -40,7 +41,11 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
     return TeamBrandedScope(
       team: team,
       child: Scaffold(
-      appBar: AppBar(title: const Text('Eliminar partido'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Eliminar partido'),
+        centerTitle: true,
+        actions: const [TeamQuickNavAppBarButton()],
+      ),
       body: SafeArea(
         top: false,
         child: TeamAreaBackground(

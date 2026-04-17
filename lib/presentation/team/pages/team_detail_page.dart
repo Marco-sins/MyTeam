@@ -16,6 +16,7 @@ import 'package:football_manager/presentation/team/widgets/team_area_background.
 import 'package:football_manager/presentation/team/widgets/team_detail_header.dart';
 import 'package:football_manager/presentation/team/widgets/team_attendance_section.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 import 'package:football_manager/presentation/team/widgets/team_roster_widget.dart';
 
 /// Requiere un [TeamContextCubit] ancestro con el equipo actual.
@@ -224,6 +225,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
           appBar: AppBar(
             title: const Text(AppBranding.mainTitleEs),
             centerTitle: true,
+            actions: const [TeamQuickNavAppBarButton()],
           ),
           body: Center(
             child: Column(
@@ -250,6 +252,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
         appBar: AppBar(
           title: const Text(AppBranding.mainTitleEs),
           centerTitle: true,
+          actions: const [TeamQuickNavAppBarButton()],
         ),
         body: TeamAreaBackground(
           team: team,

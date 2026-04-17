@@ -29,6 +29,7 @@ import 'package:football_manager/presentation/match/pages/match_stats_page.dart'
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 enum _MatchPhase { notStarted, firstHalf, halfTime, secondHalf }
 
@@ -2605,7 +2606,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return TeamBrandedScope(
       team: widget.team,
       child: Scaffold(
-      appBar: AppBar(title: const Text('Partido en curso'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Partido en curso'),
+        centerTitle: true,
+        actions: const [TeamQuickNavAppBarButton()],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _onRefreshMatchScreen,
