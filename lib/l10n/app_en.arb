@@ -1,0 +1,503 @@
+{
+  "@@locale": "en",
+  "appTitle": "My Team",
+  "authWelcomeBack": "Welcome back",
+  "authCreateAccount": "Create your account",
+  "authHaveAccountLogin": "Already have an account? Sign in",
+  "authNoAccountRegister": "No account? Register",
+  "loginEmailLabel": "Email",
+  "loginEmailError": "Enter your email",
+  "loginPasswordLabel": "Password",
+  "loginPasswordMinError": "At least 6 characters",
+  "loginSubmit": "Sign in",
+  "loginForgotPassword": "Forgot password",
+  "registerFullNameLabel": "Full name",
+  "registerNameError": "Please enter your name",
+  "registerEmailInvalid": "Invalid email",
+  "registerSubmit": "Create account",
+  "authCheckEmailTitle": "Check your email",
+  "authUnderstand": "OK",
+  "authRegisterEmailConfirm": "We've sent a link to {email}. Open it to activate your account before signing in. Check your spam folder too.",
+  "@authRegisterEmailConfirm": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authRegisterEmailActive": "Your account is active. Check your inbox for a verification or welcome email (including spam).",
+  "homeLogoutTooltip": "Sign out",
+  "homeInvitations": "Invitations",
+  "homeNewTeam": "New team",
+  "homeLoadingTeams": "Loading your teams…",
+  "homeRetry": "Retry",
+  "homeYourPanel": "Your dashboard",
+  "homeTeamCountOne": "You have 1 team. Tap a card to open it.",
+  "homeTeamCountMany": "You have {count} teams. Tap a card to open it.",
+  "@homeTeamCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeEmptyTitle": "You don't have any teams yet",
+  "homeEmptySubtitle": "Create your first team with the floating button or check if you have pending invitations.",
+  "homeEmptyHintNewTeam": "New team: basic details and badge",
+  "homeEmptyHintInvitations": "Invitations: join an existing team",
+  "languageSpanish": "Spanish (ES)",
+  "languageEnglish": "English (EN)",
+  "languageFrench": "French (FR)",
+  "languageItalian": "Italian (IT)",
+  "languageSelectorTooltip": "App language",
+  "roleSuperAdmin": "Super admin",
+  "roleAdmin": "Admin",
+  "rolePlayer": "Player",
+  "roleExternal": "External",
+  "roleSpectator": "Spectator",
+  "tableColumnPlayer": "Player",
+  "tableColumnAttends": "Present",
+  "tableColumnAbsent": "Absent",
+  "convocationCallAll": "All",
+  "convocationPlayerStatus": "Status",
+  "convocationEmptyRoster": "No players in the squad",
+  "convocationToggleHint": "Call everyone at once or tap each player to toggle Yes / No.",
+  "commonYes": "Yes",
+  "commonNo": "No",
+  "accessInviteSend": "Send invitation",
+  "accessInviteNeedAuth": "You must be signed in to send invitations",
+  "accessAdminOnlyInvite": "Only a team admin can invite or remove access.",
+  "accessUsersWithAccess": "Users with access",
+  "accessListBlurb": "Live list: updates when someone gains or loses access. Each row shows name and email (profiles) to identify the person.",
+  "accessPeopleCountSingle": "1 person",
+  "accessPeopleCountMany": "{count} people",
+  "@accessPeopleCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accessEmptyMembersTitle": "Nobody else has access yet.",
+  "accessEmptyMembersHint": "Invite by email with the button below.",
+  "accessProfileNoName": "No name on profile",
+  "accessProfileNoEmail": "Email unavailable (check profile in the app)",
+  "accessNamePrefix": "Name: ",
+  "accessEmailPrefix": "Email: ",
+  "accessRolePrefix": "Role: ",
+  "accessYou": "You",
+  "accessInviteSent": "Invitation sent to {email} as {role}.",
+  "@accessInviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "navMenuTooltip": "Team menu",
+  "navMyTeams": "My teams",
+  "navTeamHomeSubtitle": "Team home",
+  "navAttendance": "Attendance",
+  "navConvocation": "Call-up",
+  "navMatch": "Match",
+  "navManagement": "Management",
+  "actionCancel": "Cancel",
+  "actionConfirm": "Confirm",
+  "screenAttendance": "Attendance",
+  "screenConvocation": "Call-up",
+  "screenConvocationGenerated": "Call-up image",
+  "screenMatches": "Matches",
+  "screenMatchLive": "Live match",
+  "screenMatchDetail": "Match details",
+  "screenDeleteMatch": "Delete match",
+  "screenDeleteAttendance": "Delete attendance",
+  "screenTeamManagement": "Team management",
+  "screenTeamAccess": "Team access",
+  "screenRoster": "Squad",
+  "screenSelectLocation": "Pick location",
+  "screenNewTeamPage": "New team",
+  "screenAddPlayer": "Add player",
+  "screenEditPlayer": "Edit player",
+  "shareImageTooltip": "Share image",
+  "convocationShareText": "{teamName} call-up",
+  "@convocationShareText": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "backToTeam": "Back to team",
+  "dialogNoAccessTitle": "No team access",
+  "dialogNoAccessBody": "You no longer have access to this team. It has been removed from your dashboard and you cannot re-enter until an administrator invites you again.",
+  "dialogLeaveTeamTitle": "Leave team",
+  "leaveTeamPromptExternal": "Leave {teamName}? You will no longer see the squad or matches until an administrator invites you again.",
+  "@leaveTeamPromptExternal": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamPromptAdmin": "Leave {teamName} as an admin? You will lose management permissions; you can only return if a super admin invites you again.",
+  "@leaveTeamPromptAdmin": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamPromptPlayer": "Leave {teamName} as a player? You will be removed from the squad until you are registered again.",
+  "@leaveTeamPromptPlayer": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamPromptGeneric": "Leave {teamName}?",
+  "@leaveTeamPromptGeneric": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamButton": "Leave team",
+  "snackbarLeftTeam": "You left the team",
+  "teamCheckingAccess": "Checking access…",
+  "teamLoadingRoster": "Loading squad…",
+  "teamEmptyRosterTitle": "No players in the squad yet",
+  "teamEmptyRosterHint": "Add them from Management → Edit squad.",
+  "teamHeaderLeaveShort": "Leave",
+  "teamPlayerCountOne": "1 player",
+  "teamPlayerCountMany": "{count} players",
+  "@teamPlayerCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teamMustLoginAddPlayers": "You must be signed in to add players",
+  "teamMustLoginEditPlayers": "You must be signed in to edit players",
+  "teamMustLoginDeletePlayers": "You must be signed in to delete players",
+  "dialogDeletePlayerLead": "Are you sure you want to delete ",
+  "teamManagementLogoLabel": "Badge",
+  "teamManagementLogoTapHint": "Tap to change",
+  "teamManagementNameLabel": "Team name",
+  "teamManagementNameHint": "e.g. Riverside FC",
+  "accessDefaultUserName": "User",
+  "teamMgmtSectionTeamData": "Team details",
+  "teamMgmtColorRowLabel": "Team color",
+  "teamMgmtColorPickTooltip": "Tap to pick a color",
+  "teamMustLoginSaveChanges": "You must be signed in to save changes",
+  "teamMgmtLogoUploadError": "Could not upload badge: {message}",
+  "@teamMgmtLogoUploadError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "teamMgmtSaveSuccess": "Changes saved",
+  "teamMgmtSectionRosterAccess": "Squad & access",
+  "teamMgmtEditRosterTitle": "Edit squad",
+  "teamMgmtEditRosterSubtitle": "Add, remove and edit players",
+  "teamMgmtAccessTitle": "Manage access",
+  "teamMgmtAccessSubtitle": "Invite admins or spectators to the team",
+  "teamMgmtSectionMaintenance": "Data maintenance",
+  "teamMgmtDeleteMatchesTitle": "Delete matches",
+  "teamMgmtDeleteMatchesSubtitle": "Remove specific matches from the schedule",
+  "teamMgmtDeleteAttendanceTitle": "Delete attendance",
+  "teamMgmtDeleteAttendanceSubtitle": "Remove attendance tracking days",
+  "teamMgmtSectionCritical": "Danger zone",
+  "teamAccessLoadMembersError": "Could not load team members",
+  "convSectionMatch": "Match",
+  "convRivalLabel": "Opponent",
+  "convVenueLabel": "Venue",
+  "convHome": "Home",
+  "convAway": "Away",
+  "convLocationHint": "Place (optional)",
+  "convLocationFieldHint": "Venue or address · shown on the image",
+  "matchFormation": "Formation",
+  "matchDeleteEvent": "Delete event",
+  "matchConfirmAction": "Confirm action",
+  "matchPickAssistant": "Select assistant",
+  "matchNoAttendanceOption": "No attendance",
+  "matchEndGame": "End match",
+  "matchMustLoginStart": "You must be signed in to start the match",
+  "matchStartedOk": "Match started successfully",
+  "matchMustLoginPause": "You must be signed in to pause the match",
+  "matchStateUpdateFail": "Could not update match status",
+  "matchMustLoginResume": "You must be signed in to resume the match",
+  "matchMustLoginFinish": "You must be signed in to end the match",
+  "matchOpponentGoal": "Opponent goal",
+  "matchSubtractOur": "− Us",
+  "matchSubtractRival": "− Them",
+  "matchDeleteEventQuestion": "Delete this match event? Score, notes and discipline will be recalculated.",
+  "matchEventDeleted": "Event deleted",
+  "matchEventDeleteFail": "Could not delete the event",
+  "matchLoginRequiredShort": "You must be signed in",
+  "matchActionRegisterLogin": "You must be signed in to log actions",
+  "matchActionRegisterFail": "Could not save the action",
+  "matchActionRegisteredPrefix": "Action saved for ",
+  "matchEndGameConfirm": "End the match? The final result will be saved.",
+  "matchRegisterActionIntro": "Are you sure you want to log \"{label}\" for ",
+  "@matchRegisterActionIntro": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "dialogDeletePlayerTitle": "Delete player",
+  "dialogDeleteTeamTitle": "Delete team",
+  "dialogRevokeAccessTitle": "Remove access",
+  "dialogInviteUserTitle": "Invite user",
+  "accessRevokeBody": "Remove this user's access?",
+  "accessRevokeAction": "Remove",
+  "accessRevokedOk": "Access removed successfully",
+  "accessRevokeFail": "Could not remove access",
+  "accessCannotRemoveSuperAdmin": "Only the team creator (super admin) can remove another super admin.",
+  "accessInviteRole": "Role",
+  "accessAdminOnlyRevoke": "Only a team admin can remove access.",
+  "teamColorDefault": "Default (app green)",
+  "teamColorSheetTitle": "Team color",
+  "teamColorSheetHint": "Top bar, buttons and accents inside the team area. Cards and soft areas use your tint (same subtlety as the app green). Empty = default green.",
+  "teamSaveDataButton": "Save team details",
+  "actionDelete": "Delete",
+  "actionRemove": "Remove",
+  "teamDeletedSnackbar": "Team deleted successfully",
+  "matchDeleteNeedLogin": "You must be signed in to delete matches",
+  "matchDeleteConfirmBody": "Delete the match against {opponent}?",
+  "@matchDeleteConfirmBody": {
+    "placeholders": {
+      "opponent": {
+        "type": "String"
+      }
+    }
+  },
+  "matchListLoadError": "Could not load matches",
+  "matchStatsLoadError": "Could not load match data",
+  "matchListEmpty": "No matches for this team",
+  "matchStatusPending": "Scheduled",
+  "matchStatusFirstHalf": "1st half",
+  "matchStatusHalfTime": "Half-time",
+  "matchStatusSecondHalf": "2nd half",
+  "matchStatusFinished": "Finished",
+  "matchLastEvent": "Latest event",
+  "matchScoreAndTime": "Score and time",
+  "matchQuickScore": "Quick score",
+  "matchGoalsFromFieldHint": "Goals for are logged from the pitch (player) or actions.",
+  "matchFieldAndFormation": "Pitch and formation",
+  "matchSquadTitle": "Squad",
+  "matchSquadHintSpectator": "Spectator mode: list and pitch are view-only.",
+  "matchSquadHintCoach": "Tap a player to select; tap the pitch to line up or open actions.",
+  "matchPlayerSentOffCannotReturn": "Sent-off player cannot come back on",
+  "matchEventsTitle": "Match events",
+  "matchEventsHintSpectator": "Match timeline.",
+  "matchEventsHintCoach": "Tap an event to delete it. Only team admins can remove events.",
+  "matchEventsEmpty": "No events recorded yet",
+  "matchStartGameButton": "Start match",
+  "matchResumeGameButton": "Resume match",
+  "matchHalfTimeButton": "Half-time",
+  "matchPhaseNotStarted": "Not started",
+  "matchSpectatorNoPlayerActions": "Spectator mode: you cannot log player actions",
+  "matchConfirmGoalTitle": "Confirm goal",
+  "matchConfirmAddGoalOur": "Add a goal for your team?",
+  "matchConfirmAddGoalRival": "Add a goal for the opponent?",
+  "matchMustLoginRegisterGoals": "You must be signed in to log goals",
+  "matchGoalsOurTeamFromField": "Your team's goals are logged from a player on the pitch",
+  "matchOpponentGoalRegisteredOk": "Opponent goal saved",
+  "matchGoalSaveFail": "Could not save the goal",
+  "matchRemoveGoalTitle": "Remove goal",
+  "matchConfirmRemoveGoalOur": "Remove a goal from your team?",
+  "matchConfirmRemoveGoalRival": "Remove a goal from the opponent?",
+  "matchMustLoginRemoveGoals": "You must be signed in to remove goals",
+  "matchNoGoalsToRemove": "No goals to remove",
+  "matchGoalNotFoundInDb": "Goal not found in the database",
+  "matchGoalRemovedOk": "Goal removed",
+  "matchGoalRemoveFail": "Could not remove the goal",
+  "matchConvocationLoadError": "Could not load the squad list",
+  "matchFillAllPositionsBeforeStart": "Place every player before starting the match",
+  "matchConfirmStartTitle": "Start match",
+  "matchConfirmStartBody": "Start the match?",
+  "matchConfirmHalfTimeTitle": "Go to half-time",
+  "matchConfirmHalfTimeBody": "Move to half-time?",
+  "matchConfirmResumeTitle": "Resume match",
+  "matchConfirmResumeBody": "Start the second half?",
+  "matchEndGameDialogBody": "End the match? Statistics will be saved.",
+  "matchEndGameAction": "End",
+  "matchSentOffDoubleYellow": " sent off (second yellow)",
+  "matchSentOffSimple": " sent off",
+  "matchUnknownPlayerId": "Player {id}",
+  "@matchUnknownPlayerId": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "matchLiveFormationRegistered": "Formation saved",
+  "matchLiveFormationLine": "Formation: {formation}",
+  "@matchLiveFormationLine": {
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "matchLiveSubstitutionEnters": "Substitution · On ",
+  "matchLiveSubstitutionLeaves": " · Off ",
+  "matchLivePeriodFallback": "Period or status change",
+  "matchLiveGoalBy": "Goal by ",
+  "matchLiveAssistOpening": " (assist ",
+  "matchLiveAssistClosing": ")",
+  "matchLiveConcededDefault": "Conceded goal",
+  "matchLiveOwnGoal": "Own goal · ",
+  "matchLiveYellowCard": "Yellow card: ",
+  "matchLiveRedCard": "Red card: ",
+  "matchLiveSaveBy": "Save by ",
+  "matchLiveSaveWithNote": "Save · {note}",
+  "@matchLiveSaveWithNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "matchLiveSaveOnly": "Save",
+  "matchLiveKeyPass": "Key pass: ",
+  "matchLiveGoodPass": "Good pass: ",
+  "matchLiveBadPass": "Poor pass: ",
+  "matchLiveGoodPlay": "Good play: ",
+  "matchLiveBadPlay": "Poor play: ",
+  "matchLiveBallRecovery": "Ball won: ",
+  "matchLiveEvent": "Event",
+  "matchLiveEventLine": "{label}: {note}",
+  "@matchLiveEventLine": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "matchNoteFirstHalfStart": "First half kickoff",
+  "matchNoteSecondHalfStart": "Second half kickoff",
+  "matchNoteMatchFinished": "Full time",
+  "matchActionLabelGoal": "Goal",
+  "matchActionLabelGoodPass": "Good pass",
+  "matchActionLabelGoodPlay": "Good play",
+  "matchActionLabelBallRecovery": "Ball recovery",
+  "matchActionLabelYellowCard": "Yellow card",
+  "matchActionLabelRedCard": "Red card",
+  "matchActionLabelBadPass": "Poor pass",
+  "matchActionLabelBadPlay": "Poor play",
+  "matchActionLabelKeyPass": "Key pass",
+  "matchGoalRegisteredPrefix": "Goal saved for ",
+  "attendanceSaveHint": "Tap ✓ for present or X for absent, then save for the selected day.",
+  "attendanceSaveButton": "Save attendance",
+  "attendanceSaveNeedLogin": "You must be signed in to save attendance",
+  "attendanceSaveTeamLoadError": "Could not load the team squad",
+  "attendanceSaveInProgress": "Saving…",
+  "attendanceSaveSuccess": "Attendance saved successfully",
+  "convDatetimeSectionTitle": "Date and times",
+  "convPickDateTooltip": "Pick date",
+  "tooltipChange": "Change",
+  "attendanceDeleteLoadError": "Could not load attendance days",
+  "attendanceDeleteEmpty": "No training days recorded",
+  "attendanceDeleteNeedLogin": "You must be signed in to delete attendance",
+  "teamDeleteNavTitle": "Delete team",
+  "teamDeleteNavSubtitle": "Remove the club and hide it from home",
+  "teamDeleteNeedLogin": "You must be signed in to delete the team",
+  "teamDeleteConfirmBody": "Delete this team? This cannot be undone.",
+  "attendanceDeleteConfirmBody": "Delete attendance for {date}?",
+  "@attendanceDeleteConfirmBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dialogClose": "Close",
+  "convocationNotesTitle": "Notes",
+  "convocationNotesHint": "Kit, punctuality, message to the squad…",
+  "convocationSavedSuccess": "Call-up saved successfully",
+  "convocationImageSectionMatchDetails": "Match details",
+  "convocationImageLabelDate": "Date",
+  "convocationImageLabelMatchTime": "Kick-off time",
+  "convocationImageLabelCallTime": "Meet-up time",
+  "convocationImageLabelVenue": "Venue",
+  "convocationImageSectionSquad": "Called-up players",
+  "convocationImageObservationsTitle": "Notes",
+  "convocationImagePlayerFallback": "Player",
+  "matchSummaryVs": "vs {opponent}",
+  "@matchSummaryVs": {
+    "placeholders": {
+      "opponent": {
+        "type": "String"
+      }
+    }
+  },
+  "matchVenueHome": "Home",
+  "matchVenueAway": "Away",
+  "matchScoreForLabel": "For",
+  "matchScoreAgainstLabel": "Against",
+  "matchStatsScoreFinal": "Final score",
+  "matchStatsScoreLive": "Score",
+  "matchStatsLoadingSummary": "Loading match summary…",
+  "matchStatsSectionField": "Final pitch",
+  "matchStatsFormationChip": "Formation: {formation}",
+  "@matchStatsFormationChip": {
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "matchStatsFieldDispositionHint": "Layout based on positions saved when the match ended.",
+  "matchStatsSectionTimeline": "Timeline",
+  "matchStatsTimelineEmpty": "No events recorded",
+  "matchStatsTimelineEmptyHint": "Goals, subs and cards will appear here once logged in the match.",
+  "matchStatsMinutesPlayed": "Minutes played",
+  "matchStatsStatGoals": "Goals",
+  "matchStatsStatAssists": "Assists",
+  "matchStatsStatGoodPasses": "Good passes",
+  "matchStatsStatBadPasses": "Poor passes",
+  "matchStatsStatGoodPlays": "Good plays",
+  "matchStatsStatBadPlays": "Poor plays",
+  "matchStatsOurGoalChip": "Goal for",
+  "matchStatsOwnGoalChip": "Own goal",
+  "matchListLoading": "Loading matches…",
+  "matchListEmptyStateTitle": "No matches yet",
+  "matchListEmptyStateBody": "Matches you create from a call-up will show up here. Pull down to refresh.",
+  "matchListCalendarTitle": "Calendar",
+  "matchListElapsedTime": "Time: {time}",
+  "@matchListElapsedTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "matchListHintLineupStart": "Tap to line up and start",
+  "matchListHintManageResume": "Tap to manage or resume",
+  "matchListHintViewStats": "Tap to view stats",
+  "matchLineupSquadTitle": "Match squad",
+  "matchLineupStarters": "Starters",
+  "matchLineupSubstitutes": "Substitutes",
+  "matchLineupStarterTag": "Starter",
+  "matchLineupSubstituteTag": "Substitute",
+  "matchFieldSelectPlayerFirst": "Select a player in the list first",
+  "matchFieldMaxPlayersExpulsionRule": "You cannot have more players on the pitch. Each sent-off player must leave a free slot.",
+  "matchConvocationTableEmpty": "No players called up for this match",
+  "matchDeletedSuccess": "Match deleted successfully",
+  "matchEventLegacyActionRegistered": "Logged action"
+}

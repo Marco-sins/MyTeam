@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 /// Tipos de acciones que se pueden registrar para un jugador
@@ -60,6 +61,7 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
     context: context,
     barrierDismissible: true,
     builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
@@ -84,7 +86,7 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
-                      tooltip: 'Cerrar',
+                      tooltip: l10n.dialogClose,
                       onPressed: () => Navigator.of(ctx).pop(),
                     ),
                   ],
@@ -97,27 +99,27 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                   child: Column(
                     children: [
                       MatchPlayerActionButton(
-                        label: 'Gol',
+                        label: l10n.matchActionLabelGoal,
                         textColor: Colors.green,
                         onTap: () =>
                             Navigator.of(ctx).pop(MatchPlayerActionType.goal),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Buen pase',
+                        label: l10n.matchActionLabelGoodPass,
                         textColor: Colors.green,
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.goodPass),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Buena jugada',
+                        label: l10n.matchActionLabelGoodPlay,
                         textColor: Colors.green,
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.goodPlay),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Balón recuperado',
+                        label: l10n.matchActionLabelBallRecovery,
                         textColor: Colors.green,
                         onTap: () => Navigator.of(
                           ctx,
@@ -125,28 +127,28 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                       ),
                       const SizedBox(height: 8),
                       MatchPlayerActionButton(
-                        label: 'Tarjeta amarilla',
+                        label: l10n.matchActionLabelYellowCard,
                         textColor: Colors.red,
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.yellowCard),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Tarjeta roja',
+                        label: l10n.matchActionLabelRedCard,
                         textColor: Colors.red,
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.redCard),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Pase impreciso',
+                        label: l10n.matchActionLabelBadPass,
                         textColor: Colors.red,
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.badPass),
                       ),
                       MatchPlayerActionButton(
-                        label: 'Jugada imprecisa',
+                        label: l10n.matchActionLabelBadPlay,
                         textColor: Colors.red,
                         onTap: () => Navigator.of(
                           ctx,

@@ -1,6 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
-import 'package:football_manager/domain/i_repositories/i_auth_repository.dart';
+import 'package:football_manager/domain/repositories/i_auth_repository.dart';
 
 class SignOutUseCase {
   final IAuthRepository _authRepository;

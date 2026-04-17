@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
@@ -19,32 +20,68 @@ Color _accentForLegacyStatusActionNote(ColorScheme scheme, String label) {
   if (lower.contains('mal ') ||
       lower.contains('mala ') ||
       lower.contains('pase impreciso') ||
+      lower.contains('poor pass') ||
       lower.contains('jugada imprecisa') ||
+      lower.contains('poor play') ||
       lower.contains('pierde ') ||
       lower.contains('gol concedido') ||
       lower.contains('gol en propia') ||
-      lower.contains('autogol')) {
+      lower.contains('autogol') ||
+      lower.contains('own goal')) {
     return scheme.error;
   }
   if (lower.contains('buen ') ||
       lower.contains('buena ') ||
+      lower.contains('good pass') ||
+      lower.contains('good play') ||
       lower.contains('pase clave') ||
+      lower.contains('key pass') ||
       lower.contains('gana posesión') ||
       lower.contains('gana posicion') ||
       lower.contains('recupera posesión') ||
       lower.contains('recupera posesion') ||
       lower.contains('recuperación') ||
       lower.contains('recuperacion') ||
+      lower.contains('ball recovered') ||
       lower.contains('balón recuperado') ||
       lower.contains('balon recuperado') ||
       lower.contains('jugada clave') ||
       lower.contains('buena parada') ||
       lower.contains('increíble parada') ||
       lower.contains('increible parada') ||
-      lower.contains('buen tiro')) {
+      lower.contains('buen tiro') ||
+      lower.contains('great save')) {
     return scheme.tertiary;
   }
   return scheme.onSurface;
+}
+
+String _matchStatusLabel(AppLocalizations l10n, MatchStatus status) {
+  switch (status) {
+    case MatchStatus.notStarted:
+      return l10n.matchStatusPending;
+    case MatchStatus.firstHalf:
+      return l10n.matchStatusFirstHalf;
+    case MatchStatus.halfTime:
+      return l10n.matchStatusHalfTime;
+    case MatchStatus.secondHalf:
+      return l10n.matchStatusSecondHalf;
+    case MatchStatus.finished:
+      return l10n.matchStatusFinished;
+  }
+}
+
+String _localizedTimeStatusNote(AppLocalizations l10n, String raw) {
+  final lower = raw.trim().toLowerCase();
+  if (lower == 'inicio 1ª parte' || lower == 'inicio 1a parte') {
+    return l10n.matchNoteFirstHalfStart;
+  }
+  if (lower == 'descanso') return l10n.matchStatusHalfTime;
+  if (lower == 'inicio 2ª parte' || lower == 'inicio 2a parte') {
+    return l10n.matchNoteSecondHalfStart;
+  }
+  if (lower == 'final del partido') return l10n.matchNoteMatchFinished;
+  return raw;
 }
 
 class MatchStatsPage extends StatelessWidget {
@@ -52,26 +89,12 @@ class MatchStatsPage extends StatelessWidget {
 
   final Match match;
 
-  String _statusText(MatchStatus status) {
-    switch (status) {
-      case MatchStatus.notStarted:
-        return 'Pendiente';
-      case MatchStatus.firstHalf:
-        return '1ª parte';
-      case MatchStatus.halfTime:
-        return 'Descanso';
-      case MatchStatus.secondHalf:
-        return '2ª parte';
-      case MatchStatus.finished:
-        return 'Finalizado';
-    }
-  }
-
   Widget? _eventTile(
     BuildContext context,
     MatchStatsState state,
     Map<String, dynamic> event,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final rawType = event['type'];
     final typeKey = canonicalMatchEventTypeKey(rawType);
     final minute = supabaseInt(event['minute']) ?? 0;
@@ -95,12 +118,16 @@ class MatchStatsPage extends StatelessWidget {
       );
 
       if (isTimeChange) {
-        final label = rawLabel.isEmpty ? 'Cambio de tiempo' : rawLabel;
+        final label = rawLabel.isEmpty
+            ? l10n.matchLivePeriodFallback
+            : _localizedTimeStatusNote(l10n, rawLabel);
         return MatchStatusChangeItem(label: label, minute: minute);
       }
 
       // Resto de statusChange: acciones de jugador antiguas (nota + jugador), no cronología de tiempo.
-      final noteLabel = rawLabel.isEmpty ? 'Acción registrada' : rawLabel;
+      final noteLabel = rawLabel.isEmpty
+          ? l10n.matchEventLegacyActionRegistered
+          : rawLabel;
       final scheme = Theme.of(context).colorScheme;
       final accentColor = _accentForLegacyStatusActionNote(scheme, noteLabel);
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
@@ -182,13 +209,13 @@ class MatchStatsPage extends StatelessWidget {
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
-          label: noteRaw.isNotEmpty ? noteRaw : 'Parada',
+          label: noteRaw.isNotEmpty ? noteRaw : l10n.matchLiveSaveOnly,
           labelWidget: RichText(
             textAlign: TextAlign.center,
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: 'Parada de '),
+                TextSpan(text: l10n.matchLiveSaveBy),
                 ...playerDorsalNameSpanList(player, accentStyle),
                 if (noteRaw.isNotEmpty) TextSpan(text: ' · $noteRaw'),
               ],
@@ -197,7 +224,7 @@ class MatchStatsPage extends StatelessWidget {
         );
       }
       return MatchStatusChangeItem(
-        label: noteRaw.isNotEmpty ? noteRaw : 'Parada',
+        label: noteRaw.isNotEmpty ? noteRaw : l10n.matchLiveSaveOnly,
         minute: minute,
       );
     }
@@ -209,7 +236,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.tertiary,
           );
-      const headline = 'Buen pase';
+      final headline = l10n.matchActionLabelGoodPass;
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -219,7 +246,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline: '),
+                TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -236,7 +263,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.tertiary,
           );
-      const headline = 'Buena jugada';
+      final headline = l10n.matchActionLabelGoodPlay;
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -246,7 +273,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline: '),
+                TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -263,7 +290,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.tertiary,
           );
-      const headline = 'Balón recuperado';
+      final headline = l10n.matchActionLabelBallRecovery;
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -273,7 +300,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline: '),
+                TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -290,7 +317,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.error,
           );
-      const headline = 'Pase impreciso';
+      final headline = l10n.matchActionLabelBadPass;
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -300,7 +327,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline: '),
+                TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -317,7 +344,7 @@ class MatchStatsPage extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: scheme.error,
           );
-      const headline = 'Jugada imprecisa';
+      final headline = l10n.matchActionLabelBadPlay;
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -327,7 +354,7 @@ class MatchStatsPage extends StatelessWidget {
             text: TextSpan(
               style: accentStyle,
               children: [
-                const TextSpan(text: '$headline: '),
+                TextSpan(text: '$headline: '),
                 ...playerDorsalNameSpanList(player, accentStyle),
               ],
             ),
@@ -345,8 +372,9 @@ class MatchStatsPage extends StatelessWidget {
             color: scheme.tertiary,
           );
       final notePass = (event['note'] as String?)?.trim();
-      final headline =
-          (notePass != null && notePass.isNotEmpty) ? notePass : 'Pase clave';
+      final headline = (notePass != null && notePass.isNotEmpty)
+          ? notePass
+          : l10n.matchActionLabelKeyPass;
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -418,6 +446,7 @@ class MatchStatsPage extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     final dateText =
         '${match.date.day.toString().padLeft(2, '0')}/${match.date.month.toString().padLeft(2, '0')} · '
@@ -431,7 +460,7 @@ class MatchStatsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detalle del partido'),
+        title: Text(AppLocalizations.of(context)!.screenMatchDetail),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -456,7 +485,7 @@ class MatchStatsPage extends StatelessWidget {
                             CircularProgressIndicator(color: scheme.primary),
                             const SizedBox(height: 20),
                             Text(
-                              'Cargando resumen del partido…',
+                              l10n.matchStatsLoadingSummary,
                               style: textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
                               ),
@@ -518,8 +547,8 @@ class MatchStatsPage extends StatelessWidget {
             }
 
             final scoreSubtitle = match.status == MatchStatus.finished
-                ? 'Marcador final'
-                : 'Marcador';
+                ? l10n.matchStatsScoreFinal
+                : l10n.matchStatsScoreLive;
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
@@ -527,17 +556,22 @@ class MatchStatsPage extends StatelessWidget {
                 _MatchSummaryCard(
                   match: match,
                   dateText: dateText,
-                  statusLabel: _statusText(match.status),
+                  statusLabel: _matchStatusLabel(l10n, match.status),
                   scoreSubtitle: scoreSubtitle,
                   scheme: scheme,
                   textTheme: textTheme,
+                  vsTitle: l10n.matchSummaryVs(match.opponent),
+                  homeVenueLabel: l10n.matchVenueHome,
+                  awayVenueLabel: l10n.matchVenueAway,
+                  goalsForLabel: l10n.matchScoreForLabel,
+                  goalsAgainstLabel: l10n.matchScoreAgainstLabel,
                 ),
                 if (match.status == MatchStatus.finished &&
                     state.formationLines.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   _MatchSectionTitle(
                     icon: Icons.grid_on_rounded,
-                    title: 'Campo final',
+                    title: l10n.matchStatsSectionField,
                     scheme: scheme,
                     textTheme: textTheme,
                   ),
@@ -561,7 +595,9 @@ class MatchStatsPage extends StatelessWidget {
                                     color: scheme.primary,
                                   ),
                                   label: Text(
-                                    'Formación: ${state.formationLabel}',
+                                    l10n.matchStatsFormationChip(
+                                      state.formationLabel!,
+                                    ),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -578,7 +614,7 @@ class MatchStatsPage extends StatelessWidget {
                             Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: Text(
-                                'Disposición según las posiciones guardadas al terminar el partido.',
+                                l10n.matchStatsFieldDispositionHint,
                                 style: textTheme.bodySmall?.copyWith(
                                   color: scheme.onSurfaceVariant,
                                   height: 1.35,
@@ -622,7 +658,7 @@ class MatchStatsPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 _MatchSectionTitle(
                   icon: Icons.timeline_rounded,
-                  title: 'Cronología',
+                  title: l10n.matchStatsSectionTimeline,
                   scheme: scheme,
                   textTheme: textTheme,
                 ),
@@ -643,7 +679,7 @@ class MatchStatsPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 14),
                           Text(
-                            'No hay eventos registrados',
+                            l10n.matchStatsTimelineEmpty,
                             style: textTheme.bodyLarge?.copyWith(
                               color: scheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
@@ -652,7 +688,7 @@ class MatchStatsPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Los goles, cambios y tarjetas aparecerán aquí cuando se registren en el partido.',
+                            l10n.matchStatsTimelineEmptyHint,
                             style: textTheme.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
                               height: 1.35,
@@ -722,6 +758,11 @@ class _MatchSummaryCard extends StatelessWidget {
     required this.scoreSubtitle,
     required this.scheme,
     required this.textTheme,
+    required this.vsTitle,
+    required this.homeVenueLabel,
+    required this.awayVenueLabel,
+    required this.goalsForLabel,
+    required this.goalsAgainstLabel,
   });
 
   final Match match;
@@ -730,6 +771,11 @@ class _MatchSummaryCard extends StatelessWidget {
   final String scoreSubtitle;
   final ColorScheme scheme;
   final TextTheme textTheme;
+  final String vsTitle;
+  final String homeVenueLabel;
+  final String awayVenueLabel;
+  final String goalsForLabel;
+  final String goalsAgainstLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -752,7 +798,7 @@ class _MatchSummaryCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'vs ${match.opponent}',
+                    vsTitle,
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: scheme.onSurface,
@@ -803,7 +849,7 @@ class _MatchSummaryCard extends StatelessWidget {
                         color: scheme.primary,
                       ),
                       label: Text(
-                        match.isHome ? 'Local' : 'Visitante',
+                        match.isHome ? homeVenueLabel : awayVenueLabel,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       padding: EdgeInsets.zero,
@@ -856,7 +902,7 @@ class _MatchSummaryCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'A favor',
+                              goalsForLabel,
                               style: textTheme.labelLarge?.copyWith(
                                 color: scheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
@@ -888,7 +934,7 @@ class _MatchSummaryCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Encajados',
+                              goalsAgainstLabel,
                               style: textTheme.labelLarge?.copyWith(
                                 color: scheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
@@ -975,6 +1021,7 @@ Future<void> _showPlayerMatchStats(
   final theme = Theme.of(context);
   final scheme = theme.colorScheme;
   final textTheme = theme.textTheme;
+  final l10n = AppLocalizations.of(context)!;
 
   Widget statRow(
     IconData icon,
@@ -1028,40 +1075,44 @@ Future<void> _showPlayerMatchStats(
             children: [
               statRow(
                 Icons.timer_outlined,
-                'Minutos jugados',
+                l10n.matchStatsMinutesPlayed,
                 '${stats.minutesPlayed}',
                 iconColor: scheme.tertiary,
               ),
               const Divider(height: 20),
-              statRow(Icons.sports_soccer_rounded, 'Goles', '${stats.goals}'),
+              statRow(
+                Icons.sports_soccer_rounded,
+                l10n.matchStatsStatGoals,
+                '${stats.goals}',
+              ),
               statRow(
                 Icons.directions_run_rounded,
-                'Asistencias',
+                l10n.matchStatsStatAssists,
                 '${stats.assists}',
               ),
               const Divider(height: 20),
               statRow(
                 Icons.check_circle_outline_rounded,
-                'Pases buenos',
+                l10n.matchStatsStatGoodPasses,
                 '${stats.goodPasses}',
                 iconColor: scheme.tertiary,
               ),
               statRow(
                 Icons.cancel_outlined,
-                'Pases malos',
+                l10n.matchStatsStatBadPasses,
                 '${stats.badPasses}',
                 iconColor: scheme.error,
               ),
               const Divider(height: 20),
               statRow(
                 Icons.thumb_up_outlined,
-                'Buenas jugadas',
+                l10n.matchStatsStatGoodPlays,
                 '${stats.goodPlays}',
                 iconColor: scheme.tertiary,
               ),
               statRow(
                 Icons.thumb_down_outlined,
-                'Malas jugadas',
+                l10n.matchStatsStatBadPlays,
                 '${stats.badPlays}',
                 iconColor: scheme.outline,
               ),
@@ -1071,7 +1122,7 @@ Future<void> _showPlayerMatchStats(
         actions: [
           FilledButton.tonal(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cerrar'),
+            child: Text(l10n.dialogClose),
           ),
         ],
       );

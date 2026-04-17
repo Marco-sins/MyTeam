@@ -1,0 +1,503 @@
+{
+  "@@locale": "es",
+  "appTitle": "Mi Equipo",
+  "authWelcomeBack": "Bienvenido de nuevo",
+  "authCreateAccount": "Crea tu cuenta",
+  "authHaveAccountLogin": "¿Ya tienes cuenta? Inicia sesión",
+  "authNoAccountRegister": "¿No tienes cuenta? Regístrate",
+  "loginEmailLabel": "Correo electrónico",
+  "loginEmailError": "Introduce tu email",
+  "loginPasswordLabel": "Contraseña",
+  "loginPasswordMinError": "Mínimo 6 caracteres",
+  "loginSubmit": "Iniciar sesión",
+  "loginForgotPassword": "Olvidé mi contraseña",
+  "registerFullNameLabel": "Nombre completo",
+  "registerNameError": "Dinos tu nombre",
+  "registerEmailInvalid": "Email inválido",
+  "registerSubmit": "Crear cuenta",
+  "authCheckEmailTitle": "Revisa tu correo",
+  "authUnderstand": "Entendido",
+  "authRegisterEmailConfirm": "Te hemos enviado un enlace a {email}. Ábrelo para activar tu cuenta antes de iniciar sesión. Revisa también la carpeta de correo no deseado (spam).",
+  "@authRegisterEmailConfirm": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authRegisterEmailActive": "Tu cuenta ya está activa. Revisa tu bandeja de entrada por si recibes un correo de verificación o bienvenida (incluido spam).",
+  "homeLogoutTooltip": "Cerrar sesión",
+  "homeInvitations": "Invitaciones",
+  "homeNewTeam": "Nuevo equipo",
+  "homeLoadingTeams": "Cargando tus equipos…",
+  "homeRetry": "Reintentar",
+  "homeYourPanel": "Tu panel",
+  "homeTeamCountOne": "Tienes 1 equipo. Toca una tarjeta para abrirlo.",
+  "homeTeamCountMany": "Tienes {count} equipos. Toca una tarjeta para abrirlo.",
+  "@homeTeamCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeEmptyTitle": "Aún no tienes equipos",
+  "homeEmptySubtitle": "Crea tu primer equipo con el botón flotante o revisa si tienes invitaciones pendientes.",
+  "homeEmptyHintNewTeam": "Nuevo equipo: datos básicos y escudo",
+  "homeEmptyHintInvitations": "Invitaciones: únete a un equipo existente",
+  "languageSpanish": "Español (ES)",
+  "languageEnglish": "Inglés (EN)",
+  "languageFrench": "Francés (FR)",
+  "languageItalian": "Italiano (IT)",
+  "languageSelectorTooltip": "Idioma de la aplicación",
+  "roleSuperAdmin": "Superadmin",
+  "roleAdmin": "Admin",
+  "rolePlayer": "Jugador",
+  "roleExternal": "Externo",
+  "roleSpectator": "Espectador",
+  "tableColumnPlayer": "Jugador",
+  "tableColumnAttends": "Asiste",
+  "tableColumnAbsent": "Falta",
+  "convocationCallAll": "Todos",
+  "convocationPlayerStatus": "Estado",
+  "convocationEmptyRoster": "No hay jugadores en la plantilla",
+  "convocationToggleHint": "Puedes convocar a todos de una vez o tocar cada jugador para alternar Sí / No.",
+  "commonYes": "Sí",
+  "commonNo": "No",
+  "accessInviteSend": "Enviar invitación",
+  "accessInviteNeedAuth": "Debes estar autenticado para enviar invitaciones",
+  "accessAdminOnlyInvite": "Solo un administrador del equipo puede invitar o quitar accesos.",
+  "accessUsersWithAccess": "Usuarios con acceso",
+  "accessListBlurb": "Lista en vivo: se actualiza sola cuando alguien recibe o pierde acceso. Cada fila muestra nombre y correo (tabla perfiles) para identificar a la persona.",
+  "accessPeopleCountSingle": "1 persona",
+  "accessPeopleCountMany": "{count} personas",
+  "@accessPeopleCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "accessEmptyMembersTitle": "Nadie más tiene acceso aún.",
+  "accessEmptyMembersHint": "Invita por correo con el botón de abajo.",
+  "accessProfileNoName": "Sin nombre en perfil",
+  "accessProfileNoEmail": "Correo no disponible (revisa el perfil en la app)",
+  "accessNamePrefix": "Nombre: ",
+  "accessEmailPrefix": "Correo: ",
+  "accessRolePrefix": "Rol: ",
+  "accessYou": "Tú",
+  "accessInviteSent": "Invitación enviada a {email} como {role}.",
+  "@accessInviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "navMenuTooltip": "Menú del equipo",
+  "navMyTeams": "Mis equipos",
+  "navTeamHomeSubtitle": "Inicio del equipo",
+  "navAttendance": "Asistencia",
+  "navConvocation": "Convocatoria",
+  "navMatch": "Partido",
+  "navManagement": "Gestión",
+  "actionCancel": "Cancelar",
+  "actionConfirm": "Confirmar",
+  "screenAttendance": "Asistencia",
+  "screenConvocation": "Convocatoria",
+  "screenConvocationGenerated": "Convocatoria generada",
+  "screenMatches": "Partidos",
+  "screenMatchLive": "Partido en curso",
+  "screenMatchDetail": "Detalle del partido",
+  "screenDeleteMatch": "Eliminar partido",
+  "screenDeleteAttendance": "Eliminar asistencia",
+  "screenTeamManagement": "Gestión de equipo",
+  "screenTeamAccess": "Acceso al equipo",
+  "screenRoster": "Plantilla",
+  "screenSelectLocation": "Seleccionar ubicación",
+  "screenNewTeamPage": "Nuevo equipo",
+  "screenAddPlayer": "Añadir jugador",
+  "screenEditPlayer": "Editar jugador",
+  "shareImageTooltip": "Compartir imagen",
+  "convocationShareText": "Convocatoria de {teamName}",
+  "@convocationShareText": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "backToTeam": "Volver al equipo",
+  "dialogNoAccessTitle": "Sin acceso al equipo",
+  "dialogNoAccessBody": "Ya no tienes acceso a este equipo. Se ha quitado de tu panel y no podrás volver a entrar hasta que un administrador te invite de nuevo.",
+  "dialogLeaveTeamTitle": "Abandonar equipo",
+  "leaveTeamPromptExternal": "¿Quieres salir de {teamName}? Dejarás de ver la plantilla y los partidos hasta que un administrador te vuelva a invitar.",
+  "@leaveTeamPromptExternal": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamPromptAdmin": "¿Quieres abandonar {teamName} como administrador? Perderás los permisos de gestión; solo podrás volver si un superadmin te invita de nuevo.",
+  "@leaveTeamPromptAdmin": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamPromptPlayer": "¿Quieres salir de {teamName} como jugador? Dejarás de figurar en la plantilla hasta que te den de alta de nuevo.",
+  "@leaveTeamPromptPlayer": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamPromptGeneric": "¿Quieres salir de {teamName}?",
+  "@leaveTeamPromptGeneric": {
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+  "leaveTeamButton": "Salir del equipo",
+  "snackbarLeftTeam": "Has salido del equipo",
+  "teamCheckingAccess": "Comprobando acceso…",
+  "teamLoadingRoster": "Cargando plantilla…",
+  "teamEmptyRosterTitle": "Aún no hay jugadores en la plantilla",
+  "teamEmptyRosterHint": "Añádelos desde Gestión → Modificar plantilla.",
+  "teamHeaderLeaveShort": "Salir",
+  "teamPlayerCountOne": "1 jugador",
+  "teamPlayerCountMany": "{count} jugadores",
+  "@teamPlayerCountMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "teamMustLoginAddPlayers": "Debes iniciar sesión para añadir jugadores",
+  "teamMustLoginEditPlayers": "Debes iniciar sesión para editar jugadores",
+  "teamMustLoginDeletePlayers": "Debes iniciar sesión para borrar jugadores",
+  "dialogDeletePlayerLead": "¿Seguro que quieres borrar a ",
+  "teamManagementLogoLabel": "Escudo",
+  "teamManagementLogoTapHint": "Toca para cambiar",
+  "teamManagementNameLabel": "Nombre del equipo",
+  "teamManagementNameHint": "Ej. CD Mi Equipo",
+  "accessDefaultUserName": "Usuario",
+  "teamMgmtSectionTeamData": "Datos del equipo",
+  "teamMgmtColorRowLabel": "Color del equipo",
+  "teamMgmtColorPickTooltip": "Toca para elegir color",
+  "teamMustLoginSaveChanges": "Debes iniciar sesión para guardar cambios",
+  "teamMgmtLogoUploadError": "Error subiendo logo: {message}",
+  "@teamMgmtLogoUploadError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "teamMgmtSaveSuccess": "Cambios guardados correctamente",
+  "teamMgmtSectionRosterAccess": "Plantilla y acceso",
+  "teamMgmtEditRosterTitle": "Modificar plantilla",
+  "teamMgmtEditRosterSubtitle": "Altas, bajas y datos de jugadores",
+  "teamMgmtAccessTitle": "Administrar acceso",
+  "teamMgmtAccessSubtitle": "Invitar admins o espectadores al equipo",
+  "teamMgmtSectionMaintenance": "Mantenimiento de datos",
+  "teamMgmtDeleteMatchesTitle": "Eliminar partidos",
+  "teamMgmtDeleteMatchesSubtitle": "Quita partidos concretos del calendario",
+  "teamMgmtDeleteAttendanceTitle": "Eliminar asistencias",
+  "teamMgmtDeleteAttendanceSubtitle": "Borra días de control de asistencia",
+  "teamMgmtSectionCritical": "Zona crítica",
+  "teamAccessLoadMembersError": "No se han podido cargar los miembros del equipo",
+  "convSectionMatch": "Partido",
+  "convRivalLabel": "Rival",
+  "convVenueLabel": "Sede",
+  "convHome": "Casa",
+  "convAway": "Fuera",
+  "convLocationHint": "Lugar (opcional)",
+  "convLocationFieldHint": "Pabellón o dirección · aparece en la imagen",
+  "matchFormation": "Formación",
+  "matchDeleteEvent": "Eliminar evento",
+  "matchConfirmAction": "Confirmar acción",
+  "matchPickAssistant": "Seleccionar asistente",
+  "matchNoAttendanceOption": "Sin asistencia",
+  "matchEndGame": "Terminar partido",
+  "matchMustLoginStart": "Debes iniciar sesión para empezar el partido",
+  "matchStartedOk": "Partido empezado correctamente",
+  "matchMustLoginPause": "Debes iniciar sesión para pausar el partido",
+  "matchStateUpdateFail": "No se ha podido actualizar el estado del partido",
+  "matchMustLoginResume": "Debes iniciar sesión para reanudar el partido",
+  "matchMustLoginFinish": "Debes iniciar sesión para terminar el partido",
+  "matchOpponentGoal": "Gol del rival",
+  "matchSubtractOur": "− Nuestro",
+  "matchSubtractRival": "− Rival",
+  "matchDeleteEventQuestion": "¿Eliminar este evento del partido? El marcador, las notas y la disciplina se recalcularán.",
+  "matchEventDeleted": "Evento eliminado",
+  "matchEventDeleteFail": "No se ha podido eliminar el evento",
+  "matchLoginRequiredShort": "Debes iniciar sesión",
+  "matchActionRegisterLogin": "Debes iniciar sesión para registrar acciones",
+  "matchActionRegisterFail": "No se ha podido registrar la acción",
+  "matchActionRegisteredPrefix": "Acción registrada para ",
+  "matchEndGameConfirm": "¿Terminar el partido? Se guardará el resultado final.",
+  "matchRegisterActionIntro": "¿Seguro que quieres registrar \"{label}\" para ",
+  "@matchRegisterActionIntro": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "dialogDeletePlayerTitle": "Borrar jugador",
+  "dialogDeleteTeamTitle": "Borrar equipo",
+  "dialogRevokeAccessTitle": "Quitar acceso",
+  "dialogInviteUserTitle": "Invitar usuario",
+  "accessRevokeBody": "¿Seguro que quieres quitar el acceso a este usuario?",
+  "accessRevokeAction": "Quitar",
+  "accessRevokedOk": "Acceso eliminado correctamente",
+  "accessRevokeFail": "No se ha podido quitar el acceso",
+  "accessCannotRemoveSuperAdmin": "Solo el creador del equipo (superadmin) puede quitar a otro superadmin.",
+  "accessInviteRole": "Rol",
+  "accessAdminOnlyRevoke": "Solo un administrador del equipo puede quitar accesos.",
+  "teamColorDefault": "Predeterminado (verde app)",
+  "teamColorSheetTitle": "Color del equipo",
+  "teamColorSheetHint": "Barra superior, botones y acentos dentro del equipo. Tarjetas y zonas suaves se tiñen con tu color (misma suavidad que el verde de la app). Vacío = verde por defecto.",
+  "teamSaveDataButton": "Guardar datos del equipo",
+  "actionDelete": "Borrar",
+  "actionRemove": "Eliminar",
+  "teamDeletedSnackbar": "Equipo borrado correctamente",
+  "matchDeleteNeedLogin": "Debes iniciar sesión para borrar partidos",
+  "matchDeleteConfirmBody": "¿Seguro que quieres eliminar el partido contra {opponent}?",
+  "@matchDeleteConfirmBody": {
+    "placeholders": {
+      "opponent": {
+        "type": "String"
+      }
+    }
+  },
+  "matchListLoadError": "No se han podido cargar los partidos",
+  "matchStatsLoadError": "No se han podido cargar los datos del partido",
+  "matchListEmpty": "No hay partidos para este equipo",
+  "matchStatusPending": "Pendiente",
+  "matchStatusFirstHalf": "1ª parte",
+  "matchStatusHalfTime": "Descanso",
+  "matchStatusSecondHalf": "2ª parte",
+  "matchStatusFinished": "Finalizado",
+  "matchLastEvent": "Último evento",
+  "matchScoreAndTime": "Marcador y tiempo",
+  "matchQuickScore": "Marcador rápido",
+  "matchGoalsFromFieldHint": "Los goles a favor se registran desde el campo (jugador) o las acciones.",
+  "matchFieldAndFormation": "Campo y formación",
+  "matchSquadTitle": "Convocados",
+  "matchSquadHintSpectator": "Modo espectador: la lista y el campo son solo informativos.",
+  "matchSquadHintCoach": "Toca un jugador para seleccionarlo; toca el campo para alinear o abrir acciones.",
+  "matchPlayerSentOffCannotReturn": "Jugador expulsado, no puede volver a entrar",
+  "matchEventsTitle": "Eventos del partido",
+  "matchEventsHintSpectator": "Cronología del encuentro.",
+  "matchEventsHintCoach": "Toca un evento para eliminarlo. Solo los administradores del equipo pueden borrar eventos.",
+  "matchEventsEmpty": "Aún no hay eventos registrados",
+  "matchStartGameButton": "Empezar partido",
+  "matchResumeGameButton": "Reanudar partido",
+  "matchHalfTimeButton": "Descanso",
+  "matchPhaseNotStarted": "Sin iniciar",
+  "matchSpectatorNoPlayerActions": "Modo espectador: no puedes registrar acciones de jugadores",
+  "matchConfirmGoalTitle": "Confirmar gol",
+  "matchConfirmAddGoalOur": "¿Seguro que quieres añadir un gol a tu equipo?",
+  "matchConfirmAddGoalRival": "¿Seguro que quieres añadir un gol al rival?",
+  "matchMustLoginRegisterGoals": "Debes iniciar sesión para registrar goles",
+  "matchGoalsOurTeamFromField": "Los goles de tu equipo se registran desde un jugador en el campo",
+  "matchOpponentGoalRegisteredOk": "Gol del rival registrado correctamente",
+  "matchGoalSaveFail": "No se ha podido registrar el gol",
+  "matchRemoveGoalTitle": "Quitar gol",
+  "matchConfirmRemoveGoalOur": "¿Seguro que quieres quitar un gol a tu equipo?",
+  "matchConfirmRemoveGoalRival": "¿Seguro que quieres quitar un gol al rival?",
+  "matchMustLoginRemoveGoals": "Debes iniciar sesión para quitar goles",
+  "matchNoGoalsToRemove": "No hay goles que quitar",
+  "matchGoalNotFoundInDb": "No se ha encontrado el gol en la base de datos",
+  "matchGoalRemovedOk": "Gol eliminado correctamente",
+  "matchGoalRemoveFail": "No se ha podido quitar el gol",
+  "matchConvocationLoadError": "No se ha podido cargar la convocatoria",
+  "matchFillAllPositionsBeforeStart": "Debes colocar todos los jugadores antes de empezar el partido",
+  "matchConfirmStartTitle": "Empezar partido",
+  "matchConfirmStartBody": "¿Seguro que quieres empezar el partido?",
+  "matchConfirmHalfTimeTitle": "Ir al descanso",
+  "matchConfirmHalfTimeBody": "¿Seguro que quieres pasar al descanso?",
+  "matchConfirmResumeTitle": "Reanudar partido",
+  "matchConfirmResumeBody": "¿Seguro que quieres empezar la 2ª parte?",
+  "matchEndGameDialogBody": "¿Seguro que quieres terminar el partido? Se guardarán las estadísticas.",
+  "matchEndGameAction": "Terminar",
+  "matchSentOffDoubleYellow": " expulsado por doble amarilla",
+  "matchSentOffSimple": " expulsado",
+  "matchUnknownPlayerId": "Jugador {id}",
+  "@matchUnknownPlayerId": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "matchLiveFormationRegistered": "Formación registrada",
+  "matchLiveFormationLine": "Formación: {formation}",
+  "@matchLiveFormationLine": {
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "matchLiveSubstitutionEnters": "Sustitución · Entra ",
+  "matchLiveSubstitutionLeaves": " · Sale ",
+  "matchLivePeriodFallback": "Cambio de periodo o estado",
+  "matchLiveGoalBy": "Gol de ",
+  "matchLiveAssistOpening": " (asistencia de ",
+  "matchLiveAssistClosing": ")",
+  "matchLiveConcededDefault": "Gol en contra",
+  "matchLiveOwnGoal": "Autogol · ",
+  "matchLiveYellowCard": "Tarjeta amarilla: ",
+  "matchLiveRedCard": "Tarjeta roja: ",
+  "matchLiveSaveBy": "Parada de ",
+  "matchLiveSaveWithNote": "Parada · {note}",
+  "@matchLiveSaveWithNote": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "matchLiveSaveOnly": "Parada",
+  "matchLiveKeyPass": "Pase clave: ",
+  "matchLiveGoodPass": "Buen pase: ",
+  "matchLiveBadPass": "Pase impreciso: ",
+  "matchLiveGoodPlay": "Buena jugada: ",
+  "matchLiveBadPlay": "Jugada imprecisa: ",
+  "matchLiveBallRecovery": "Balón recuperado: ",
+  "matchLiveEvent": "Evento",
+  "matchLiveEventLine": "{label}: {note}",
+  "@matchLiveEventLine": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "matchNoteFirstHalfStart": "Inicio 1ª parte",
+  "matchNoteSecondHalfStart": "Inicio 2ª parte",
+  "matchNoteMatchFinished": "Final del partido",
+  "matchActionLabelGoal": "Gol",
+  "matchActionLabelGoodPass": "Buen pase",
+  "matchActionLabelGoodPlay": "Buena jugada",
+  "matchActionLabelBallRecovery": "Balón recuperado",
+  "matchActionLabelYellowCard": "Tarjeta amarilla",
+  "matchActionLabelRedCard": "Tarjeta roja",
+  "matchActionLabelBadPass": "Pase impreciso",
+  "matchActionLabelBadPlay": "Jugada imprecisa",
+  "matchActionLabelKeyPass": "Pase clave",
+  "matchGoalRegisteredPrefix": "Gol registrado para ",
+  "attendanceSaveHint": "Marca ✓ (asiste) o X (falta) y guarda el día seleccionado.",
+  "attendanceSaveButton": "Guardar asistencia",
+  "attendanceSaveNeedLogin": "Debes iniciar sesión para guardar la asistencia",
+  "attendanceSaveTeamLoadError": "No se ha podido cargar la plantilla del equipo",
+  "attendanceSaveInProgress": "Guardando…",
+  "attendanceSaveSuccess": "Asistencia guardada correctamente",
+  "convDatetimeSectionTitle": "Fecha y horarios",
+  "convPickDateTooltip": "Elegir fecha",
+  "tooltipChange": "Cambiar",
+  "attendanceDeleteLoadError": "No se han podido cargar los días de asistencia",
+  "attendanceDeleteEmpty": "No hay días de entrenamiento registrados",
+  "attendanceDeleteNeedLogin": "Debes iniciar sesión para borrar asistencia",
+  "teamDeleteNavTitle": "Borrar equipo",
+  "teamDeleteNavSubtitle": "Elimina el club y deja de verlo en inicio",
+  "teamDeleteNeedLogin": "Debes iniciar sesión para borrar el equipo",
+  "teamDeleteConfirmBody": "¿Seguro que quieres borrar este equipo? Esta acción no se puede deshacer.",
+  "attendanceDeleteConfirmBody": "¿Seguro que quieres eliminar la asistencia del {date}?",
+  "@attendanceDeleteConfirmBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dialogClose": "Cerrar",
+  "convocationNotesTitle": "Observaciones",
+  "convocationNotesHint": "Material, puntualidad, mensaje al grupo…",
+  "convocationSavedSuccess": "Convocatoria guardada correctamente",
+  "convocationImageSectionMatchDetails": "Detalles del partido",
+  "convocationImageLabelDate": "Fecha",
+  "convocationImageLabelMatchTime": "Hora del partido",
+  "convocationImageLabelCallTime": "Hora convocatoria",
+  "convocationImageLabelVenue": "Lugar",
+  "convocationImageSectionSquad": "Jugadores convocados",
+  "convocationImageObservationsTitle": "Observaciones",
+  "convocationImagePlayerFallback": "Jugador",
+  "matchSummaryVs": "vs {opponent}",
+  "@matchSummaryVs": {
+    "placeholders": {
+      "opponent": {
+        "type": "String"
+      }
+    }
+  },
+  "matchVenueHome": "Local",
+  "matchVenueAway": "Visitante",
+  "matchScoreForLabel": "A favor",
+  "matchScoreAgainstLabel": "Encajados",
+  "matchStatsScoreFinal": "Marcador final",
+  "matchStatsScoreLive": "Marcador",
+  "matchStatsLoadingSummary": "Cargando resumen del partido…",
+  "matchStatsSectionField": "Campo final",
+  "matchStatsFormationChip": "Formación: {formation}",
+  "@matchStatsFormationChip": {
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "matchStatsFieldDispositionHint": "Disposición según las posiciones guardadas al terminar el partido.",
+  "matchStatsSectionTimeline": "Cronología",
+  "matchStatsTimelineEmpty": "No hay eventos registrados",
+  "matchStatsTimelineEmptyHint": "Los goles, cambios y tarjetas aparecerán aquí cuando se registren en el partido.",
+  "matchStatsMinutesPlayed": "Minutos jugados",
+  "matchStatsStatGoals": "Goles",
+  "matchStatsStatAssists": "Asistencias",
+  "matchStatsStatGoodPasses": "Pases buenos",
+  "matchStatsStatBadPasses": "Pases malos",
+  "matchStatsStatGoodPlays": "Buenas jugadas",
+  "matchStatsStatBadPlays": "Malas jugadas",
+  "matchStatsOurGoalChip": "Gol a favor",
+  "matchStatsOwnGoalChip": "Autogol",
+  "matchListLoading": "Cargando partidos…",
+  "matchListEmptyStateTitle": "Sin partidos todavía",
+  "matchListEmptyStateBody": "Los partidos que crees desde la convocatoria aparecerán aquí. Desliza hacia abajo para actualizar.",
+  "matchListCalendarTitle": "Calendario",
+  "matchListElapsedTime": "Tiempo: {time}",
+  "@matchListElapsedTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "matchListHintLineupStart": "Pulsa para alinear y empezar",
+  "matchListHintManageResume": "Pulsa para gestionar o reanudar",
+  "matchListHintViewStats": "Pulsa para ver estadísticas",
+  "matchLineupSquadTitle": "Plantilla del partido",
+  "matchLineupStarters": "Titulares",
+  "matchLineupSubstitutes": "Suplentes",
+  "matchLineupStarterTag": "Titular",
+  "matchLineupSubstituteTag": "Suplente",
+  "matchFieldSelectPlayerFirst": "Selecciona primero un jugador en la lista",
+  "matchFieldMaxPlayersExpulsionRule": "No puedes tener más jugadores en el campo. Por cada expulsado debe quedar un hueco libre.",
+  "matchConvocationTableEmpty": "No hay jugadores convocados para este partido",
+  "matchDeletedSuccess": "Partido eliminado correctamente",
+  "matchEventLegacyActionRegistered": "Acción registrada"
+}

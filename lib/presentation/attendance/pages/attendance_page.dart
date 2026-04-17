@@ -12,6 +12,7 @@ import 'package:football_manager/presentation/attendance/widgets/attendance_save
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
@@ -47,12 +48,13 @@ class _AttendancePageState extends State<AttendancePage> {
     final attendanceState = context.watch<AttendanceCubit>().state;
     final formattedDate = _formattedDate(attendanceState.selectedDate);
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return TeamBrandedScope(
       team: team,
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Asistencia'),
+        title: Text(AppLocalizations.of(context)!.screenAttendance),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -100,7 +102,7 @@ class _AttendancePageState extends State<AttendancePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Marca A (asiste) o X (falta) y guarda el día seleccionado.',
+                l10n.attendanceSaveHint,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

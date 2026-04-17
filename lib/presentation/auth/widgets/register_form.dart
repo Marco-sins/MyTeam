@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import '../cubit/auth_cubit.dart';
 
 class RegisterForm extends StatefulWidget {
@@ -25,6 +26,7 @@ class _RegisterFormState extends State<RegisterForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Form(
       key: _formKey,
       child: Column(
@@ -33,32 +35,33 @@ class _RegisterFormState extends State<RegisterForm> {
             controller: _nameController,
             textInputAction: TextInputAction.next,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Nombre completo',
+            decoration: InputDecoration(
+              labelText: l10n.registerFullNameLabel,
             ),
-            validator: (value) => value!.isEmpty ? 'Dinos tu nombre' : null,
+            validator: (value) =>
+                value!.isEmpty ? l10n.registerNameError : null,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
+            decoration: InputDecoration(
+              labelText: l10n.loginEmailLabel,
             ),
             validator: (value) =>
-                value!.contains('@') ? null : 'Email inválido',
+                value!.contains('@') ? null : l10n.registerEmailInvalid,
           ),
           const SizedBox(height: 16),
           TextFormField(
             controller: _passwordController,
             obscureText: true,
             textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: 'Contraseña',
+            decoration: InputDecoration(
+              labelText: l10n.loginPasswordLabel,
             ),
             validator: (value) =>
-                value!.length < 6 ? 'Mínimo 6 caracteres' : null,
+                value!.length < 6 ? l10n.loginPasswordMinError : null,
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -73,7 +76,7 @@ class _RegisterFormState extends State<RegisterForm> {
                   );
                 }
               },
-              child: const Text('Crear cuenta'),
+              child: Text(l10n.registerSubmit),
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 class MatchLineupSection extends StatelessWidget {
@@ -22,6 +23,7 @@ class MatchLineupSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -33,7 +35,7 @@ class MatchLineupSection extends StatelessWidget {
               Icon(Icons.groups_rounded, color: scheme.primary, size: 24),
               const SizedBox(width: 10),
               Text(
-                'Plantilla del partido',
+                l10n.matchLineupSquadTitle,
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -43,7 +45,7 @@ class MatchLineupSection extends StatelessWidget {
           const SizedBox(height: 14),
           if (startingPlayers.isNotEmpty) ...[
             Text(
-              'Titulares',
+              l10n.matchLineupStarters,
               style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
@@ -53,7 +55,7 @@ class MatchLineupSection extends StatelessWidget {
             for (final p in startingPlayers)
               _MatchLineupPlayerRow(
                 player: p,
-                label: 'Titular',
+                label: l10n.matchLineupStarterTag,
                 rating: playerRatings[p.id],
                 showRating: showRatings,
                 onTap: () => onPlayerTap(p),
@@ -62,7 +64,7 @@ class MatchLineupSection extends StatelessWidget {
           ],
           if (substitutePlayers.isNotEmpty) ...[
             Text(
-              'Suplentes',
+              l10n.matchLineupSubstitutes,
               style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: scheme.onSurfaceVariant,
@@ -72,7 +74,7 @@ class MatchLineupSection extends StatelessWidget {
             for (final p in substitutePlayers)
               _MatchLineupPlayerRow(
                 player: p,
-                label: 'Suplente',
+                label: l10n.matchLineupSubstituteTag,
                 rating: playerRatings[p.id],
                 showRating: showRatings,
                 onTap: () => onPlayerTap(p),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
 import 'package:football_manager/presentation/home/widgets/add_team.dart';
@@ -236,7 +237,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       context,
                     ).colorScheme.onSecondaryContainer,
                     icon: const Icon(Icons.forward_to_inbox_rounded, size: 22),
-                    label: const Text('Invitaciones'),
+                    label: Text(AppLocalizations.of(context)!.homeInvitations),
                   ),
                   if (_invitationsCount > 0)
                     Positioned(
@@ -276,6 +277,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             final crossAxisCount = _crossAxisCountForWidth(width);
 
             if (state is HomeLoading || state is HomeInitial) {
+              final l10n = AppLocalizations.of(context)!;
               return _pullToRefreshWrapper(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -305,7 +307,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       ),
                                       const SizedBox(height: 20),
                                       Text(
-                                        'Cargando tus equipos…',
+                                        l10n.homeLoadingTeams,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium
@@ -329,6 +331,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             }
 
             if (state is HomeError) {
+              final l10n = AppLocalizations.of(context)!;
               return _pullToRefreshWrapper(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -367,7 +370,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       FilledButton.tonalIcon(
                                         onPressed: _refreshHome,
                                         icon: const Icon(Icons.refresh_rounded),
-                                        label: const Text('Reintentar'),
+                                        label: Text(l10n.homeRetry),
                                       ),
                                     ],
                                   ),
@@ -464,10 +467,11 @@ class _HomeIntroHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final countLine = teamCount == 1
-        ? 'Tienes 1 equipo. Toca una tarjeta para abrirlo.'
-        : 'Tienes $teamCount equipos. Toca una tarjeta para abrirlo.';
+        ? l10n.homeTeamCountOne
+        : l10n.homeTeamCountMany(teamCount);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -480,7 +484,7 @@ class _HomeIntroHeader extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Tu panel',
+                  l10n.homeYourPanel,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),

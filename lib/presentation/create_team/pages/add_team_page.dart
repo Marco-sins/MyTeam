@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/create_team/cubit/create_team_cubit.dart';
@@ -39,7 +40,9 @@ class _AddTeamPageState extends State<AddTeamPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nuevo equipo')),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.screenNewTeamPage),
+      ),
       body: SafeArea(
         top: false,
         child: BlocListener<CreateTeamCubit, CreateTeamState>(

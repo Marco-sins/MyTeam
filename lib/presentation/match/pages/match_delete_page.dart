@@ -9,6 +9,7 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 class MatchDeletePage extends StatefulWidget {
@@ -42,7 +43,7 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
       team: team,
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Eliminar partido'),
+        title: Text(AppLocalizations.of(context)!.screenDeleteMatch),
         centerTitle: true,
         actions: const [TeamQuickNavAppBarButton()],
       ),
@@ -55,13 +56,14 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
             child: FutureBuilder(
             future: _matchesFuture,
             builder: (context, snapshot) {
+              final l10n = AppLocalizations.of(context)!;
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
               if (!snapshot.hasData) {
-                return const Center(
-                  child: Text('No se han podido cargar los partidos'),
+                return Center(
+                  child: Text(l10n.matchListLoadError),
                 );
               }
 
@@ -70,8 +72,8 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                 matches,
               ) {
                 if (matches.isEmpty) {
-                  return const Center(
-                    child: Text('No hay partidos para este equipo'),
+                  return Center(
+                    child: Text(l10n.matchListEmpty),
                   );
                 }
 
@@ -82,15 +84,15 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                     final statusText = () {
                       switch (match.status) {
                         case MatchStatus.notStarted:
-                          return 'Pendiente';
+                          return l10n.matchStatusPending;
                         case MatchStatus.firstHalf:
-                          return '1ª parte';
+                          return l10n.matchStatusFirstHalf;
                         case MatchStatus.halfTime:
-                          return 'Descanso';
+                          return l10n.matchStatusHalfTime;
                         case MatchStatus.secondHalf:
-                          return '2ª parte';
+                          return l10n.matchStatusSecondHalf;
                         case MatchStatus.finished:
-                          return 'Finalizado';
+                          return l10n.matchStatusFinished;
                       }
                     }();
 
@@ -108,9 +110,10 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                             final authState = context.read<AuthCubit>().state;
                             if (authState is! Authenticated) {
                               messenger.showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Debes iniciar sesión para borrar partidos',
+                                    AppLocalizations.of(context)!
+                                        .matchDeleteNeedLogin,
                                   ),
                                   backgroundColor: Colors.red,
                                 ),
@@ -120,27 +123,34 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
 
                             final confirm = await showDialog<bool>(
                               context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Eliminar partido'),
-                                content: Text(
-                                  '¿Seguro que quieres eliminar el partido contra ${match.opponent}?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(false),
-                                    child: const Text('Cancelar'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(true),
-                                    child: const Text(
-                                      'Eliminar',
-                                      style: TextStyle(color: Colors.red),
+                              builder: (ctx) {
+                                final dlgL10n = AppLocalizations.of(context)!;
+                                return AlertDialog(
+                                  title: Text(dlgL10n.screenDeleteMatch),
+                                  content: Text(
+                                    dlgL10n.matchDeleteConfirmBody(
+                                      match.opponent,
                                     ),
                                   ),
-                                ],
-                              ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: Text(dlgL10n.actionCancel),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: Text(
+                                        dlgL10n.actionRemove,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             );
 
                             if (confirm != true) return;
@@ -166,12 +176,13 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                               },
                               (_) {
                                 messenger.showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
-                                      'Partido eliminado correctamente',
+                                      AppLocalizations.of(context)!
+                                          .matchDeletedSuccess,
                                     ),
                                     backgroundColor: Colors.green,
-                                    duration: Duration(seconds: 1),
+                                    duration: const Duration(seconds: 1),
                                   ),
                                 );
                                 setState(_loadMatches);

@@ -7,7 +7,7 @@ import 'package:football_manager/core/errors/failure/unknow_failure.dart';
 import 'package:football_manager/data/datasource/invitation_remote_datasource.dart';
 import 'package:football_manager/data/models/invitation_model.dart';
 import 'package:football_manager/domain/entities/invitation.dart';
-import 'package:football_manager/domain/i_repositories/i_invitation_repository.dart';
+import 'package:football_manager/domain/repositories/i_invitation_repository.dart';
 
 class InvitationRepository implements IInvitationRepository {
   final InvitationRemoteDatasource _datasource;

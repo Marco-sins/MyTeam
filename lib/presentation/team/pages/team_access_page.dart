@@ -13,6 +13,7 @@ import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
@@ -121,6 +122,8 @@ class _TeamAccessPageState extends State<TeamAccessPage>
         });
       }
 
+      if (!mounted) return;
+      final defaultUserName = AppLocalizations.of(context)!.accessDefaultUserName;
       final members = <_TeamMember>[];
       for (final row in rows) {
         final idUser = row['id_user'] as String?;
@@ -131,7 +134,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
             _TeamMember(
               idUser: idUser,
               role: role,
-              name: profile?.username ?? 'Usuario',
+              name: profile?.username ?? defaultUserName,
               email: profile?.email ?? '',
             ),
           );
@@ -151,7 +154,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
         return;
       }
       setState(() {
-        _error = 'No se han podido cargar los miembros del equipo';
+        _error = AppLocalizations.of(context)!.teamAccessLoadMembersError;
         _loading = false;
       });
     }
@@ -173,8 +176,8 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Solo un administrador del equipo puede quitar accesos.',
+          content: Text(
+            AppLocalizations.of(context)!.accessAdminOnlyRevoke,
           ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
@@ -202,26 +205,27 @@ class _TeamAccessPageState extends State<TeamAccessPage>
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Quitar acceso'),
-        content: const Text(
-          '¿Seguro que quieres quitar el acceso a este usuario?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
+      builder: (ctx) {
+        final dlgL10n = AppLocalizations.of(ctx)!;
+        return AlertDialog(
+          title: Text(dlgL10n.dialogRevokeAccessTitle),
+          content: Text(dlgL10n.accessRevokeBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(dlgL10n.actionCancel),
             ),
-            child: const Text('Quitar'),
-          ),
-        ],
-      ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(ctx).colorScheme.error,
+                foregroundColor: Theme.of(ctx).colorScheme.onError,
+              ),
+              child: Text(dlgL10n.accessRevokeAction),
+            ),
+          ],
+        );
+      },
     );
 
     if (confirm != true) return;
@@ -240,7 +244,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Acceso eliminado correctamente'),
+          content: Text(AppLocalizations.of(context)!.accessRevokedOk),
           backgroundColor: Theme.of(context).colorScheme.primary,
           duration: const Duration(seconds: 2),
         ),
@@ -249,7 +253,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('No se ha podido quitar el acceso'),
+          content: Text(AppLocalizations.of(context)!.accessRevokeFail),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -266,8 +270,9 @@ class _TeamAccessPageState extends State<TeamAccessPage>
         return StatefulBuilder(
           builder: (ctx, setState) {
             final scheme = Theme.of(ctx).colorScheme;
+            final l10n = AppLocalizations.of(ctx)!;
             return AlertDialog(
-              title: const Text('Invitar usuario'),
+              title: Text(l10n.dialogInviteUserTitle),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -275,13 +280,13 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
+                    decoration: InputDecoration(
+                      labelText: l10n.loginEmailLabel,
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Rol',
+                    l10n.accessInviteRole,
                     style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
                       color: scheme.onSurfaceVariant,
                       fontWeight: FontWeight.w600,
@@ -289,16 +294,16 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                   ),
                   const SizedBox(height: 10),
                   SegmentedButton<String>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: 'external',
-                        label: Text('Espectador'),
-                        icon: Icon(Icons.visibility_outlined, size: 18),
+                        label: Text(l10n.roleSpectator),
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
                       ),
                       ButtonSegment(
                         value: 'admin',
-                        label: Text('Admin'),
-                        icon: Icon(
+                        label: Text(l10n.roleAdmin),
+                        icon: const Icon(
                           Icons.admin_panel_settings_outlined,
                           size: 18,
                         ),
@@ -314,7 +319,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancelar'),
+                  child: Text(l10n.actionCancel),
                 ),
                 FilledButton(
                   onPressed: () {
@@ -326,7 +331,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                       ctx,
                     ).pop(_InviteData(email: email, role: selectedRole));
                   },
-                  child: const Text('Enviar invitación'),
+                  child: Text(l10n.accessInviteSend),
                 ),
               ],
             );
@@ -341,9 +346,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
     if (authState is! Authenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Debes estar autenticado para enviar invitaciones',
-          ),
+          content: Text(AppLocalizations.of(context)!.accessInviteNeedAuth),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -371,11 +374,14 @@ class _TeamAccessPageState extends State<TeamAccessPage>
         );
       },
       (_) {
+        final loc = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Invitación enviada a ${result.email} como '
-              '${result.role == 'admin' ? 'admin' : 'espectador'}.',
+              loc.accessInviteSent(
+                result.email,
+                result.role == 'admin' ? loc.roleAdmin : loc.roleSpectator,
+              ),
             ),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 1),
@@ -390,6 +396,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
     final brandingTeam = context.watch<TeamContextCubit>().state;
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
     final authState = context.watch<AuthCubit>().state;
     final UserRole? myTeamRole = authState is Authenticated
         ? authState.user.teamRoles[brandingTeam.id]
@@ -400,7 +407,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       team: brandingTeam,
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Acceso al equipo'),
+        title: Text(AppLocalizations.of(context)!.screenTeamAccess),
         actions: const [TeamQuickNavAppBarButton()],
       ),
       body: SafeArea(
@@ -485,7 +492,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Usuarios con acceso',
+                                    l10n.accessUsersWithAccess,
                                     style: textTheme.titleSmall?.copyWith(
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -495,9 +502,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Lista en vivo: se actualiza sola cuando alguien '
-                              'recibe o pierde acceso. Cada fila muestra nombre '
-                              'y correo (tabla perfiles) para identificar a la persona.',
+                              l10n.accessListBlurb,
                               style: textTheme.bodySmall?.copyWith(
                                 color: scheme.onSurfaceVariant,
                                 height: 1.35,
@@ -506,7 +511,11 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                             if (_members.isNotEmpty) ...[
                               const SizedBox(height: 6),
                               Text(
-                                '${_members.length} ${_members.length == 1 ? 'persona' : 'personas'}',
+                                _members.length == 1
+                                    ? l10n.accessPeopleCountSingle
+                                    : l10n.accessPeopleCountMany(
+                                        _members.length,
+                                      ),
                                 style: textTheme.labelLarge?.copyWith(
                                   color: scheme.primary,
                                   fontWeight: FontWeight.w600,
@@ -542,13 +551,13 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                         ),
                                         const SizedBox(height: 12),
                                         Text(
-                                          'Nadie más tiene acceso aún.',
+                                          l10n.accessEmptyMembersTitle,
                                           style: textTheme.bodyLarge,
                                           textAlign: TextAlign.center,
                                         ),
                                         const SizedBox(height: 6),
                                         Text(
-                                          'Invita por correo con el botón de abajo.',
+                                          l10n.accessEmptyMembersHint,
                                           style: textTheme.bodySmall,
                                           textAlign: TextAlign.center,
                                         ),
@@ -592,11 +601,11 @@ class _TeamAccessPageState extends State<TeamAccessPage>
 
                                       final displayName = member.name.isNotEmpty
                                           ? member.name
-                                          : 'Sin nombre en perfil';
+                                          : l10n.accessProfileNoName;
                                       final displayEmail =
                                           member.email.isNotEmpty
                                           ? member.email
-                                          : 'Correo no disponible (revisa el perfil en la app)';
+                                          : l10n.accessProfileNoEmail;
 
                                       return ListTile(
                                         isThreeLine: true,
@@ -615,7 +624,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                           ),
                                         ),
                                         title: Text(
-                                          'Nombre: $displayName',
+                                          '${l10n.accessNamePrefix}$displayName',
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                           style: textTheme.titleSmall?.copyWith(
@@ -632,7 +641,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
-                                                'Correo: $displayEmail',
+                                                '${l10n.accessEmailPrefix}$displayEmail',
                                                 style: textTheme.bodySmall
                                                     ?.copyWith(
                                                       color:
@@ -653,7 +662,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                'Rol: ${_roleLabel(member.role)}',
+                                                '${l10n.accessRolePrefix}${_roleLabel(member.role, l10n)}',
                                                 style: textTheme.labelLarge
                                                     ?.copyWith(
                                                       color: scheme
@@ -672,7 +681,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                                   right: 8,
                                                 ),
                                                 child: Text(
-                                                  'Tú',
+                                                  l10n.accessYou,
                                                   style: textTheme.labelLarge
                                                       ?.copyWith(
                                                         color: scheme.primary,
@@ -686,7 +695,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                                   Icons.person_remove_outlined,
                                                   color: scheme.error,
                                                 ),
-                                                tooltip: 'Quitar acceso',
+                                                tooltip: l10n.dialogRevokeAccessTitle,
                                                 onPressed: () =>
                                                     _removeMember(member),
                                               )
@@ -703,11 +712,11 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                       FilledButton.icon(
                         onPressed: _showInviteDialog,
                         icon: const Icon(Icons.person_add_alt_1_rounded),
-                        label: const Text('Invitar usuario'),
+                        label: Text(l10n.dialogInviteUserTitle),
                       )
                     else
                       Text(
-                        'Solo un administrador del equipo puede invitar o quitar accesos.',
+                        l10n.accessAdminOnlyInvite,
                         style: textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                           height: 1.35,
@@ -723,18 +732,18 @@ class _TeamAccessPageState extends State<TeamAccessPage>
     );
   }
 
-  String _roleLabel(String role) {
+  String _roleLabel(String role, AppLocalizations l10n) {
     switch (role.trim().toLowerCase()) {
       case 'superadmin':
       case 'super_admin':
-        return 'Superadmin';
+        return l10n.roleSuperAdmin;
       case 'admin':
-        return 'Admin';
+        return l10n.roleAdmin;
       case 'player':
-        return 'Jugador';
+        return l10n.rolePlayer;
       case 'external':
       default:
-        return 'Espectador';
+        return l10n.roleSpectator;
     }
   }
 }

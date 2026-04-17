@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
@@ -13,6 +14,7 @@ class TeamBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final team = context.watch<TeamContextCubit>().state;
+    final l10n = AppLocalizations.of(context)!;
 
     final authState = context.watch<AuthCubit>().state;
     var isExternal = false;
@@ -25,12 +27,12 @@ class TeamBottomBar extends StatelessWidget {
     if (!isExternal) {
       buttons.addAll([
         _BottomBarButton(
-          label: 'Asistencia',
+          label: l10n.navAttendance,
           icon: Icons.check_circle_outline,
           onTap: () => TeamSessionNavigation.openAttendance(context),
         ),
         _BottomBarButton(
-          label: 'Convocatoria',
+          label: l10n.navConvocation,
           icon: Icons.list_alt,
           onTap: () => TeamSessionNavigation.openConvocation(context),
         ),
@@ -39,7 +41,7 @@ class TeamBottomBar extends StatelessWidget {
 
     buttons.add(
       _BottomBarButton(
-        label: 'Partido',
+        label: l10n.navMatch,
         icon: Icons.sports_soccer,
         onTap: () => TeamSessionNavigation.openMatchList(context),
       ),
@@ -48,7 +50,7 @@ class TeamBottomBar extends StatelessWidget {
     if (!isExternal) {
       buttons.add(
         _BottomBarButton(
-          label: 'Gestión',
+          label: l10n.navManagement,
           icon: Icons.settings,
           onTap: () => TeamSessionNavigation.openManagement(context),
         ),

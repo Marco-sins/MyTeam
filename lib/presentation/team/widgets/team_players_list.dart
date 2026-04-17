@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/player/delete_player_use_case.dart';
 import 'package:football_manager/domain/usecase/player/update_player_use_case.dart';
@@ -19,6 +20,7 @@ class TeamPlayersList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BlocBuilder<TeamDetailCubit, TeamDetailState>(
       builder: (context, state) {
         if (state is TeamDetailLoading || state is TeamDetailInitial) {
@@ -29,8 +31,8 @@ class TeamPlayersList extends StatelessWidget {
         }
         if (state is TeamDetailLoaded) {
           if (state.players.isEmpty) {
-            return const Center(
-              child: Text('No hay jugadores en la plantilla'),
+            return Center(
+              child: Text(l10n.convocationEmptyRoster),
             );
           }
           final players = List.of(state.players)
@@ -78,10 +80,8 @@ class TeamPlayersList extends StatelessWidget {
                         final authState = context.read<AuthCubit>().state;
                         if (authState is! Authenticated) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Debes iniciar sesión para editar jugadores',
-                              ),
+                            SnackBar(
+                              content: Text(l10n.teamMustLoginEditPlayers),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -118,10 +118,8 @@ class TeamPlayersList extends StatelessWidget {
                         final authState = context.read<AuthCubit>().state;
                         if (authState is! Authenticated) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Debes iniciar sesión para borrar jugadores',
-                              ),
+                            SnackBar(
+                              content: Text(l10n.teamMustLoginDeletePlayers),
                               backgroundColor: Colors.red,
                             ),
                           );
@@ -130,37 +128,38 @@ class TeamPlayersList extends StatelessWidget {
 
                         final confirm = await showDialog<bool>(
                           context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Borrar jugador'),
-                            content: Text.rich(
-                              TextSpan(
-                                style: Theme.of(ctx).textTheme.bodyMedium,
-                                children: [
-                                  const TextSpan(
-                                    text: '¿Seguro que quieres borrar a ',
-                                  ),
-                                  ...playerNameSpanList(
-                                    player,
-                                    Theme.of(ctx).textTheme.bodyMedium!,
-                                  ),
-                                  const TextSpan(text: '?'),
-                                ],
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(false),
-                                child: const Text('Cancelar'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                child: const Text(
-                                  'Borrar',
-                                  style: TextStyle(color: Colors.red),
+                          builder: (ctx) {
+                            final dlg = AppLocalizations.of(ctx)!;
+                            return AlertDialog(
+                              title: Text(dlg.dialogDeletePlayerTitle),
+                              content: Text.rich(
+                                TextSpan(
+                                  style: Theme.of(ctx).textTheme.bodyMedium,
+                                  children: [
+                                    TextSpan(text: dlg.dialogDeletePlayerLead),
+                                    ...playerNameSpanList(
+                                      player,
+                                      Theme.of(ctx).textTheme.bodyMedium!,
+                                    ),
+                                    const TextSpan(text: '?'),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: Text(dlg.actionCancel),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: Text(
+                                    dlg.actionDelete,
+                                    style: const TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         );
                         if (confirm != true) return;
                         if (!context.mounted) return;

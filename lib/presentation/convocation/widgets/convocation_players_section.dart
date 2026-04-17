@@ -4,6 +4,7 @@ import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_cubit.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_state.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class ConvocationPlayersSection extends StatelessWidget {
   final List<Player> players;
@@ -14,6 +15,7 @@ class ConvocationPlayersSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return BlocBuilder<ConvocationCubit, ConvocationState>(
       builder: (context, state) {
@@ -27,7 +29,7 @@ class ConvocationPlayersSection extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'No hay jugadores en la plantilla',
+                      l10n.convocationEmptyRoster,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -60,7 +62,7 @@ class ConvocationPlayersSection extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Convocados',
+                        l10n.matchSquadTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -94,7 +96,7 @@ class ConvocationPlayersSection extends StatelessWidget {
                         size: 16,
                         color: scheme.primary,
                       ),
-                      label: const Text('Todos'),
+                      label: Text(l10n.convocationCallAll),
                     ),
                     const SizedBox(width: 4),
                     Chip(
@@ -129,7 +131,7 @@ class ConvocationPlayersSection extends StatelessWidget {
                     ),
                     Expanded(
                       child: Text(
-                        'Jugador',
+                        l10n.tableColumnPlayer,
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: scheme.onSurfaceVariant,
@@ -137,7 +139,7 @@ class ConvocationPlayersSection extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Estado',
+                      l10n.convocationPlayerStatus,
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: scheme.onSurfaceVariant,
@@ -201,7 +203,7 @@ class ConvocationPlayersSection extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                             ),
                             child: Text(
-                              isCalled ? 'Sí' : 'No',
+                              isCalled ? l10n.commonYes : l10n.commonNo,
                               style: TextStyle(
                                 color: isCalled
                                     ? scheme.onPrimary
@@ -219,7 +221,7 @@ class ConvocationPlayersSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
                 child: Text(
-                  'Puedes convocar a todos de una vez o tocar cada jugador para alternar Sí / No.',
+                  l10n.convocationToggleHint,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

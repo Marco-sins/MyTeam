@@ -4,7 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
+import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
@@ -15,7 +18,23 @@ import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
+
+String _matchListStatusLabel(AppLocalizations l10n, MatchStatus status) {
+  switch (status) {
+    case MatchStatus.notStarted:
+      return l10n.matchStatusPending;
+    case MatchStatus.firstHalf:
+      return l10n.matchStatusFirstHalf;
+    case MatchStatus.halfTime:
+      return l10n.matchStatusHalfTime;
+    case MatchStatus.secondHalf:
+      return l10n.matchStatusSecondHalf;
+    case MatchStatus.finished:
+      return l10n.matchStatusFinished;
+  }
+}
 
 /// Requiere [TeamContextCubit] en el árbol.
 class MatchListPage extends StatefulWidget {
@@ -92,21 +111,6 @@ class _MatchListPageState extends State<MatchListPage> {
     });
   }
 
-  String _statusText(MatchStatus status) {
-    switch (status) {
-      case MatchStatus.notStarted:
-        return 'Pendiente';
-      case MatchStatus.firstHalf:
-        return '1ª parte';
-      case MatchStatus.halfTime:
-        return 'Descanso';
-      case MatchStatus.secondHalf:
-        return '2ª parte';
-      case MatchStatus.finished:
-        return 'Finalizado';
-    }
-  }
-
   String _elapsedText(Match match) {
     // Solo mostramos el timer en 1ª y 2ª parte; en descanso no.
     if (match.status != MatchStatus.firstHalf &&
@@ -170,11 +174,12 @@ class _MatchListPageState extends State<MatchListPage> {
   @override
   Widget build(BuildContext context) {
     final team = context.watch<TeamContextCubit>().state;
+    final l10n = AppLocalizations.of(context)!;
     return TeamBrandedScope(
       team: team,
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Partidos'),
+        title: Text(AppLocalizations.of(context)!.screenMatches),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -226,7 +231,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                       ),
                                       const SizedBox(height: 20),
                                       Text(
-                                        'Cargando partidos…',
+                                        l10n.matchListLoading,
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodyMedium
@@ -275,7 +280,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                       const SizedBox(width: 14),
                                       Expanded(
                                         child: Text(
-                                          'No se han podido cargar los partidos',
+                                          l10n.matchListLoadError,
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodyLarge,
@@ -378,7 +383,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
-                                            'Sin partidos todavía',
+                                            l10n.matchListEmptyStateTitle,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleMedium
@@ -389,7 +394,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            'Los partidos que crees desde la convocatoria aparecerán aquí. Desliza hacia abajo para actualizar.',
+                                            l10n.matchListEmptyStateBody,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .bodyMedium
@@ -439,7 +444,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      'Calendario',
+                                      l10n.matchListCalendarTitle,
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
@@ -474,7 +479,7 @@ class _MatchListPageState extends State<MatchListPage> {
                   final us = liveScored ?? match.goalsScored;
                   final them = liveConceded ?? match.goalsConceded;
                   final elapsed = _elapsedText(match);
-                  final statusText = _statusText(match.status);
+                  final statusText = _matchListStatusLabel(l10n, match.status);
                   final inPlay = match.status == MatchStatus.firstHalf ||
                       match.status == MatchStatus.secondHalf;
                   final showTimer = inPlay && elapsed != '-';
@@ -538,6 +543,14 @@ class _MatchListPageState extends State<MatchListPage> {
                           } else if (match.status == MatchStatus.finished) {
                             final getPlayersByTeamUseCase = context
                                 .read<GetPlayersByTeamUseCase>();
+                            final getMatchEventsByMatchUseCase = context
+                                .read<GetMatchEventsByMatchUseCase>();
+                            final getMatchLineupsByMatchUseCase = context
+                                .read<GetMatchLineupsByMatchUseCase>();
+                            final getLatestFormationNoteByMatchUseCase = context
+                                .read<GetLatestFormationNoteByMatchUseCase>();
+                            final loadErrorMessage =
+                                AppLocalizations.of(context)!.matchStatsLoadError;
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -546,6 +559,13 @@ class _MatchListPageState extends State<MatchListPage> {
                                     match: match,
                                     getPlayersByTeamUseCase:
                                         getPlayersByTeamUseCase,
+                                    getMatchEventsByMatchUseCase:
+                                        getMatchEventsByMatchUseCase,
+                                    getMatchLineupsByMatchUseCase:
+                                        getMatchLineupsByMatchUseCase,
+                                    getLatestFormationNoteByMatchUseCase:
+                                        getLatestFormationNoteByMatchUseCase,
+                                    loadErrorMessage: loadErrorMessage,
                                   )..load(),
                                   child: MatchStatsPage(match: match),
                                 ),
@@ -597,8 +617,8 @@ class _MatchListPageState extends State<MatchListPage> {
                                               ),
                                               child: Text(
                                                 match.isHome
-                                                    ? 'Local'
-                                                    : 'Visitante',
+                                                    ? l10n.matchVenueHome
+                                                    : l10n.matchVenueAway,
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
@@ -725,7 +745,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Tiempo: $elapsed',
+                                      l10n.matchListElapsedTime(elapsed),
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
@@ -738,7 +758,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                   MatchStatus.notStarted) ...[
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Pulsa para alinear y empezar',
+                                  l10n.matchListHintLineupStart,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 12,
@@ -750,7 +770,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                   MatchStatus.halfTime) ...[
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Pulsa para gestionar o reanudar',
+                                  l10n.matchListHintManageResume,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 12,
@@ -762,7 +782,7 @@ class _MatchListPageState extends State<MatchListPage> {
                                   MatchStatus.finished) ...[
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Pulsa para ver estadísticas',
+                                  l10n.matchListHintViewStats,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 12,

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AttendanceStatusOptionChip extends StatelessWidget {
-  final String label;
+  final Widget child;
   final bool isSelected;
   final VoidCallback onTap;
   final Color selectedColor;
 
   const AttendanceStatusOptionChip({
     super.key,
-    required this.label,
+    required this.child,
     required this.isSelected,
     required this.onTap,
     required this.selectedColor,
@@ -16,6 +16,7 @@ class AttendanceStatusOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fg = isSelected ? Colors.white : Colors.black87;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -24,12 +25,19 @@ class AttendanceStatusOptionChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           color: isSelected ? selectedColor : Colors.grey.shade200,
         ),
-        child: Text(
-          label,
+        child: DefaultTextStyle.merge(
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: isSelected ? Colors.white : Colors.black87,
+            color: fg,
+          ),
+          child: IconTheme.merge(
+            data: IconThemeData(size: 16, color: fg),
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: child,
+            ),
           ),
         ),
       ),

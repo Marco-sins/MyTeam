@@ -1,22 +1,49 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
+import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
-import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/presentation/match/utils/match_formation_utils.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 
 part 'match_stats_state.dart';
 
+List<Map<String, dynamic>> _matchEventsToEventMaps(List<MatchEvent> events) {
+  return events
+      .map(
+        (e) => <String, dynamic>{
+          'type': e.type,
+          'player_id1': e.playerId1,
+          'player_id2': e.playerId2,
+          'note': e.note,
+          'minute': e.minute,
+        },
+      )
+      .toList();
+}
+
 class MatchStatsCubit extends Cubit<MatchStatsState> {
-  MatchStatsCubit({required this.match, required this.getPlayersByTeamUseCase})
-    : super(const MatchStatsState.initial());
+  MatchStatsCubit({
+    required this.match,
+    required this.getPlayersByTeamUseCase,
+    required this.getMatchEventsByMatchUseCase,
+    required this.getMatchLineupsByMatchUseCase,
+    required this.getLatestFormationNoteByMatchUseCase,
+    required this.loadErrorMessage,
+  }) : super(const MatchStatsState.initial());
 
   final Match match;
   final GetPlayersByTeamUseCase getPlayersByTeamUseCase;
+  final GetMatchEventsByMatchUseCase getMatchEventsByMatchUseCase;
+  final GetMatchLineupsByMatchUseCase getMatchLineupsByMatchUseCase;
+  final GetLatestFormationNoteByMatchUseCase
+      getLatestFormationNoteByMatchUseCase;
+  final String loadErrorMessage;
 
   Set<int> _sentOffPlayerIdsFromEvents(List<Map<String, dynamic>> events) {
     final yellowCounts = <int, int>{};
@@ -43,57 +70,46 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
   Future<void> load() async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
-      final supabase = Supabase.instance.client;
+      final eventsEither = await getMatchEventsByMatchUseCase(match.id);
+      final matchEvents = eventsEither.fold<List<MatchEvent>?>(
+        (failure) {
+          emit(state.copyWith(isLoading: false, error: failure.message));
+          return null;
+        },
+        (list) => list,
+      );
+      if (matchEvents == null) return;
 
-      final rawEvents = await supabase
-          .from('match_events')
-          .select('id, type, minute, player_id1, player_id2, note, created_at')
-          .eq('match_id', match.id)
-          .order('minute', ascending: false)
-          .order('created_at', ascending: false);
-
-      final events = (rawEvents as List)
-          .map((row) {
-            final m = Map<String, dynamic>.from(row as Map);
-            m['minute'] = resolveMatchEventMinute(m);
-            final id1 = supabaseInt(m['player_id1']);
-            final id2 = supabaseInt(m['player_id2']);
-            if (id1 != null) m['player_id1'] = id1;
-            if (id2 != null) m['player_id2'] = id2;
-            return m;
-          })
-          .toList();
+      final eventMaps = _matchEventsToEventMaps(matchEvents);
 
       final playersEither = await getPlayersByTeamUseCase(match.teamId);
-
-      Map<int, Player> playersById = {};
-      String? error;
-
-      playersEither.fold(
-        (failure) => error = failure.message,
-        (players) => playersById = {for (final p in players) p.id: p},
+      final playersById = playersEither.fold<Map<int, Player>?>(
+        (f) {
+          emit(state.copyWith(isLoading: false, error: f.message));
+          return null;
+        },
+        (players) => {for (final p in players) p.id: p},
       );
+      if (playersById == null) return;
 
-      if (error != null) {
-        emit(state.copyWith(isLoading: false, error: error));
-        return;
-      }
-
-      final rawLineups = await supabase
-          .from('match_lineup')
-          .select('player_id, is_start, position')
-          .eq('match_id', match.id);
+      final lineupsEither = await getMatchLineupsByMatchUseCase(match.id);
+      final lineups = lineupsEither.fold(
+        (failure) {
+          emit(state.copyWith(isLoading: false, error: failure.message));
+          return null;
+        },
+        (list) => list,
+      );
+      if (lineups == null) return;
 
       final starting = <Player>[];
       final subs = <Player>[];
       final isStarterById = <int, bool>{};
 
-      for (final row in rawLineups as List) {
-        final playerId = row['player_id'] as int?;
-        if (playerId == null) continue;
-        final player = playersById[playerId];
+      for (final row in lineups) {
+        final player = playersById[row.playerId];
         if (player == null) continue;
-        final isStart = (row['is_start'] as bool?) ?? false;
+        final isStart = row.isStarting;
         isStarterById[player.id] = isStart;
         if (isStart) {
           starting.add(player);
@@ -113,37 +129,23 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
 
       final playerRatings = <int, double>{};
       for (final entry in playersById.entries) {
-        playerRatings[entry.key] = calculatePlayerRating(entry.key, events);
+        playerRatings[entry.key] = calculatePlayerRating(entry.key, eventMaps);
       }
 
-      final sentOff = _sentOffPlayerIdsFromEvents(events);
+      final sentOff = _sentOffPlayerIdsFromEvents(eventMaps);
 
       var formationLines = <int>[];
       String? formationLabel;
       var fieldPositionPlayers = <Player?>[];
 
       if (match.status == MatchStatus.finished) {
-        String? formationKey;
-        try {
-          final fRows = await supabase
-              .from('match_events')
-              .select('note')
-              .eq('match_id', match.id)
-              .eq('type', 'formation')
-              .order('id', ascending: false)
-              .limit(1);
-          if (fRows.isNotEmpty) {
-            final raw = fRows.first['note'] as String?;
-            formationKey = raw?.trim();
-            if (formationKey != null && formationKey.isEmpty) {
-              formationKey = null;
-            }
-          }
-        } catch (_) {}
+        final formationEither =
+            await getLatestFormationNoteByMatchUseCase(match.id);
+        final formationKey = formationEither.fold((_) => null, (n) => n);
 
         var maxPos = -1;
-        for (final row in rawLineups as List) {
-          final pos = row['position'] as int?;
+        for (final row in lineups) {
+          final pos = row.position;
           if (pos != null && pos > maxPos) {
             maxPos = pos;
           }
@@ -154,19 +156,17 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
           formationLines = fromKey;
           formationLabel = formationKey;
         } else if (maxPos >= 0) {
-          formationLines =
-              MatchFormationUtils.defaultLines(maxPos + 1);
+          formationLines = MatchFormationUtils.defaultLines(maxPos + 1);
           formationLabel = null;
         }
 
         if (formationLines.isNotEmpty) {
-          final total =
-              formationLines.fold<int>(0, (sum, n) => sum + n);
+          final total = formationLines.fold<int>(0, (sum, n) => sum + n);
           fieldPositionPlayers = List<Player?>.filled(total, null);
-          for (final row in rawLineups as List) {
-            final playerId = row['player_id'] as int?;
-            final pos = row['position'] as int?;
-            if (playerId == null || pos == null) continue;
+          for (final row in lineups) {
+            final playerId = row.playerId;
+            final pos = row.position;
+            if (pos == null) continue;
             if (pos < 0 || pos >= total) continue;
             if (sentOff.contains(playerId)) continue;
             final player = playersById[playerId];
@@ -181,7 +181,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
           state.copyWith(
             isLoading: false,
             error: null,
-            events: events,
+            events: eventMaps,
             playersById: playersById,
             startingPlayers: starting,
             substitutePlayers: subs,
@@ -199,7 +199,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
         emit(
           state.copyWith(
             isLoading: false,
-            error: 'No se han podido cargar los eventos del partido',
+            error: loadErrorMessage,
           ),
         );
       }

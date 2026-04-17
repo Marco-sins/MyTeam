@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   path_provider: ^2.1.5
   dartz: ^0.10.1
   supabase_flutter: ^2.0.0
@@ -44,7 +46,7 @@ dependencies:
   bloc: ^8.1.4
   hydrated_bloc: ^9.1.5
 
-  intl: ^0.18.0
+  intl: ^0.20.2
 
   equatable: ^2.0.5
   shared_preferences: ^2.5.4
@@ -94,6 +96,7 @@ flutter_launcher_icons:
   adaptive_icon_foreground: assets/icon/app_icon.png
 
 flutter:
+  generate: true
   assets:
     - .env
     - media/campo.png

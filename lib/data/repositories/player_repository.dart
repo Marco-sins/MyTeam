@@ -11,7 +11,7 @@ import 'package:football_manager/data/mappers/player_stats_mapper.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
-import 'package:football_manager/domain/i_repositories/i_player_repository.dart';
+import 'package:football_manager/domain/repositories/i_player_repository.dart';
 
 class PlayerRepository implements IPlayerRepository {
   final PlayerRemoteDatasource _remoteDatasource;

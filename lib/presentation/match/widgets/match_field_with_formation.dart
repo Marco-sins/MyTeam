@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 /// Campo táctil: colocación por **jugador seleccionado en la lista + toque en la posición**.
 /// Se evitó [DragTarget]/arrastre desde lista porque en scrollables dispara asserts de
@@ -38,6 +39,7 @@ class MatchFieldWithFormation extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scheme = Theme.of(context).colorScheme;
+        final l10n = AppLocalizations.of(context)!;
         final fieldWidth = constraints.maxWidth;
         final fieldHeight = constraints.maxHeight;
         final rows = formationLines.length;
@@ -122,7 +124,7 @@ class MatchFieldWithFormation extends StatelessWidget {
                         assignedPlayer == null &&
                         currentPlayersOnField() >= maxPlayersOnField()) {
                       showSnack(
-                        'No puedes tener más jugadores en el campo. Por cada expulsado debe quedar un hueco libre.',
+                        l10n.matchFieldMaxPlayersExpulsionRule,
                         error: true,
                       );
                       return;

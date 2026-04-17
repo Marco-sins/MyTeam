@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 /// Marca de minuto alineada con el tema de la app.
@@ -64,28 +65,36 @@ class MatchStatusChangeItem extends StatelessWidget {
 
     if (lower.contains('buen ') ||
         lower.contains('buena ') ||
+        lower.contains('good pass') ||
+        lower.contains('good play') ||
         lower.contains('pase clave') ||
+        lower.contains('key pass') ||
         lower.contains('gana posesión') ||
         lower.contains('gana posicion') ||
         lower.contains('recupera posesión') ||
         lower.contains('recupera posesion') ||
         lower.contains('recuperación') ||
         lower.contains('recuperacion') ||
+        lower.contains('ball recovered') ||
         lower.contains('jugada clave') ||
         lower.contains('buena parada') ||
         lower.contains('increíble parada') ||
-        lower.contains('increible parada')) {
+        lower.contains('increible parada') ||
+        lower.contains('great save')) {
       accent = scheme.tertiary;
     }
 
     if (lower.contains('mal ') ||
         lower.contains('mala ') ||
         lower.contains('pase impreciso') ||
+        lower.contains('poor pass') ||
         lower.contains('jugada imprecisa') ||
+        lower.contains('poor play') ||
         lower.contains('pierde ') ||
         lower.contains('gol concedido') ||
         lower.contains('gol en propia') ||
-        lower.contains('autogol')) {
+        lower.contains('autogol') ||
+        lower.contains('own goal')) {
       accent = scheme.error;
     }
 
@@ -146,6 +155,7 @@ class MatchSubstitutionItem extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final nameStyle = textTheme.bodyMedium;
+    final l10n = AppLocalizations.of(context)!;
 
     Widget sideName(
       Player? p,
@@ -161,7 +171,7 @@ class MatchSubstitutionItem extends StatelessWidget {
           textAlign: align,
         );
       }
-      final t = id != null ? 'Jugador $id' : '—';
+      final t = id != null ? l10n.matchUnknownPlayerId(id) : '—';
       return Text(
         t,
         textAlign: align,
@@ -251,9 +261,12 @@ class MatchCardItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
     final Color cardColor =
         isRed ? scheme.error : scheme.secondary;
-    final String label = isRed ? 'Tarjeta roja' : 'Tarjeta amarilla';
+    final String label = isRed
+        ? l10n.matchActionLabelRedCard
+        : l10n.matchActionLabelYellowCard;
     final Color textColor =
         isRed ? scheme.error : scheme.onSecondaryContainer;
 
@@ -311,7 +324,9 @@ class MatchCardItem extends StatelessWidget {
                           else
                             TextSpan(
                               text: fallbackPlayerId != null
-                                  ? 'Jugador $fallbackPlayerId'
+                                  ? l10n.matchUnknownPlayerId(
+                                      fallbackPlayerId!,
+                                    )
                                   : '—',
                               style: textTheme.bodyMedium!.copyWith(
                                 fontWeight: FontWeight.w600,
@@ -356,6 +371,7 @@ class MatchGoalItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     if (isOurGoal && scorerPlayer != null) {
       return Padding(
@@ -442,8 +458,10 @@ class MatchGoalItem extends StatelessWidget {
                 ),
                 child: Text(
                   isOurGoal
-                      ? 'Gol a favor'
-                      : (isOwnGoal ? 'Autogol' : 'Gol en contra'),
+                      ? l10n.matchStatsOurGoalChip
+                      : (isOwnGoal
+                          ? l10n.matchStatsOwnGoalChip
+                          : l10n.matchLiveConcededDefault),
                   style: textTheme.labelLarge?.copyWith(
                     color: chipFg,
                     fontWeight: FontWeight.w800,

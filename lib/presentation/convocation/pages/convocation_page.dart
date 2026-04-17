@@ -13,6 +13,7 @@ import 'package:football_manager/presentation/team/cubit/team_detail_state.dart'
 import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
@@ -134,7 +135,7 @@ class _ConvocationPageState extends State<ConvocationPage> {
         team: team,
         child: Scaffold(
         appBar: AppBar(
-          title: const Text('Convocatoria'),
+          title: Text(AppLocalizations.of(context)!.screenConvocation),
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),

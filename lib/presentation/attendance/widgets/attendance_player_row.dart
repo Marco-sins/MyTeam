@@ -52,10 +52,10 @@ class AttendancePlayerRow extends StatelessWidget {
             width: 56,
             child: Center(
               child: AttendanceStatusOptionChip(
-                label: 'A',
-                selectedColor: scheme.primary,
                 isSelected: currentStatus == AttendanceStatus.present,
                 onTap: onMarkPresent,
+                selectedColor: scheme.primary,
+                child: const Icon(Icons.check_rounded),
               ),
             ),
           ),
@@ -64,10 +64,10 @@ class AttendancePlayerRow extends StatelessWidget {
             width: 56,
             child: Center(
               child: AttendanceStatusOptionChip(
-                label: 'X',
-                selectedColor: scheme.error,
                 isSelected: currentStatus == AttendanceStatus.absent,
                 onTap: onMarkAbsent,
+                selectedColor: scheme.error,
+                child: const Text('X'),
               ),
             ),
           ),

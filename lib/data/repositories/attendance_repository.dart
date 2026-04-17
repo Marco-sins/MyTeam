@@ -8,7 +8,7 @@ import 'package:football_manager/data/datasource/attendance_remote_datasource.da
 import 'package:football_manager/data/mappers/attendance_mapper.dart';
 import 'package:football_manager/data/models/attendance_model.dart';
 import 'package:football_manager/domain/entities/attendance.dart';
-import 'package:football_manager/domain/i_repositories/i_attendance_repository.dart';
+import 'package:football_manager/domain/repositories/i_attendance_repository.dart';
 
 class AttendanceRepository implements IAttendanceRepository {
   final AttendanceRemoteDatasource _remoteDatasource;

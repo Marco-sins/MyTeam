@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 
 class ConvocationNotesField extends StatelessWidget {
   final TextEditingController notesController;
@@ -9,6 +10,7 @@ class ConvocationNotesField extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -22,7 +24,7 @@ class ConvocationNotesField extends StatelessWidget {
                 Icon(Icons.notes, size: 22, color: scheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Observaciones',
+                  l10n.convocationNotesTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -36,7 +38,7 @@ class ConvocationNotesField extends StatelessWidget {
               maxLines: 6,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                hintText: 'Material, puntualidad, mensaje al grupo…',
+                hintText: l10n.convocationNotesHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

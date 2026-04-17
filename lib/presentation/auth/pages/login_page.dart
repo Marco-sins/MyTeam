@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:football_manager/presentation/auth/widgets/auth_mode_selector.dart';
 import 'package:football_manager/presentation/home/pages/home_page.dart';
@@ -33,12 +34,10 @@ class _LoginPageState extends State<LoginPage> {
   }) async {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
     final body = mustConfirmBeforeLogin
-        ? 'Te hemos enviado un enlace a $email. Ábrelo para activar tu '
-              'cuenta antes de iniciar sesión. Revisa también la carpeta de '
-              'correo no deseado (spam).'
-        : 'Tu cuenta ya está activa. Revisa tu bandeja de entrada por si '
-              'recibes un correo de verificación o bienvenida (incluido spam).';
+        ? l10n.authRegisterEmailConfirm(email)
+        : l10n.authRegisterEmailActive;
 
     await showDialog<void>(
       context: context,
@@ -50,7 +49,7 @@ class _LoginPageState extends State<LoginPage> {
             size: 44,
             color: scheme.primary,
           ),
-          title: const Text('Revisa tu correo'),
+          title: Text(l10n.authCheckEmailTitle),
           content: Text(
             body,
             style: textTheme.bodyMedium?.copyWith(height: 1.35),
@@ -58,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Entendido'),
+              child: Text(l10n.authUnderstand),
             ),
           ],
         );

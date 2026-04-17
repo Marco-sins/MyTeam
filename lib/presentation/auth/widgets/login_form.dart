@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/auth/pages/forgot_password_page.dart';
 import '../cubit/auth_cubit.dart';
 
@@ -33,6 +34,7 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Form(
       key: _formKey,
       child: Column(
@@ -41,10 +43,11 @@ class _LoginFormState extends State<LoginForm> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
+            decoration: InputDecoration(
+              labelText: l10n.loginEmailLabel,
             ),
-            validator: (value) => value!.isEmpty ? 'Introduce tu email' : null,
+            validator: (value) =>
+                value!.isEmpty ? l10n.loginEmailError : null,
           ),
           const SizedBox(height: 16),
           TextFormField(
@@ -52,18 +55,18 @@ class _LoginFormState extends State<LoginForm> {
             obscureText: true,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submit(),
-            decoration: const InputDecoration(
-              labelText: 'Contraseña',
+            decoration: InputDecoration(
+              labelText: l10n.loginPasswordLabel,
             ),
             validator: (value) =>
-                value!.length < 6 ? 'Mínimo 6 caracteres' : null,
+                value!.length < 6 ? l10n.loginPasswordMinError : null,
           ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: _submit,
-              child: const Text('Iniciar sesión'),
+              child: Text(l10n.loginSubmit),
             ),
           ),
           const SizedBox(height: 12),
@@ -75,7 +78,7 @@ class _LoginFormState extends State<LoginForm> {
                 ),
               );
             },
-            child: const Text('Olvidé mi contraseña'),
+            child: Text(l10n.loginForgotPassword),
           ),
         ],
       ),

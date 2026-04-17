@@ -6,7 +6,7 @@ import 'package:football_manager/core/errors/failure/server_failure.dart';
 import 'package:football_manager/core/errors/failure/unknow_failure.dart';
 import 'package:football_manager/data/datasource/profile_remote_datasource.dart';
 import 'package:football_manager/domain/entities/profile.dart';
-import 'package:football_manager/domain/i_repositories/i_profile_repository.dart';
+import 'package:football_manager/domain/repositories/i_profile_repository.dart';
 
 class ProfileRepository implements IProfileRepository {
   final ProfileRemoteDatasource _datasource;

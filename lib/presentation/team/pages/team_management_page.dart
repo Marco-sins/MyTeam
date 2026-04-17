@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:football_manager/domain/i_repositories/i_team_repository.dart';
+import 'package:football_manager/domain/repositories/i_team_repository.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:football_manager/core/utils/local_image_saver.dart';
@@ -21,6 +21,7 @@ import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/core/theme/team_screen_tint.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/widgets/team_management_header_row.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_access_page.dart';
@@ -65,6 +66,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
       context: context,
       showDragHandle: true,
       builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -73,15 +75,14 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Color del equipo',
+                  l10n.teamColorSheetTitle,
                   style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Barra superior, botones y acentos dentro del equipo. '
-                  'Tarjetas y zonas suaves se tiñen con tu color (misma suavidad que el verde de la app). Vacío = verde por defecto.',
+                  l10n.teamColorSheetHint,
                   style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -89,7 +90,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                 const SizedBox(height: 16),
                 ListTile(
                   leading: Icon(Icons.restart_alt, color: scheme.primary),
-                  title: const Text('Predeterminado (verde app)'),
+                  title: Text(l10n.teamColorDefault),
                   onTap: () {
                     setState(() => _colorHex = null);
                     Navigator.of(ctx).pop();
@@ -273,6 +274,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
         authState.user.teamRoles[team.id] == UserRole.superAdmin;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final teamContext = context.read<TeamContextCubit>();
     final detailCubit = context.read<TeamDetailCubit>();
 
@@ -281,7 +283,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
-          title: const Text('Gestión de equipo'),
+          title: Text(AppLocalizations.of(context)!.screenTeamManagement),
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -297,7 +299,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                _sectionTitle(context, 'Datos del equipo'),
+                _sectionTitle(context, l10n.teamMgmtSectionTeamData),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -335,7 +337,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                         Row(
                           children: [
                             Text(
-                              'Color del equipo',
+                              l10n.teamMgmtColorRowLabel,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
@@ -343,7 +345,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                             ),
                             const Spacer(),
                             Tooltip(
-                              message: 'Toca para elegir color',
+                              message: l10n.teamMgmtColorPickTooltip,
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -386,9 +388,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                             if (authState is! Authenticated) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text(
-                                    'Debes iniciar sesión para guardar cambios',
-                                  ),
+                                  content: Text(l10n.teamMustLoginSaveChanges),
                                   backgroundColor: scheme.error,
                                 ),
                               );
@@ -411,7 +411,9 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Error subiendo logo: ${failure.message}',
+                                        l10n.teamMgmtLogoUploadError(
+                                          failure.message,
+                                        ),
                                       ),
                                       backgroundColor: scheme.error,
                                     ),
@@ -454,9 +456,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                                 teamContext.setTeam(updatedTeam);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text(
-                                      'Cambios guardados correctamente',
-                                    ),
+                                    content: Text(l10n.teamMgmtSaveSuccess),
                                     backgroundColor: scheme.primary,
                                     behavior: SnackBarBehavior.floating,
                                     duration: const Duration(seconds: 2),
@@ -466,14 +466,14 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                             );
                           },
                           icon: const Icon(Icons.save_outlined),
-                          label: const Text('Guardar datos del equipo'),
+                          label: Text(l10n.teamSaveDataButton),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              _sectionTitle(context, 'Plantilla y acceso'),
+              _sectionTitle(context, l10n.teamMgmtSectionRosterAccess),
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -481,8 +481,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     _navTile(
                       context: context,
                       icon: Icons.groups_2_outlined,
-                      title: 'Modificar plantilla',
-                      subtitle: 'Altas, bajas y datos de jugadores',
+                      title: l10n.teamMgmtEditRosterTitle,
+                      subtitle: l10n.teamMgmtEditRosterSubtitle,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -502,8 +502,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     _navTile(
                       context: context,
                       icon: Icons.lock_open_rounded,
-                      title: 'Administrar acceso',
-                      subtitle: 'Invitar admins o espectadores al equipo',
+                      title: l10n.teamMgmtAccessTitle,
+                      subtitle: l10n.teamMgmtAccessSubtitle,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -519,7 +519,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   ],
                 ),
               ),
-              _sectionTitle(context, 'Mantenimiento de datos'),
+              _sectionTitle(context, l10n.teamMgmtSectionMaintenance),
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: Column(
@@ -527,8 +527,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     _navTile(
                       context: context,
                       icon: Icons.sports_soccer_outlined,
-                      title: 'Eliminar partidos',
-                      subtitle: 'Quita partidos concretos del calendario',
+                      title: l10n.teamMgmtDeleteMatchesTitle,
+                      subtitle: l10n.teamMgmtDeleteMatchesSubtitle,
                       danger: true,
                       onTap: () {
                         Navigator.push(
@@ -549,8 +549,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                     _navTile(
                       context: context,
                       icon: Icons.event_busy_outlined,
-                      title: 'Eliminar asistencias',
-                      subtitle: 'Borra días de control de asistencia',
+                      title: l10n.teamMgmtDeleteAttendanceTitle,
+                      subtitle: l10n.teamMgmtDeleteAttendanceSubtitle,
                       danger: true,
                       onTap: () {
                         Navigator.push(
@@ -575,7 +575,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                 ),
               ),
               if (canDeleteTeam) ...[
-              _sectionTitle(context, 'Zona crítica'),
+              _sectionTitle(context, l10n.teamMgmtSectionCritical),
               Card(
                 color: scheme.errorContainer.withValues(alpha: 0.22),
                 shape: RoundedRectangleBorder(
@@ -589,16 +589,17 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   child: _navTile(
                     context: context,
                     icon: Icons.delete_forever_outlined,
-                    title: 'Borrar equipo',
-                    subtitle: 'Elimina el club y deja de verlo en inicio',
+                    title: AppLocalizations.of(context)!.teamDeleteNavTitle,
+                    subtitle:
+                        AppLocalizations.of(context)!.teamDeleteNavSubtitle,
                     danger: true,
                     onTap: () async {
                       final authForDelete = context.read<AuthCubit>().state;
                       if (authForDelete is! Authenticated) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text(
-                              'Debes iniciar sesión para borrar el equipo',
+                            content: Text(
+                              AppLocalizations.of(context)!.teamDeleteNeedLogin,
                             ),
                             backgroundColor: scheme.error,
                           ),
@@ -608,26 +609,27 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
 
                       final confirm = await showDialog<bool>(
                         context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Borrar equipo'),
-                          content: const Text(
-                            '¿Seguro que quieres borrar este equipo? Esta acción no se puede deshacer.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Cancelar'),
-                            ),
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: scheme.error,
-                                foregroundColor: scheme.onError,
+                        builder: (ctx) {
+                          final dlgL10n = AppLocalizations.of(ctx)!;
+                          return AlertDialog(
+                            title: Text(dlgL10n.dialogDeleteTeamTitle),
+                            content: Text(dlgL10n.teamDeleteConfirmBody),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(false),
+                                child: Text(dlgL10n.actionCancel),
                               ),
-                              onPressed: () => Navigator.of(ctx).pop(true),
-                              child: const Text('Borrar'),
-                            ),
-                          ],
-                        ),
+                              FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: scheme.error,
+                                  foregroundColor: scheme.onError,
+                                ),
+                                onPressed: () => Navigator.of(ctx).pop(true),
+                                child: Text(dlgL10n.actionDelete),
+                              ),
+                            ],
+                          );
+                        },
                       );
 
                       if (confirm != true || !mounted) return;
@@ -652,7 +654,10 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                           context.read<HomeCubit>().fetchTeams();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text('Equipo borrado correctamente'),
+                              content: Text(
+                                AppLocalizations.of(context)!
+                                    .teamDeletedSnackbar,
+                              ),
                               backgroundColor: scheme.primary,
                               behavior: SnackBarBehavior.floating,
                             ),

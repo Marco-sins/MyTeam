@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/presentation/attendance/widgets/attendance_summary_table.dart';
@@ -16,6 +17,7 @@ class TeamAttendanceSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -23,7 +25,7 @@ class TeamAttendanceSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'Asistencia',
+            l10n.screenRoster,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: scheme.primary,
                   fontWeight: FontWeight.w800,
