@@ -134,15 +134,17 @@ class ConvocationSaveService {
       },
       (_) async {
         final l10n = AppLocalizations.of(context)!;
+        final fixtureLine = '${team.name} ${l10n.matchSummaryVs(rival)}';
         final imageCopy = ConvocationImageCopy(
           sectionMatchDetails: l10n.convocationImageSectionMatchDetails,
-          sectionMatchDetailsSubtitle:
-              l10n.convocationImageSectionMatchDetailsSubtitle,
-          labelDate: l10n.convocationImageLabelDate,
+          labelTeam: l10n.convocationImageLabelTeam,
+          labelFixture: l10n.convocationImageLabelFixture,
+          labelCallDateTime: l10n.convocationImageLabelCallDateTime,
           labelMatchKickoff: l10n.convocationImageLabelMatchKickoff,
-          labelCallArrival: l10n.convocationImageLabelCallArrival,
+          labelMeetingVenue: l10n.convocationImageLabelMeetingVenue,
+          labelMatchVenue: l10n.convocationImageLabelMatchVenue,
+          venueHomeInstallations: l10n.convocationImageVenueHomeInstallations,
           callTimeReminder: l10n.convocationImageCallTimeReminder,
-          labelVenue: l10n.convocationImageLabelVenue,
           mapLinkIntro: l10n.convocationImageMapLinkIntro,
           placeHomeHeadline: l10n.convocationImagePlaceHomeHeadline,
           placeHomeDetail: l10n.convocationImagePlaceHomeDetail,
@@ -160,6 +162,7 @@ class ConvocationSaveService {
           matchTime: selectedTime,
           callTime: callTime,
           rivalName: rival,
+          fixtureLine: fixtureLine,
           awayLocation: awayLocation,
           notes: notesController.text,
           selectedPlayers: selectedPlayers,

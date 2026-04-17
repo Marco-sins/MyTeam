@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -10,12 +11,14 @@ import 'convocation_image_theme.dart';
 class ConvocationImageCopy {
   const ConvocationImageCopy({
     required this.sectionMatchDetails,
-    required this.sectionMatchDetailsSubtitle,
-    required this.labelDate,
+    required this.labelTeam,
+    required this.labelFixture,
+    required this.labelCallDateTime,
     required this.labelMatchKickoff,
-    required this.labelCallArrival,
+    required this.labelMeetingVenue,
+    required this.labelMatchVenue,
+    required this.venueHomeInstallations,
     required this.callTimeReminder,
-    required this.labelVenue,
     required this.mapLinkIntro,
     required this.placeHomeHeadline,
     required this.placeHomeDetail,
@@ -27,12 +30,14 @@ class ConvocationImageCopy {
   });
 
   final String sectionMatchDetails;
-  final String sectionMatchDetailsSubtitle;
-  final String labelDate;
+  final String labelTeam;
+  final String labelFixture;
+  final String labelCallDateTime;
   final String labelMatchKickoff;
-  final String labelCallArrival;
+  final String labelMeetingVenue;
+  final String labelMatchVenue;
+  final String venueHomeInstallations;
   final String callTimeReminder;
-  final String labelVenue;
   final String mapLinkIntro;
   final String placeHomeHeadline;
   final String placeHomeDetail;
@@ -43,23 +48,46 @@ class ConvocationImageCopy {
   final String playerFallbackName;
 }
 
-const double _kObsTitleFontSize = 23;
-const double _kObsTitleBarW = 6;
-const double _kObsTitleBarH = 34;
-const double _kObsTitleBlockHeight = 54;
-const double _kObsGapBeforeBox = 14;
-const double _kObsBoxPadH = 26;
-const double _kObsBoxPadV = 28;
-const double _kObsBoxRadius = 16;
-const double _kObsNotesFontSize = 24;
-const double _kObsNotesLineHeight = 1.52;
+const double _kObsTitleFontSize = 22;
+const double _kObsTitleBarW = 4;
+const double _kObsTitleBarH = 28;
+const double _kObsTitleBlockHeight = 48;
+const double _kObsGapBeforeBox = 12;
+const double _kObsBoxPadH = 22;
+const double _kObsBoxPadV = 22;
+const double _kObsBoxRadius = 14;
+const double _kObsNotesFontSize = 21;
+const double _kObsNotesLineHeight = 1.45;
 const int _kObsNotesMaxLines = 64;
 const double _kObsBottomMargin = 36;
 
-const double _sideInset = 28;
-const double _blockPadH = 22;
-const double _blockPadV = 20;
-const double _betweenBlocks = 14;
+const double _sideInset = 26;
+const double _kLabelColW = 278;
+const double _kRowPadV = 12;
+const double _kAfterSectionTitle = 18;
+const double _kBetweenBlocks = 14;
+
+({String meeting, String matchVenue, String? mapExtra}) convocationVenueStrings({
+  required ConvocationImageCopy copy,
+  required bool isHome,
+  required String? awayLocation,
+  required String? mapUrl,
+}) {
+  if (isHome) {
+    final block =
+        '${copy.placeHomeHeadline}\n${copy.venueHomeInstallations}';
+    return (meeting: block, matchVenue: block, mapExtra: null);
+  }
+  final addr = awayLocation?.trim() ?? '';
+  if (addr.isEmpty) {
+    final block =
+        '${copy.placeAwayHeadline}\n${copy.placeAwayNoAddressDetail}';
+    return (meeting: block, matchVenue: block, mapExtra: null);
+  }
+  final block = '${copy.placeAwayHeadline}\n$addr';
+  final extra = mapUrl != null ? '${copy.mapLinkIntro}\n$mapUrl' : null;
+  return (meeting: block, matchVenue: block, mapExtra: extra);
+}
 
 void _drawObservationsSectionHeader(
   Canvas canvas,
@@ -69,8 +97,8 @@ void _drawObservationsSectionHeader(
   String observationsTitle,
 ) {
   final barRect = RRect.fromRectAndRadius(
-    Rect.fromLTWH(overlayRect.left + 28, y + 3, _kObsTitleBarW, _kObsTitleBarH),
-    const Radius.circular(3),
+    Rect.fromLTWH(overlayRect.left + 28, y + 4, _kObsTitleBarW, _kObsTitleBarH),
+    const Radius.circular(2),
   );
   canvas.drawRRect(barRect, Paint()..color = palette.goldDeep);
 
@@ -79,16 +107,11 @@ void _drawObservationsSectionHeader(
           ui.ParagraphStyle(
             textAlign: TextAlign.left,
             fontSize: _kObsTitleFontSize,
-            fontWeight: FontWeight.w900,
-            height: 1.15,
+            fontWeight: FontWeight.w800,
+            height: 1.12,
           ),
         )
-        ..pushStyle(
-          ui.TextStyle(
-            color: palette.onSurface,
-            letterSpacing: -0.35,
-          ),
-        )
+        ..pushStyle(ui.TextStyle(color: palette.onSurface))
         ..addText(observationsTitle);
 
   final paragraph = builder.build()
@@ -96,7 +119,7 @@ void _drawObservationsSectionHeader(
 
   canvas.drawParagraph(
     paragraph,
-    Offset(overlayRect.left + 28 + _kObsTitleBarW + 14, y),
+    Offset(overlayRect.left + 28 + _kObsTitleBarW + 12, y),
   );
 }
 
@@ -114,122 +137,178 @@ ui.Paragraph _layoutObservationsParagraph(
             height: _kObsNotesLineHeight,
           ),
         )
-        ..pushStyle(
-          ui.TextStyle(color: palette.onSecondaryContainer),
-        )
+        ..pushStyle(ui.TextStyle(color: palette.onSurfaceVariant))
         ..addText(text);
   return measurePara.build()
     ..layout(ui.ParagraphConstraints(width: width));
 }
 
-({String headline, String detail, String? mapNote}) convocationPlaceCopy({
-  required ConvocationImageCopy copy,
-  required bool isHome,
-  required String? awayLocation,
-  required String? mapUrl,
-}) {
-  if (isHome) {
-    return (
-      headline: copy.placeHomeHeadline,
-      detail: copy.placeHomeDetail,
-      mapNote: null,
-    );
-  }
-  final addr = awayLocation?.trim() ?? '';
-  if (addr.isEmpty) {
-    return (
-      headline: copy.placeAwayHeadline,
-      detail: copy.placeAwayNoAddressDetail,
-      mapNote: null,
-    );
-  }
-  return (
-    headline: copy.placeAwayHeadline,
-    detail: addr,
-    mapNote: mapUrl != null ? copy.mapLinkIntro : null,
-  );
-}
-
-double _measureBlockHeightSimple({
-  required String label,
-  required String value,
-  required double valueFontSize,
-  required double contentWidth,
-  String? extraBelow,
-}) {
-  final labelPara = ui.ParagraphBuilder(
+ui.Paragraph _layoutLabelPara(String label, double w, Color color) {
+  final p = ui.ParagraphBuilder(
     ui.ParagraphStyle(
-      fontSize: 20,
-      fontWeight: FontWeight.w800,
-      maxLines: 3,
-      height: 1.15,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: const Color(0xFF3D5246)))
-    ..addText(label);
-  final lp = labelPara.build()
-    ..layout(ui.ParagraphConstraints(width: contentWidth));
-
-  final valuePara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: valueFontSize,
-      fontWeight: FontWeight.w900,
-      maxLines: 12,
-      height: 1.18,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: const Color(0xFF0D1F14)))
-    ..addText(value);
-  final vp = valuePara.build()
-    ..layout(ui.ParagraphConstraints(width: contentWidth));
-
-  var h = _blockPadV + lp.height + 12 + vp.height + _blockPadV;
-  if (extraBelow != null && extraBelow.isNotEmpty) {
-    final ep = ui.ParagraphBuilder(
-      ui.ParagraphStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        maxLines: 14,
-        height: 1.4,
-      ),
-    )
-      ..pushStyle(ui.TextStyle(color: const Color(0xFF0F5C4A)))
-      ..addText(extraBelow);
-    final e = ep.build()
-      ..layout(ui.ParagraphConstraints(width: contentWidth));
-    h += 12 + e.height;
-  }
-  return h;
-}
-
-double _prominentSectionTitleHeight(double textWidth, ConvocationImageCopy copy) {
-  final p1 = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 26,
-      fontWeight: FontWeight.w900,
-      height: 1.2,
-      maxLines: 3,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: const Color(0xFF0D1F14)))
-    ..addText(copy.sectionMatchDetails);
-  final h1 = p1.build()
-    ..layout(ui.ParagraphConstraints(width: textWidth));
-
-  final p2 = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 17,
-      fontWeight: FontWeight.w600,
-      maxLines: 3,
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
+      maxLines: 6,
       height: 1.25,
     ),
   )
-    ..pushStyle(ui.TextStyle(color: const Color(0xFF3D5246)))
-    ..addText(copy.sectionMatchDetailsSubtitle);
-  final h2 = p2.build()
-    ..layout(ui.ParagraphConstraints(width: textWidth));
+    ..pushStyle(ui.TextStyle(color: color))
+    ..addText(label);
+  return p.build()..layout(ui.ParagraphConstraints(width: w));
+}
 
-  return h1.height + 8 + h2.height + 12;
+ui.Paragraph _layoutValuePara(String value, double w, Color color) {
+  final p = ui.ParagraphBuilder(
+    ui.ParagraphStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.w800,
+      maxLines: 16,
+      height: 1.22,
+    ),
+  )
+    ..pushStyle(ui.TextStyle(color: color))
+    ..addText(value);
+  return p.build()..layout(ui.ParagraphConstraints(width: w));
+}
+
+ui.Paragraph? _layoutFootnotePara(String? text, double w, Color color) {
+  if (text == null || text.isEmpty) return null;
+  final p = ui.ParagraphBuilder(
+    ui.ParagraphStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      maxLines: 8,
+      height: 1.35,
+    ),
+  )
+    ..pushStyle(ui.TextStyle(color: color))
+    ..addText(text);
+  return p.build()..layout(ui.ParagraphConstraints(width: w));
+}
+
+double _rowHeightForKeyValue({
+  required String label,
+  required String value,
+  required String? footnote,
+  required String? extraBelow,
+  required double valueColumnW,
+  required Color labelColor,
+  required Color valueColor,
+  required Color footColor,
+}) {
+  final lp = _layoutLabelPara(label, _kLabelColW, labelColor);
+  final vp = _layoutValuePara(value, valueColumnW, valueColor);
+  final fp = _layoutFootnotePara(footnote, valueColumnW, footColor);
+  final ep = _layoutFootnotePara(extraBelow, valueColumnW, footColor);
+  final valueColH =
+      vp.height +
+      (fp != null ? 6 + fp.height : 0) +
+      (ep != null ? 10 + ep.height : 0);
+  return _kRowPadV + math.max(lp.height, valueColH) + _kRowPadV;
+}
+
+double _measureMatchDetailsBlockHeight({
+  required ConvocationImageCopy copy,
+  required String teamName,
+  required String fixtureLine,
+  required String callDateTimeStr,
+  required String matchTimeStr,
+  required String meetingVenue,
+  required String matchVenue,
+  required String? mapExtra,
+  required ConvocationImagePalette palette,
+  required double valueColumnW,
+}) {
+  const dividerH = 1.0;
+  var h = _kAfterSectionTitle;
+
+  h += _rowHeightForKeyValue(
+    label: copy.labelTeam,
+    value: teamName,
+    footnote: null,
+    extraBelow: null,
+    valueColumnW: valueColumnW,
+    labelColor: palette.onSurfaceVariant,
+    valueColor: palette.onSurface,
+    footColor: palette.onSurfaceVariant,
+  ) +
+      dividerH;
+
+  h += _rowHeightForKeyValue(
+    label: copy.labelFixture,
+    value: fixtureLine,
+    footnote: null,
+    extraBelow: null,
+    valueColumnW: valueColumnW,
+    labelColor: palette.onSurfaceVariant,
+    valueColor: palette.onSurface,
+    footColor: palette.onSurfaceVariant,
+  ) +
+      dividerH;
+
+  h += _rowHeightForKeyValue(
+    label: copy.labelCallDateTime,
+    value: callDateTimeStr,
+    footnote: copy.callTimeReminder,
+    extraBelow: null,
+    valueColumnW: valueColumnW,
+    labelColor: palette.onSurfaceVariant,
+    valueColor: palette.onSurface,
+    footColor: palette.onSurfaceVariant,
+  ) +
+      dividerH;
+
+  h += _rowHeightForKeyValue(
+    label: copy.labelMatchKickoff,
+    value: matchTimeStr,
+    footnote: null,
+    extraBelow: null,
+    valueColumnW: valueColumnW,
+    labelColor: palette.onSurfaceVariant,
+    valueColor: palette.onSurface,
+    footColor: palette.onSurfaceVariant,
+  ) +
+      dividerH;
+
+  h += _rowHeightForKeyValue(
+    label: copy.labelMeetingVenue,
+    value: meetingVenue,
+    footnote: null,
+    extraBelow: null,
+    valueColumnW: valueColumnW,
+    labelColor: palette.onSurfaceVariant,
+    valueColor: palette.onSurface,
+    footColor: palette.onSurfaceVariant,
+  ) +
+      dividerH;
+
+  h += _rowHeightForKeyValue(
+    label: copy.labelMatchVenue,
+    value: matchVenue,
+    footnote: null,
+    extraBelow: mapExtra,
+    valueColumnW: valueColumnW,
+    labelColor: palette.onSurfaceVariant,
+    valueColor: palette.onSurface,
+    footColor: palette.onSurfaceVariant,
+  );
+
+  return h;
+}
+
+double _sectionTitleHeight(double width, String title, Color color) {
+  final p = ui.ParagraphBuilder(
+    ui.ParagraphStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.w900,
+      maxLines: 2,
+      height: 1.15,
+    ),
+  )
+    ..pushStyle(ui.TextStyle(color: color))
+    ..addText(title);
+  final para = p.build()..layout(ui.ParagraphConstraints(width: width));
+  return para.height;
 }
 
 /// Altura total del PNG (coincide con el flujo de [drawConvocationBody]).
@@ -237,10 +316,12 @@ double estimateConvocationCanvasHeight({
   required ConvocationImageCopy copy,
   required int playerCount,
   required String? notes,
-  required String dateLongStr,
+  required String teamName,
+  required String fixtureLine,
+  required String callDateTimeStr,
   required String matchTimeStr,
-  required String callTimeStr,
-  required String placeValue,
+  required String meetingVenue,
+  required String matchVenue,
   required String? mapExtra,
 }) {
   final m = ConvocationImageTheme.overlayMargin;
@@ -250,49 +331,35 @@ double estimateConvocationCanvasHeight({
       ConvocationImageTheme.headerBottomGap;
 
   final innerW = ConvocationImageTheme.exportWidth - 2 * m;
-  final contentW = innerW - 2 * _sideInset - 2 * _blockPadH;
+  final valueColumnW = innerW - 2 * _sideInset - _kLabelColW - 16;
 
   var y = startY;
-  y += 24 + 28;
-  y += _prominentSectionTitleHeight(innerW - 100, copy);
-
-  y += _measureBlockHeightSimple(
-    label: copy.labelDate,
-    value: dateLongStr,
-    valueFontSize: 30,
-    contentWidth: contentW,
-  );
-  y += _betweenBlocks;
-
-  y += _measureBlockHeightSimple(
-    label: copy.labelMatchKickoff,
-    value: matchTimeStr,
-    valueFontSize: 40,
-    contentWidth: contentW,
-  );
-  y += _betweenBlocks;
-
-  y += _measureBlockHeightSimple(
-    label: copy.labelCallArrival,
-    value: callTimeStr,
-    valueFontSize: 40,
-    contentWidth: contentW,
-    extraBelow: copy.callTimeReminder,
-  );
-  y += _betweenBlocks;
-
-  y += _measureBlockHeightSimple(
-    label: copy.labelVenue,
-    value: placeValue,
-    valueFontSize: 28,
-    contentWidth: contentW,
-    extraBelow: mapExtra,
-  );
-
   y += 22;
-  y += 28;
-  y += 44;
-  y += playerCount * 60.0;
+  y += _sectionTitleHeight(
+        innerW - 56,
+        copy.sectionMatchDetails,
+        ConvocationImagePalette.classic.onSurface,
+      ) +
+      8 +
+      _kAfterSectionTitle;
+
+  y += _measureMatchDetailsBlockHeight(
+    copy: copy,
+    teamName: teamName,
+    fixtureLine: fixtureLine,
+    callDateTimeStr: callDateTimeStr,
+    matchTimeStr: matchTimeStr,
+    meetingVenue: meetingVenue,
+    matchVenue: matchVenue,
+    mapExtra: mapExtra,
+    palette: ConvocationImagePalette.classic,
+    valueColumnW: valueColumnW,
+  );
+
+  y += _kBetweenBlocks + 8;
+  y += 26;
+  y += 40;
+  y += playerCount * 62.0;
 
   final t = notes?.trim() ?? '';
   if (t.isNotEmpty) {
@@ -304,8 +371,8 @@ double estimateConvocationCanvasHeight({
       ConvocationImagePalette.classic,
     );
     y +=
-        28 +
-        28 +
+        22 +
+        26 +
         _kObsTitleBlockHeight +
         _kObsGapBeforeBox +
         2 * _kObsBoxPadV +
@@ -313,112 +380,75 @@ double estimateConvocationCanvasHeight({
         _kObsBottomMargin;
   }
 
-  return (y + 56 + m).ceilToDouble();
+  return (y + 52 + m).ceilToDouble();
 }
 
-double _drawDetailBlock(
+void _drawSectionDivider(Canvas canvas, Rect overlayRect, double y) {
+  final w = overlayRect.width - 56;
+  final left = overlayRect.left + 28;
+  canvas.drawLine(
+    Offset(left, y),
+    Offset(left + w, y),
+    Paint()
+      ..color = const Color(0xFFADCCB8).withValues(alpha: 0.4)
+      ..strokeWidth = 1,
+  );
+}
+
+double _drawKeyValueRow(
   Canvas canvas,
   Rect overlayRect,
   ConvocationImagePalette palette,
   double y,
   String label,
   String value, {
-  double valueFontSize = 32,
-  Color? valueColor,
+  String? footnote,
   String? extraBelow,
-  Color? extraColor,
+  bool drawDividerBelow = true,
 }) {
-  final contentW = overlayRect.width - 2 * _sideInset - 2 * _blockPadH;
+  final contentLeft = overlayRect.left + _sideInset;
+  final contentW = overlayRect.width - 2 * _sideInset;
+  final valueColW = contentW - _kLabelColW - 16;
 
-  final valuePara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: valueFontSize,
-      fontWeight: FontWeight.w900,
-      maxLines: 12,
-      height: 1.18,
-    ),
-  )
-    ..pushStyle(
-      ui.TextStyle(color: valueColor ?? palette.onSurface),
-    )
-    ..addText(value);
-  final vp = valuePara.build()
-    ..layout(ui.ParagraphConstraints(width: contentW));
+  final lp = _layoutLabelPara(label, _kLabelColW, palette.onSurfaceVariant);
+  final vp = _layoutValuePara(value, valueColW, palette.onSurface);
+  final fp = _layoutFootnotePara(footnote, valueColW, palette.onSurfaceVariant);
+  final ep = _layoutFootnotePara(extraBelow, valueColW, palette.onSurfaceVariant);
 
-  final labelPara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 20,
-      fontWeight: FontWeight.w800,
-      maxLines: 4,
-      height: 1.15,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: palette.onSurfaceVariant))
-    ..addText(label);
-  final lp = labelPara.build()
-    ..layout(ui.ParagraphConstraints(width: contentW));
-
-  ui.Paragraph? extraPara;
-  if (extraBelow != null && extraBelow.isNotEmpty) {
-    final extraBuilder = ui.ParagraphBuilder(
-      ui.ParagraphStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        maxLines: 14,
-        height: 1.4,
-      ),
-    )
-      ..pushStyle(
-        ui.TextStyle(
-          color: extraColor ?? palette.tertiary,
-        ),
-      )
-      ..addText(extraBelow);
-    extraPara = extraBuilder.build()
-      ..layout(ui.ParagraphConstraints(width: contentW));
-  }
-
-  final blockH =
-      _blockPadV +
-      lp.height +
-      12 +
+  final valueColH =
       vp.height +
-      _blockPadV +
-      (extraPara != null ? 12 + extraPara.height : 0);
+      (fp != null ? 6 + fp.height : 0) +
+      (ep != null ? 10 + ep.height : 0);
+  final rowInnerH = math.max(lp.height, valueColH);
+  final rowH = _kRowPadV + rowInnerH + _kRowPadV;
 
-  final blockRect = RRect.fromRectAndRadius(
-    Rect.fromLTWH(
-      overlayRect.left + _sideInset,
-      y,
-      overlayRect.width - 2 * _sideInset,
-      blockH,
-    ),
-    const Radius.circular(18),
-  );
+  final baseY = y + _kRowPadV;
+  canvas.drawParagraph(lp, Offset(contentLeft, baseY));
 
-  canvas.drawRRect(
-    blockRect,
-    Paint()..color = palette.surfaceLow,
-  );
-  canvas.drawRRect(
-    blockRect,
-    Paint()
-      ..color = palette.goldDeep.withValues(alpha: 0.45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2,
-  );
-
-  final textLeft = overlayRect.left + _sideInset + _blockPadH;
-  var ty = y + _blockPadV;
-  canvas.drawParagraph(lp, Offset(textLeft, ty));
-  ty += lp.height + 12;
-  canvas.drawParagraph(vp, Offset(textLeft, ty));
-  if (extraPara != null) {
-    ty += vp.height + 12;
-    canvas.drawParagraph(extraPara, Offset(textLeft, ty));
+  final vx = contentLeft + _kLabelColW + 16;
+  canvas.drawParagraph(vp, Offset(vx, baseY));
+  var vy = baseY + vp.height + 6;
+  if (fp != null) {
+    canvas.drawParagraph(fp, Offset(vx, vy));
+    vy += fp.height + 8;
+  }
+  if (ep != null) {
+    canvas.drawParagraph(ep, Offset(vx, vy));
   }
 
-  return y + blockH + _betweenBlocks;
+  var bottom = y + rowH;
+  if (drawDividerBelow) {
+    canvas.drawLine(
+      Offset(contentLeft, bottom),
+      Offset(contentLeft + contentW, bottom),
+      Paint()
+        ..color = palette.outlineVariant.withValues(alpha: 0.55)
+        ..strokeWidth = 1,
+    );
+    bottom += 1;
+  }
+
+  return bottom;
 }
 
 void drawConvocationBody({
@@ -427,9 +457,10 @@ void drawConvocationBody({
   required ConvocationImagePalette palette,
   required double startY,
   required ConvocationImageCopy copy,
-  required String dateLongStr,
+  required String teamName,
+  required String fixtureLine,
+  required String callDateTimeStr,
   required String matchTimeStr,
-  required String callTimeStr,
   required String? mapUrl,
   required String? awayLocation,
   required bool isHome,
@@ -438,83 +469,96 @@ void drawConvocationBody({
 }) {
   double y = startY;
 
-  void drawHairline(double dy) {
-    final p = Paint()
-      ..color = palette.outlineVariant.withValues(alpha: 0.75)
-      ..strokeWidth = 2;
-    canvas.drawLine(
-      Offset(overlayRect.left + 32, dy),
-      Offset(overlayRect.right - 32, dy),
-      p,
-    );
-  }
+  _drawSectionDivider(canvas, overlayRect, y);
+  y += 22;
 
-  drawHairline(y);
-  y += 28;
+  final titleW = overlayRect.width - 56;
+  final titlePara = ui.ParagraphBuilder(
+    ui.ParagraphStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.w900,
+      maxLines: 2,
+      height: 1.15,
+    ),
+  )
+    ..pushStyle(ui.TextStyle(color: palette.onSurface))
+    ..addText(copy.sectionMatchDetails);
+  final tp = titlePara.build()..layout(ui.ParagraphConstraints(width: titleW));
+  canvas.drawParagraph(tp, Offset(overlayRect.left + 28, y));
+  y += tp.height + 8 + _kAfterSectionTitle;
 
-  _drawProminentSectionTitle(canvas, overlayRect, palette, y, copy);
-  y += _prominentSectionTitleHeight(overlayRect.width - 100, copy);
+  final venues = convocationVenueStrings(
+    copy: copy,
+    isHome: isHome,
+    awayLocation: awayLocation,
+    mapUrl: mapUrl,
+  );
 
-  y = _drawDetailBlock(
+  y = _drawKeyValueRow(
     canvas,
     overlayRect,
     palette,
     y,
-    copy.labelDate,
-    dateLongStr,
-    valueFontSize: 30,
+    copy.labelTeam,
+    teamName,
+    drawDividerBelow: true,
   );
 
-  y = _drawDetailBlock(
+  y = _drawKeyValueRow(
+    canvas,
+    overlayRect,
+    palette,
+    y,
+    copy.labelFixture,
+    fixtureLine,
+    drawDividerBelow: true,
+  );
+
+  y = _drawKeyValueRow(
+    canvas,
+    overlayRect,
+    palette,
+    y,
+    copy.labelCallDateTime,
+    callDateTimeStr,
+    footnote: copy.callTimeReminder,
+    drawDividerBelow: true,
+  );
+
+  y = _drawKeyValueRow(
     canvas,
     overlayRect,
     palette,
     y,
     copy.labelMatchKickoff,
     matchTimeStr,
-    valueFontSize: 40,
-    valueColor: palette.onSurface,
+    drawDividerBelow: true,
   );
 
-  y = _drawDetailBlock(
+  y = _drawKeyValueRow(
     canvas,
     overlayRect,
     palette,
     y,
-    copy.labelCallArrival,
-    callTimeStr,
-    valueFontSize: 40,
-    valueColor: palette.tertiary,
-    extraBelow: copy.callTimeReminder,
-    extraColor: palette.onSurfaceVariant,
+    copy.labelMeetingVenue,
+    venues.meeting,
+    drawDividerBelow: true,
   );
 
-  final place = convocationPlaceCopy(
-    copy: copy,
-    isHome: isHome,
-    awayLocation: awayLocation,
-    mapUrl: mapUrl,
-  );
-  final placeValue = '${place.headline}\n${place.detail}';
-  final String? mapExtra = place.mapNote != null && mapUrl != null
-      ? '${place.mapNote}\n$mapUrl'
-      : null;
-
-  y = _drawDetailBlock(
+  y = _drawKeyValueRow(
     canvas,
     overlayRect,
     palette,
     y,
-    copy.labelVenue,
-    placeValue,
-    valueFontSize: 28,
-    extraBelow: mapExtra,
-    extraColor: palette.onSurfaceVariant,
+    copy.labelMatchVenue,
+    venues.matchVenue,
+    extraBelow: venues.mapExtra,
+    drawDividerBelow: false,
   );
 
-  y += 8;
-  drawHairline(y);
-  y += 28;
+  y += _kBetweenBlocks + 8;
+  _drawSectionDivider(canvas, overlayRect, y);
+  y += 26;
 
   _drawSectionTitle(
     canvas,
@@ -524,18 +568,18 @@ void drawConvocationBody({
     copy.sectionSquadTitle,
     subtitle: '${players.length}',
   );
-  y += 44;
+  y += 40;
 
   for (var i = 0; i < players.length; i++) {
     final p = players[i];
     y = _drawPlayerRow(canvas, overlayRect, palette, y, p, i.isEven, copy);
   }
 
-  y += 28;
+  y += 24;
   final trimmedNotes = notes?.trim() ?? '';
   if (trimmedNotes.isNotEmpty) {
-    drawHairline(y);
-    y += 28;
+    _drawSectionDivider(canvas, overlayRect, y);
+    y += 22;
 
     _drawObservationsSectionHeader(
       canvas,
@@ -559,17 +603,14 @@ void drawConvocationBody({
     );
     canvas.drawRRect(
       boxRect,
-      Paint()
-        ..color = palette.secondaryContainer.withValues(
-          alpha: 0.92,
-        ),
+      Paint()..color = palette.surface.withValues(alpha: 0.98),
     );
     canvas.drawRRect(
       boxRect,
       Paint()
-        ..color = palette.goldDeep.withValues(alpha: 0.85)
+        ..color = palette.outlineVariant.withValues(alpha: 0.65)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
+        ..strokeWidth = 1,
     );
 
     canvas.drawParagraph(
@@ -577,90 +618,6 @@ void drawConvocationBody({
       Offset(boxLeft + _kObsBoxPadH, y + _kObsBoxPadV),
     );
   }
-}
-
-void _drawProminentSectionTitle(
-  Canvas canvas,
-  Rect overlayRect,
-  ConvocationImagePalette palette,
-  double y,
-  ConvocationImageCopy copy,
-) {
-  final barW = 8.0;
-  final textW = overlayRect.width - 100;
-
-  final measureTitle = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 26,
-      fontWeight: FontWeight.w900,
-      height: 1.2,
-      maxLines: 3,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: palette.onSurface))
-    ..addText(copy.sectionMatchDetails);
-  final mh1 = measureTitle.build()
-    ..layout(ui.ParagraphConstraints(width: textW));
-
-  final measureSub = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 17,
-      fontWeight: FontWeight.w600,
-      maxLines: 3,
-      height: 1.25,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: palette.onSurfaceVariant))
-    ..addText(copy.sectionMatchDetailsSubtitle);
-  final mh2 = measureSub.build()
-    ..layout(ui.ParagraphConstraints(width: textW));
-  final barH = (mh1.height + 8 + mh2.height).clamp(40.0, 80.0);
-
-  final barRect = RRect.fromRectAndRadius(
-    Rect.fromLTWH(overlayRect.left + 32, y + 4, barW, barH),
-    const Radius.circular(4),
-  );
-  canvas.drawRRect(barRect, Paint()..color = palette.goldDeep);
-
-  final p1 = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      textAlign: TextAlign.left,
-      fontSize: 26,
-      fontWeight: FontWeight.w900,
-      height: 1.2,
-      maxLines: 3,
-    ),
-  )
-    ..pushStyle(
-      ui.TextStyle(
-        color: palette.onSurface,
-        letterSpacing: -0.2,
-      ),
-    )
-    ..addText(copy.sectionMatchDetails);
-  final titlePara = p1.build()
-    ..layout(ui.ParagraphConstraints(width: textW));
-  canvas.drawParagraph(
-    titlePara,
-    Offset(overlayRect.left + 32 + barW + 14, y),
-  );
-
-  final p2 = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 17,
-      fontWeight: FontWeight.w600,
-      maxLines: 3,
-      height: 1.25,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: palette.onSurfaceVariant))
-    ..addText(copy.sectionMatchDetailsSubtitle);
-  final subPara = p2.build()
-    ..layout(ui.ParagraphConstraints(width: textW));
-  canvas.drawParagraph(
-    subPara,
-    Offset(overlayRect.left + 32 + barW + 14, y + titlePara.height + 8),
-  );
 }
 
 void _drawSectionTitle(
@@ -671,8 +628,8 @@ void _drawSectionTitle(
   String title, {
   String? subtitle,
 }) {
-  final barW = 5.0;
-  final barH = 26.0;
+  final barW = 4.0;
+  final barH = 24.0;
   final barRect = RRect.fromRectAndRadius(
     Rect.fromLTWH(overlayRect.left + 32, y + 2, barW, barH),
     const Radius.circular(2),
@@ -685,23 +642,19 @@ void _drawSectionTitle(
           ui.ParagraphStyle(
             textAlign: TextAlign.left,
             fontSize: 20,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
+            height: 1.12,
           ),
         )
-        ..pushStyle(
-          ui.TextStyle(
-            color: palette.onSurface,
-            letterSpacing: -0.3,
-          ),
-        )
+        ..pushStyle(ui.TextStyle(color: palette.onSurface))
         ..addText(titleText);
 
   final paragraph = builder.build()
-    ..layout(ui.ParagraphConstraints(width: overlayRect.width - 80));
+    ..layout(ui.ParagraphConstraints(width: overlayRect.width - 84));
 
   canvas.drawParagraph(
     paragraph,
-    Offset(overlayRect.left + 32 + barW + 14, y),
+    Offset(overlayRect.left + 32 + barW + 12, y),
   );
 }
 
@@ -714,7 +667,7 @@ double _drawPlayerRow(
   bool alternate,
   ConvocationImageCopy copy,
 ) {
-  const rowH = 52.0;
+  const rowH = 54.0;
   final rowRect = RRect.fromRectAndRadius(
     Rect.fromLTWH(overlayRect.left + 28, y, overlayRect.width - 56, rowH),
     const Radius.circular(12),
@@ -724,9 +677,7 @@ double _drawPlayerRow(
     canvas.drawRRect(
       rowRect,
       Paint()
-        ..color = palette.surfaceContainer.withValues(
-          alpha: 0.55,
-        ),
+          ..color = palette.surfaceContainer.withValues(alpha: 0.35),
     );
   }
 
@@ -744,26 +695,31 @@ double _drawPlayerRow(
   final badgeTop = y + (rowH - badgeSize) / 2;
   final badge = RRect.fromRectAndRadius(
     Rect.fromLTWH(badgeLeft, badgeTop, badgeSize, badgeSize),
-    const Radius.circular(8),
+    const Radius.circular(9),
   );
   canvas.drawRRect(
     badge,
-    Paint()..color = palette.primaryContainer,
+    Paint()..color = palette.primaryContainer.withValues(alpha: 0.9),
+  );
+  canvas.drawRRect(
+    badge,
+    Paint()
+      ..color = palette.outlineVariant.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1,
   );
 
   final dPara =
       ui.ParagraphBuilder(
           ui.ParagraphStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
             textAlign: TextAlign.center,
             height: 1.0,
             maxLines: 1,
           ),
         )
-        ..pushStyle(
-          ui.TextStyle(color: palette.onPrimaryContainer),
-        )
+        ..pushStyle(ui.TextStyle(color: palette.onPrimaryContainer))
         ..addText(dorsal);
   final dp = dPara.build()..layout(ui.ParagraphConstraints(width: badgeSize));
   canvas.drawParagraph(
@@ -771,20 +727,20 @@ double _drawPlayerRow(
     Offset(badgeLeft, badgeTop + (badgeSize - dp.height) / 2),
   );
 
-  final nameX = badgeLeft + badgeSize + 12;
+  final nameX = badgeLeft + badgeSize + 14;
   final nameParts = playerNamePartsMatchShort(p);
   final givenName =
       nameParts.given.isEmpty ? copy.playerFallbackName : nameParts.given;
   final namePara = ui.ParagraphBuilder(
     ui.ParagraphStyle(
-      fontSize: 18,
+      fontSize: 17,
       maxLines: 1,
     ),
   );
   namePara.pushStyle(
     ui.TextStyle(
       color: palette.onSurface,
-      fontWeight: FontWeight.w700,
+      fontWeight: FontWeight.w800,
     ),
   );
   namePara.addText(givenName);
@@ -792,8 +748,8 @@ double _drawPlayerRow(
   if (nameParts.family.isNotEmpty) {
     namePara.pushStyle(
       ui.TextStyle(
-        color: palette.onSurface,
-        fontWeight: FontWeight.w400,
+        color: palette.onSurfaceVariant,
+        fontWeight: FontWeight.w500,
       ),
     );
     namePara.addText(' ${nameParts.family}');
@@ -801,7 +757,7 @@ double _drawPlayerRow(
   }
   final np = namePara.build()
     ..layout(ui.ParagraphConstraints(width: overlayRect.right - 32 - nameX));
-  canvas.drawParagraph(np, Offset(nameX, y + 14));
+  canvas.drawParagraph(np, Offset(nameX, y + 16));
 
   return y + rowH + 8;
 }

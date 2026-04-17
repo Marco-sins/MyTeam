@@ -998,7 +998,26 @@ class AppLocalizationsFr extends AppLocalizations {
   String get convocationSavedSuccess => 'Appel enregistré avec succès';
 
   @override
-  String get convocationImageSectionMatchDetails => 'Détails du match';
+  String get convocationImageSectionMatchDetails => 'Infos du match';
+
+  @override
+  String get convocationImageLabelTeam => 'Équipe';
+
+  @override
+  String get convocationImageLabelFixture => 'Rencontre';
+
+  @override
+  String get convocationImageLabelCallDateTime =>
+      'Date et heure de convocation';
+
+  @override
+  String get convocationImageLabelMeetingVenue => 'Lieu de convocation';
+
+  @override
+  String get convocationImageLabelMatchVenue => 'Lieu du match';
+
+  @override
+  String get convocationImageVenueHomeInstallations => 'Installations du club';
 
   @override
   String get convocationImageLabelDate => 'Date';

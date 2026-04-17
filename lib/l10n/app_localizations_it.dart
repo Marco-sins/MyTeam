@@ -993,7 +993,25 @@ class AppLocalizationsIt extends AppLocalizations {
   String get convocationSavedSuccess => 'Chiamata salvata con successo';
 
   @override
-  String get convocationImageSectionMatchDetails => 'Dettagli della partita';
+  String get convocationImageSectionMatchDetails => 'Dati della partita';
+
+  @override
+  String get convocationImageLabelTeam => 'Squadra';
+
+  @override
+  String get convocationImageLabelFixture => 'Partita';
+
+  @override
+  String get convocationImageLabelCallDateTime => 'Data e ora di convocazione';
+
+  @override
+  String get convocationImageLabelMeetingVenue => 'Luogo della convocazione';
+
+  @override
+  String get convocationImageLabelMatchVenue => 'Luogo della partita';
+
+  @override
+  String get convocationImageVenueHomeInstallations => 'Strutture del club';
 
   @override
   String get convocationImageLabelDate => 'Data';

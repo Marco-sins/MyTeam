@@ -1893,8 +1893,44 @@ abstract class AppLocalizations {
   /// No description provided for @convocationImageSectionMatchDetails.
   ///
   /// In es, this message translates to:
-  /// **'Detalles del partido'**
+  /// **'Datos del partido'**
   String get convocationImageSectionMatchDetails;
+
+  /// No description provided for @convocationImageLabelTeam.
+  ///
+  /// In es, this message translates to:
+  /// **'Equipo'**
+  String get convocationImageLabelTeam;
+
+  /// No description provided for @convocationImageLabelFixture.
+  ///
+  /// In es, this message translates to:
+  /// **'Partido'**
+  String get convocationImageLabelFixture;
+
+  /// No description provided for @convocationImageLabelCallDateTime.
+  ///
+  /// In es, this message translates to:
+  /// **'Fecha y hora de convocatoria'**
+  String get convocationImageLabelCallDateTime;
+
+  /// No description provided for @convocationImageLabelMeetingVenue.
+  ///
+  /// In es, this message translates to:
+  /// **'Lugar de la convocatoria'**
+  String get convocationImageLabelMeetingVenue;
+
+  /// No description provided for @convocationImageLabelMatchVenue.
+  ///
+  /// In es, this message translates to:
+  /// **'Lugar del partido'**
+  String get convocationImageLabelMatchVenue;
+
+  /// No description provided for @convocationImageVenueHomeInstallations.
+  ///
+  /// In es, this message translates to:
+  /// **'Instalaciones del club'**
+  String get convocationImageVenueHomeInstallations;
 
   /// No description provided for @convocationImageLabelDate.
   ///

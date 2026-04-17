@@ -11,39 +11,16 @@ import 'convocation_image_body.dart';
 import 'convocation_image_header.dart';
 import 'convocation_image_theme.dart';
 
-String _formatDateLongSpanish(DateTime date) {
-  const weekdays = [
-    'lunes',
-    'martes',
-    'miércoles',
-    'jueves',
-    'viernes',
-    'sábado',
-    'domingo',
-  ];
-  const months = [
-    'enero',
-    'febrero',
-    'marzo',
-    'abril',
-    'mayo',
-    'junio',
-    'julio',
-    'agosto',
-    'septiembre',
-    'octubre',
-    'noviembre',
-    'diciembre',
-  ];
-  final w = weekdays[date.weekday - 1];
-  final capitalized = '${w[0].toUpperCase()}${w.substring(1)}';
-  return '$capitalized ${date.day} de ${months[date.month - 1]} de ${date.year}';
+String _formatCallDateTime(DateTime date, TimeOfDay callTime) {
+  final d =
+      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  final t =
+      '${callTime.hour.toString().padLeft(2, '0')}:${callTime.minute.toString().padLeft(2, '0')}';
+  return '$d - $t';
 }
 
-String _formatTimeWithSuffix(TimeOfDay time) {
-  final hour = time.hour.toString().padLeft(2, '0');
-  final minute = time.minute.toString().padLeft(2, '0');
-  return '$hour:$minute h';
+String _formatTimeShort(TimeOfDay time) {
+  return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 }
 
 Future<ui.Image?> _decodeTeamLogo(Team team) async {
@@ -107,7 +84,7 @@ void _drawTeamLogoWatermark(
   );
   final src = Rect.fromLTWH(0, 0, iw, ih);
 
-  const watermarkAlpha = 0.14;
+  const watermarkAlpha = 0.12;
   final paint = Paint()
     ..isAntiAlias = true
     ..filterQuality = FilterQuality.medium
@@ -129,6 +106,7 @@ Future<File?> generateConvocationImage({
   required TimeOfDay matchTime,
   required TimeOfDay callTime,
   required String rivalName,
+  required String fixtureLine,
   String? awayLocation,
   String? notes,
   required List<Player> selectedPlayers,
@@ -141,9 +119,8 @@ Future<File?> generateConvocationImage({
     final sortedPlayers = List<Player>.from(selectedPlayers)
       ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
 
-    final dateLong = _formatDateLongSpanish(matchDate);
-    final matchTimeStr = _formatTimeWithSuffix(matchTime);
-    final callTimeStr = _formatTimeWithSuffix(callTime);
+    final callDateTimeStr = _formatCallDateTime(matchDate, callTime);
+    final matchTimeStr = _formatTimeShort(matchTime);
 
     String? mapUrl;
     if (!isHome && awayLocation != null && awayLocation.trim().isNotEmpty) {
@@ -151,26 +128,24 @@ Future<File?> generateConvocationImage({
           'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation.trim())}';
     }
 
-    final place = convocationPlaceCopy(
+    final venues = convocationVenueStrings(
       copy: imageCopy,
       isHome: isHome,
       awayLocation: awayLocation,
       mapUrl: mapUrl,
     );
-    final placeValue = '${place.headline}\n${place.detail}';
-    final String? mapExtra = place.mapNote != null && mapUrl != null
-        ? '${place.mapNote}\n$mapUrl'
-        : null;
 
     final totalHeight = estimateConvocationCanvasHeight(
       copy: imageCopy,
       playerCount: sortedPlayers.length,
       notes: notes,
-      dateLongStr: dateLong,
+      teamName: team.name,
+      fixtureLine: fixtureLine,
+      callDateTimeStr: callDateTimeStr,
       matchTimeStr: matchTimeStr,
-      callTimeStr: callTimeStr,
-      placeValue: placeValue,
-      mapExtra: mapExtra,
+      meetingVenue: venues.meeting,
+      matchVenue: venues.matchVenue,
+      mapExtra: venues.mapExtra,
     );
     final canvasH = totalHeight.roundToDouble();
 
@@ -212,7 +187,7 @@ Future<File?> generateConvocationImage({
     canvas.drawRRect(
       rrect,
       Paint()
-        ..color = palette.outlineVariant.withValues(alpha: 0.55)
+        ..color = palette.outlineVariant.withValues(alpha: 0.45)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
@@ -236,9 +211,10 @@ Future<File?> generateConvocationImage({
       palette: palette,
       startY: headerBottomY,
       copy: imageCopy,
-      dateLongStr: dateLong,
+      teamName: team.name,
+      fixtureLine: fixtureLine,
+      callDateTimeStr: callDateTimeStr,
       matchTimeStr: matchTimeStr,
-      callTimeStr: callTimeStr,
       mapUrl: mapUrl,
       awayLocation: awayLocation,
       isHome: isHome,

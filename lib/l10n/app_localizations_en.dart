@@ -976,6 +976,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get convocationImageSectionMatchDetails => 'Match details';
 
   @override
+  String get convocationImageLabelTeam => 'Team';
+
+  @override
+  String get convocationImageLabelFixture => 'Fixture';
+
+  @override
+  String get convocationImageLabelCallDateTime => 'Call date and time';
+
+  @override
+  String get convocationImageLabelMeetingVenue => 'Meeting point';
+
+  @override
+  String get convocationImageLabelMatchVenue => 'Match venue';
+
+  @override
+  String get convocationImageVenueHomeInstallations => 'Club facilities';
+
+  @override
   String get convocationImageLabelDate => 'Date';
 
   @override

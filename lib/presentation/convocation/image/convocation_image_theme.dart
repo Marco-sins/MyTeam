@@ -5,10 +5,12 @@ import 'package:football_manager/core/theme/team_screen_tint.dart';
 abstract final class ConvocationImageTheme {
   static const double exportWidth = 1080;
   static const double overlayMargin = 40;
-  /// Cabecera más alta para equipos, chips LOCAL/VISITANTE y título legible.
-  static const double headerHeight = 252;
-  static const double headerBottomGap = 32;
+  /// Cabecera: título, franja del partido y chips.
+  static const double headerHeight = 248;
+  static const double headerBottomGap = 28;
   static const double cardCornerRadius = 32;
+  /// Radio de las tarjetas de datos en el cuerpo.
+  static const double detailCardRadius = 20;
 }
 
 /// Colores de la convocatoria exportada: por defecto verde app, o según
