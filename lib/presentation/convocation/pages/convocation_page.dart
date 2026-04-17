@@ -14,6 +14,7 @@ import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 /// Requiere [TeamContextCubit] en el árbol.
 class ConvocationPage extends StatefulWidget {
@@ -144,6 +145,7 @@ class _ConvocationPageState extends State<ConvocationPage> {
               );
             },
           ),
+          actions: const [TeamQuickNavAppBarButton()],
         ),
         body: TeamAreaBackground(
           team: team,

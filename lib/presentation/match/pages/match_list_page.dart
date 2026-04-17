@@ -15,6 +15,7 @@ import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_bottom_bar.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 /// Requiere [TeamContextCubit] en el árbol.
 class MatchListPage extends StatefulWidget {
@@ -184,6 +185,7 @@ class _MatchListPageState extends State<MatchListPage> {
             );
           },
         ),
+        actions: const [TeamQuickNavAppBarButton()],
       ),
       body: TeamAreaBackground(
         team: team,
@@ -487,8 +489,15 @@ class _MatchListPageState extends State<MatchListPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => BlocProvider(
-                                  create: (_) => LoadingCubit(),
+                                builder: (_) => MultiBlocProvider(
+                                  providers: [
+                                    BlocProvider.value(
+                                      value: context.read<TeamContextCubit>(),
+                                    ),
+                                    BlocProvider(
+                                      create: (_) => LoadingCubit(),
+                                    ),
+                                  ],
                                   child: MatchManagerPage(
                                     team: team,
                                     match: match,
@@ -506,8 +515,15 @@ class _MatchListPageState extends State<MatchListPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => BlocProvider(
-                                  create: (_) => LoadingCubit(),
+                                builder: (_) => MultiBlocProvider(
+                                  providers: [
+                                    BlocProvider.value(
+                                      value: context.read<TeamContextCubit>(),
+                                    ),
+                                    BlocProvider(
+                                      create: (_) => LoadingCubit(),
+                                    ),
+                                  ],
                                   child: MatchManagerPage(
                                     team: team,
                                     match: match,

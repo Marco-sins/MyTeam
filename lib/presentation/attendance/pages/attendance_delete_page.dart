@@ -9,6 +9,7 @@ import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 class AttendanceDeletePage extends StatefulWidget {
   final Team team;
@@ -50,6 +51,7 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
       appBar: AppBar(
         title: const Text('Eliminar asistencia'),
         centerTitle: true,
+        actions: const [TeamQuickNavAppBarButton()],
       ),
       body: SafeArea(
         top: false,

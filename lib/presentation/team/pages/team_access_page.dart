@@ -14,6 +14,7 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 class TeamAccessPage extends StatefulWidget {
   const TeamAccessPage({super.key, required this.team});
@@ -398,7 +399,10 @@ class _TeamAccessPageState extends State<TeamAccessPage>
     return TeamBrandedScope(
       team: brandingTeam,
       child: Scaffold(
-      appBar: AppBar(title: const Text('Acceso al equipo')),
+      appBar: AppBar(
+        title: const Text('Acceso al equipo'),
+        actions: const [TeamQuickNavAppBarButton()],
+      ),
       body: SafeArea(
         top: false,
         child: TeamAreaBackground(

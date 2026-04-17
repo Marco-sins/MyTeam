@@ -21,6 +21,7 @@ import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/core/theme/team_screen_tint.dart';
 import 'package:football_manager/presentation/team/widgets/team_area_background.dart';
 import 'package:football_manager/presentation/team/widgets/team_management_header_row.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_access_page.dart';
 
@@ -286,6 +287,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop(),
           ),
+          actions: const [TeamQuickNavAppBarButton()],
         ),
         body: SafeArea(
           child: TeamAreaBackground(

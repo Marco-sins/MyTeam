@@ -1,19 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
-import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
-import 'package:football_manager/domain/usecase/attendance/get_attendance_by_date_use_case.dart';
-import 'package:football_manager/domain/usecase/attendance/update_attendance_use_case.dart';
-import 'package:football_manager/presentation/attendance/cubit/attendance_cubit.dart';
-import 'package:football_manager/presentation/attendance/pages/attendance_page.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
-import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
-import 'package:football_manager/presentation/convocation/pages/convocation_page.dart';
-import 'package:football_manager/presentation/match/pages/match_list_page.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
-import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
-import 'package:football_manager/presentation/team/pages/team_management_page.dart';
+import 'package:football_manager/presentation/team/team_session_navigation.dart';
 
 /// Requiere [TeamContextCubit] en el árbol.
 class TeamBottomBar extends StatelessWidget {
@@ -22,10 +13,9 @@ class TeamBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final team = context.watch<TeamContextCubit>().state;
-    final teamContext = context.read<TeamContextCubit>();
 
     final authState = context.watch<AuthCubit>().state;
-    bool isExternal = false;
+    var isExternal = false;
     if (authState is Authenticated) {
       isExternal = authState.user.teamRoles[team.id] == UserRole.external;
     }
@@ -37,48 +27,12 @@ class TeamBottomBar extends StatelessWidget {
         _BottomBarButton(
           label: 'Asistencia',
           icon: Icons.check_circle_outline,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => MultiBlocProvider(
-                  providers: [
-                    BlocProvider.value(value: teamContext),
-                    BlocProvider.value(value: context.read<TeamDetailCubit>()),
-                    BlocProvider<AttendanceCubit>(
-                      create: (ctx) => AttendanceCubit(
-                        ctx.read<GetAttendanceByDateUseCase>(),
-                        ctx.read<CreateAttendanceUseCase>(),
-                        ctx.read<UpdateAttendanceUseCase>(),
-                        initialDate: DateTime.now(),
-                        teamId: team.id,
-                      ),
-                    ),
-                  ],
-                  child: const AttendancePage(),
-                ),
-              ),
-            );
-          },
+          onTap: () => TeamSessionNavigation.openAttendance(context),
         ),
         _BottomBarButton(
           label: 'Convocatoria',
           icon: Icons.list_alt,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => MultiBlocProvider(
-                  providers: [
-                    BlocProvider.value(value: teamContext),
-                    BlocProvider.value(value: context.read<TeamDetailCubit>()),
-                    BlocProvider<LoadingCubit>(create: (_) => LoadingCubit()),
-                  ],
-                  child: const ConvocationPage(),
-                ),
-              ),
-            );
-          },
+          onTap: () => TeamSessionNavigation.openConvocation(context),
         ),
       ]);
     }
@@ -87,20 +41,7 @@ class TeamBottomBar extends StatelessWidget {
       _BottomBarButton(
         label: 'Partido',
         icon: Icons.sports_soccer,
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MultiBlocProvider(
-                providers: [
-                  BlocProvider.value(value: teamContext),
-                  BlocProvider.value(value: context.read<TeamDetailCubit>()),
-                ],
-                child: const MatchListPage(),
-              ),
-            ),
-          );
-        },
+        onTap: () => TeamSessionNavigation.openMatchList(context),
       ),
     );
 
@@ -109,20 +50,7 @@ class TeamBottomBar extends StatelessWidget {
         _BottomBarButton(
           label: 'Gestión',
           icon: Icons.settings,
-          onTap: () {
-            Navigator.push<void>(
-              context,
-              MaterialPageRoute(
-                builder: (_) => MultiBlocProvider(
-                  providers: [
-                    BlocProvider.value(value: teamContext),
-                    BlocProvider.value(value: context.read<TeamDetailCubit>()),
-                  ],
-                  child: const TeamManagementPage(),
-                ),
-              ),
-            );
-          },
+          onTap: () => TeamSessionNavigation.openManagement(context),
         ),
       );
     }

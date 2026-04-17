@@ -13,6 +13,7 @@ import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_state.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
+import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 
 /// Requiere [TeamContextCubit] en el árbol.
 class AttendancePage extends StatefulWidget {
@@ -62,6 +63,7 @@ class _AttendancePageState extends State<AttendancePage> {
             );
           },
         ),
+        actions: const [TeamQuickNavAppBarButton()],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
