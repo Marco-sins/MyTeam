@@ -1,4 +1,4 @@
-import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 
 /// Calcula la media de un jugador a partir de la lista de eventos del partido.
 ///
@@ -21,7 +21,7 @@ double calculatePlayerRating(
     final rawType = event['type'];
     if (rawType == null) continue;
 
-    final typeString = rawType.toString().split('.').last;
+    final typeKey = canonicalMatchEventTypeKey(rawType);
     final int? p1 = event['player_id1'] as int?;
     final int? p2 = event['player_id2'] as int?;
     final String? noteRaw = event['note'] as String?;
@@ -29,8 +29,7 @@ double calculatePlayerRating(
     final String noteLower = note?.toLowerCase() ?? '';
 
     // Goles (goleador y asistente)
-    if (typeString == MatchEventEnum.scoreGoal.toString().split('.').last ||
-        typeString == 'scoreGoal') {
+    if (typeKey == 'scoregoal') {
       if (p1 == playerId) {
         rating += 1.0; // gol
       }
@@ -45,33 +44,64 @@ double calculatePlayerRating(
     }
 
     // Gol en propia
-    if (typeString == MatchEventEnum.ownGoal.toString().split('.').last ||
-        typeString == 'ownGoal' ||
-        noteLower == 'gol en propia') {
+    if (typeKey == 'owngoal' || noteLower == 'gol en propia') {
       rating -= 1.0;
       continue;
     }
 
     // Gol concedido (a nivel individual, portero/defensa implicado)
-    if (typeString == MatchEventEnum.concedeGoal.toString().split('.').last ||
-        typeString == 'concedeGoal' ||
-        noteLower == 'gol concedido') {
+    if (typeKey == 'concedegoal' || noteLower == 'gol concedido') {
       rating -= 0.4;
       continue;
     }
 
     // Tarjetas
-    if (typeString == MatchEventEnum.yellowCard.toString().split('.').last ||
-        typeString == 'yellowCard' ||
-        noteLower == 'tarjeta amarilla') {
+    if (typeKey == 'yellowcard' || noteLower == 'tarjeta amarilla') {
       rating -= 1.0;
       continue;
     }
 
-    if (typeString == MatchEventEnum.redCard.toString().split('.').last ||
-        typeString == 'redCard' ||
-        noteLower == 'tarjeta roja') {
+    if (typeKey == 'redcard' || noteLower == 'tarjeta roja') {
       rating -= 3.0;
+      continue;
+    }
+
+    if (typeKey == 'goodpass') {
+      rating += 0.1;
+      continue;
+    }
+
+    if (typeKey == 'badpass') {
+      rating -= 0.1;
+      continue;
+    }
+
+    if (typeKey == 'goodplay') {
+      rating += 0.2;
+      continue;
+    }
+
+    if (typeKey == 'badplay') {
+      rating -= 0.3;
+      continue;
+    }
+
+    if (typeKey == 'ballrecovery') {
+      rating += 0.3;
+      continue;
+    }
+
+    if (typeKey == 'keypass') {
+      rating += 0.3;
+      continue;
+    }
+
+    if (typeKey == 'goodsave') {
+      if (noteLower.contains('increíble') || noteLower.contains('increible')) {
+        rating += 0.75;
+      } else {
+        rating += 0.35;
+      }
       continue;
     }
 

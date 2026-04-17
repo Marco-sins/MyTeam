@@ -15,8 +15,13 @@ class CreateInvitationUseCase {
     Invitation invitation,
     AuthUser user,
   ) async {
-    // Solo los admins del equipo pueden invitar
-    if (user.teamRoles[invitation.teamId] != UserRole.admin) {
+    if (invitation.role == UserRole.superAdmin) {
+      return Left(
+        PermissionFailure('El rol superadmin no se puede asignar por invitación.'),
+      );
+    }
+    final teamRole = user.teamRoles[invitation.teamId];
+    if (teamRole == null || !teamRole.hasAdminPrivileges) {
       return Left(
         PermissionFailure('You do not have permission to invite users.'),
       );

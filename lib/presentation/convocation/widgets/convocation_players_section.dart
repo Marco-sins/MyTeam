@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_cubit.dart';
 import 'package:football_manager/presentation/convocation/cubit/convocation_state.dart';
 
@@ -132,24 +133,22 @@ class ConvocationPlayersSection extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: scheme.surfaceContainerHigh,
-                          foregroundColor: scheme.onSurface,
+                        SizedBox(
+                          width: 40,
                           child: Text(
                             player.number?.toString() ?? '–',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            player.fullName,
+                          child: PlayerNameText(
+                            player: player,
                             style: theme.textTheme.bodyMedium,
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),

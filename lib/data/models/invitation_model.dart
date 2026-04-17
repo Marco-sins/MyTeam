@@ -25,7 +25,7 @@ class InvitationModel extends Invitation {
       'email': email,
       'id_team': teamId,
       'invited_by': invitedByUserId,
-      'role': role.name,
+      'role': role.dbValue,
     };
   }
 }

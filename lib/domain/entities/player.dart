@@ -9,6 +9,8 @@ class Player {
   final int? number;
   final String? phone;
   final String? email;
+  /// URL pública de la foto (p. ej. Supabase Storage); columna `img_url`.
+  final String? imgUrl;
   final List<PlayerPosition>? positions;
   final PlayerStats? stats;
 
@@ -20,9 +22,16 @@ class Player {
     this.number,
     this.phone,
     this.email,
+    this.imgUrl,
     this.positions,
     this.stats,
   });
 
-  String get fullName => lastName != null ? '$firstName $lastName' : firstName;
+  String get fullName {
+    final ln = lastName?.trim();
+    if (ln == null || ln.isEmpty) {
+      return firstName.trim();
+    }
+    return '${firstName.trim()} $ln';
+  }
 }

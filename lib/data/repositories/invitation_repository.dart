@@ -70,7 +70,7 @@ class InvitationRepository implements IInvitationRepository {
         invitationId: invitation.id,
         userId: userId,
         teamId: invitation.teamId,
-        role: invitation.role.name,
+        role: invitation.role.dbValue,
       );
       return const Right(unit);
     } on ServerException catch (e) {

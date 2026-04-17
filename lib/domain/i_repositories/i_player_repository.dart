@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/domain/entities/player.dart';
@@ -7,11 +9,18 @@ import 'package:football_manager/domain/entities/player_stats.dart';
 abstract class IPlayerRepository {
   Future<Either<Failure, List<Player>>> getPlayers();
   Future<Either<Failure, Player>> getPlayerById(int id);
-  Future<Either<Failure, Unit>> createPlayer(
+  Future<Either<Failure, Player>> createPlayer(
     Player player,
     PlayerStats playerStats,
   );
   Future<Either<Failure, Unit>> updatePlayer(Player player);
+  Future<Either<Failure, String>> uploadPlayerPhoto({
+    required Uint8List bytes,
+    required String fileName,
+    required int teamId,
+    int? playerId,
+  });
+  Future<Either<Failure, Unit>> deleteStoredPlayerPhoto(String? publicUrl);
   Future<Either<Failure, Unit>> deletePlayer(int id);
   Future<Either<Failure, List<Player>>> getPlayersByTeam(int teamId);
   Future<Either<Failure, List<Player>>> getPlayersByPosition(

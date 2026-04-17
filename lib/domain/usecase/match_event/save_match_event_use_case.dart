@@ -2,7 +2,6 @@ import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
-import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/domain/i_repositories/i_match_event_repository.dart';
 
@@ -16,7 +15,8 @@ class SaveMatchEventUseCase {
     AuthUser user,
     int teamId,
   ) async {
-    if (user.teamRoles[teamId] != UserRole.admin) {
+    final teamRole = user.teamRoles[teamId];
+    if (teamRole == null || !teamRole.hasAdminPrivileges) {
       return Left(
         PermissionFailure(
           'You do not have permission to save this match event.',

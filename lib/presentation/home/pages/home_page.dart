@@ -119,7 +119,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 rowEmail = payload.newRecord['email']?.toString();
                 break;
               case PostgresChangeEvent.update:
-                rowEmail = payload.newRecord['email']?.toString() ??
+                rowEmail =
+                    payload.newRecord['email']?.toString() ??
                     payload.oldRecord['email']?.toString();
                 break;
               case PostgresChangeEvent.delete:
@@ -152,8 +153,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       final getInvitationsByEmailUseCase = context
           .read<GetInvitationsByEmailUseCase>();
       final normalizedEmail = authState.user.email.trim().toLowerCase();
-      final result =
-          await getInvitationsByEmailUseCase(normalizedEmail);
+      final result = await getInvitationsByEmailUseCase(normalizedEmail);
 
       if (!mounted) return;
 
@@ -189,10 +189,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget _pullToRefreshWrapper({required Widget child}) {
-    return RefreshIndicator(
-      onRefresh: _refreshHome,
-      child: child,
-    );
+    return RefreshIndicator(onRefresh: _refreshHome, child: child);
   }
 
   @override
@@ -209,62 +206,69 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Scaffold(
         appBar: const HomeAppBar(),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                FloatingActionButton.extended(
-                  heroTag: 'invitations',
-                  onPressed: () async {
-                    await Navigator.push(
+        floatingActionButton: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewPaddingOf(context).bottom,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  FloatingActionButton.extended(
+                    heroTag: 'invitations',
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const InvitationsPage(),
+                        ),
+                      );
+                      if (!mounted) return;
+                      _loadInvitationsCount();
+                    },
+                    elevation: 1,
+                    backgroundColor: Theme.of(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const InvitationsPage(),
-                      ),
-                    );
-                    if (!mounted) return;
-                    _loadInvitationsCount();
-                  },
-                  elevation: 1,
-                  backgroundColor:
-                      Theme.of(context).colorScheme.secondaryContainer,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onSecondaryContainer,
-                  icon: const Icon(Icons.forward_to_inbox_rounded, size: 22),
-                  label: const Text('Invitaciones'),
-                ),
-                if (_invitationsCount > 0)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: IgnorePointer(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.error,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _invitationsCount > 9 ? '9+' : '$_invitationsCount',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onError,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                    ).colorScheme.secondaryContainer,
+                    foregroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onSecondaryContainer,
+                    icon: const Icon(Icons.forward_to_inbox_rounded, size: 22),
+                    label: const Text('Invitaciones'),
+                  ),
+                  if (_invitationsCount > 0)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.error,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _invitationsCount > 9 ? '9+' : '$_invitationsCount',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onError,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 12),
-            const AddTeam(),
-          ],
+                ],
+              ),
+              const SizedBox(width: 12),
+              const AddTeam(),
+            ],
+          ),
         ),
         body: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
@@ -355,9 +359,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       Text(
                                         state.message,
                                         textAlign: TextAlign.center,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge,
                                       ),
                                       const SizedBox(height: 20),
                                       FilledButton.tonalIcon(
@@ -406,21 +410,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       child: _HomeIntroHeader(teamCount: state.teams.length),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 108),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        0,
+                        16,
+                        108 + MediaQuery.viewPaddingOf(context).bottom,
+                      ),
                       sliver: SliverGrid(
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,
                           crossAxisSpacing: 14,
                           mainAxisSpacing: 14,
                           mainAxisExtent: 206,
                         ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            return TeamCard(team: state.teams[index]);
-                          },
-                          childCount: state.teams.length,
-                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          return TeamCard(team: state.teams[index]);
+                        }, childCount: state.teams.length),
                       ),
                     ),
                   ],

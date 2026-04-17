@@ -209,6 +209,8 @@ class TeamCard extends StatelessWidget {
 
   String _roleLabel(UserRole role) {
     switch (role) {
+      case UserRole.superAdmin:
+        return 'Superadmin';
       case UserRole.admin:
         return 'Admin';
       case UserRole.player:

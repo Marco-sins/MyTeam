@@ -6,6 +6,8 @@ import 'package:football_manager/domain/entities/attendance.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
 import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
 
 class AttendanceSummaryTable extends StatelessWidget {
   final Team team;
@@ -106,8 +108,7 @@ class AttendanceSummaryTable extends StatelessWidget {
                       child: DataTable(
                         columnSpacing: 16,
                         headingRowHeight: 40,
-                        dataRowMinHeight: 40,
-                        dataRowMaxHeight: 48,
+                        dataRowMinHeight: 44,
                         columns: [
                           const DataColumn(
                             label: SizedBox(
@@ -163,9 +164,14 @@ class AttendanceSummaryTable extends StatelessWidget {
                                       player,
                                       matrix,
                                     ),
-                                    child: Text(
-                                      player.fullName,
-                                      style: const TextStyle(fontSize: 14),
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: PlayerNameText(
+                                        player: player,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -235,138 +241,216 @@ class AttendanceSummaryTable extends StatelessWidget {
         ? ((attendedCount / totalCount) * 100).toStringAsFixed(1)
         : '0.0';
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final textTheme = Theme.of(ctx).textTheme;
+
         return AlertDialog(
-          contentPadding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          contentPadding: EdgeInsets.zero,
           content: SizedBox(
             width: 320,
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        scheme.primaryContainer.withValues(alpha: 0.75),
+                        scheme.surface,
+                      ],
+                    ),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 18, 18),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: scheme.shadow.withValues(alpha: 0.16),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: PlayerPhotoRect(
+                            player: player,
+                            width: 88,
+                            height: 118,
+                            borderRadius: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
                         Expanded(
-                          child: Text(
-                            player.fullName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '#${player.number?.toString() ?? '-'}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              PlayerNameText(
+                                player: player,
+                                mode: PlayerNameTextMode.general,
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.titleMedium?.copyWith(
+                                  height: 1.25,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: scheme.secondaryContainer
+                                      .withValues(alpha: 0.85),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Dorsal ${player.number?.toString() ?? '—'}',
+                                  style: textTheme.labelLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.onSecondaryContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    if (player.positions != null &&
-                        player.positions!.isNotEmpty)
-                      Text(
-                        'Posición: ${player.positions!.map((p) => p.name).join(', ')}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Entrenamientos',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _StatChip(
-                          label: 'Entrenos',
-                          value: '$attendedCount/$totalCount',
-                        ),
-                        _StatChip(
-                          label: '% Asistencia',
-                          value: '$attendancePercent%',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Partidos (datos guardados)',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Builder(
-                      builder: (_) {
-                        final s = player.stats ?? const PlayerStats();
-                        return Column(
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (player.positions != null &&
+                          player.positions!.isNotEmpty) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _StatChip(
-                                  label: 'Partidos jugados',
-                                  value: s.matchesPlayed.toString(),
-                                ),
-                                _StatChip(
-                                  label: 'Como titular',
-                                  value: s.timesStarted.toString(),
-                                ),
-                              ],
+                            Icon(
+                              Icons.sports_soccer_outlined,
+                              size: 20,
+                              color: scheme.primary,
                             ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _StatChip(
-                                  label: 'Goles',
-                                  value: s.goals.toString(),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                player.positions!.map((p) => p.name).join(', '),
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                _StatChip(
-                                  label: 'Asistencias',
-                                  value: s.assists.toString(),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _StatChip(
-                                  label: 'Minutos',
-                                  value: s.minutesPlayed.toString(),
-                                ),
-                                _StatChip(
-                                  label: 'Tarjetas (A/R)',
-                                  value:
-                                      '${s.yellowCards}/${s.redCards}',
-                                ),
-                              ],
+                              ),
                             ),
                           ],
-                        );
-                      },
-                    ),
-                  ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      Text(
+                        'Entrenamientos (fechas de la tabla)',
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _StatChip(
+                            label: 'Entrenos',
+                            value: '$attendedCount/$totalCount',
+                          ),
+                          _StatChip(
+                            label: '% Asistencia',
+                            value: '$attendancePercent%',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        'Partidos (datos guardados)',
+                        style: textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Builder(
+                        builder: (_) {
+                          final s = player.stats ?? const PlayerStats();
+                          return Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _StatChip(
+                                    label: 'Partidos jugados',
+                                    value: s.matchesPlayed.toString(),
+                                  ),
+                                  _StatChip(
+                                    label: 'Como titular',
+                                    value: s.timesStarted.toString(),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _StatChip(
+                                    label: 'Goles',
+                                    value: s.goals.toString(),
+                                  ),
+                                  _StatChip(
+                                    label: 'Asistencias',
+                                    value: s.assists.toString(),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _StatChip(
+                                    label: 'Minutos',
+                                    value: s.minutesPlayed.toString(),
+                                  ),
+                                  _StatChip(
+                                    label: 'Tarjetas (A/R)',
+                                    value:
+                                        '${s.yellowCards}/${s.redCards}',
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
           actions: [
@@ -401,7 +485,13 @@ class _StatChip extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 2),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

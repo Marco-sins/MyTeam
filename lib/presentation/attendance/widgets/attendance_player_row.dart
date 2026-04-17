@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 import 'package:football_manager/presentation/attendance/models/attendance_status.dart';
 import 'package:football_manager/presentation/attendance/widgets/attendance_status_option_chip.dart';
 
@@ -25,22 +26,23 @@ class AttendancePlayerRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: scheme.surfaceContainerHigh,
+          SizedBox(
+            width: 40,
             child: Text(
-              player.number?.toString() ?? '-',
-              style: TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-                color: scheme.onSurfaceVariant,
-              ),
+              player.number?.toString() ?? '–',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: scheme.onSurfaceVariant,
+                  ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              player.fullName,
+            child: PlayerNameText(
+              player: player,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

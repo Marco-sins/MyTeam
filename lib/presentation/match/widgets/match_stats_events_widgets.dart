@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 /// Marca de minuto alineada con el tema de la app.
 class _MinuteBadge extends StatelessWidget {
@@ -40,10 +42,18 @@ class _MinuteBadge extends StatelessWidget {
 }
 
 class MatchStatusChangeItem extends StatelessWidget {
-  const MatchStatusChangeItem({super.key, required this.label, this.minute});
+  const MatchStatusChangeItem({
+    super.key,
+    required this.label,
+    this.minute,
+    this.labelWidget,
+  });
 
   final String label;
   final int? minute;
+
+  /// Si no es null, sustituye al [Text] central (p. ej. nombre en negrita + nota).
+  final Widget? labelWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +69,8 @@ class MatchStatusChangeItem extends StatelessWidget {
         lower.contains('gana posicion') ||
         lower.contains('recupera posesión') ||
         lower.contains('recupera posesion') ||
+        lower.contains('recuperación') ||
+        lower.contains('recuperacion') ||
         lower.contains('jugada clave') ||
         lower.contains('buena parada') ||
         lower.contains('increíble parada') ||
@@ -92,11 +104,13 @@ class MatchStatusChangeItem extends StatelessWidget {
                 Expanded(child: Divider(color: scheme.outlineVariant.withValues(alpha: 0.5))),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: textStyle,
-                  ),
+                  child: labelWidget ??
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: textStyle,
+                        softWrap: true,
+                      ),
                 ),
                 Expanded(child: Divider(color: scheme.outlineVariant.withValues(alpha: 0.5))),
               ],
@@ -112,23 +126,50 @@ class MatchSubstitutionItem extends StatelessWidget {
   const MatchSubstitutionItem({
     super.key,
     required this.minute,
-    required this.inName,
-    required this.outName,
+    required this.inPlayer,
+    required this.outPlayer,
+    this.inFallbackId,
+    this.outFallbackId,
   });
 
   final int minute;
-  final String inName;
-  final String outName;
+  final Player? inPlayer;
+  final Player? outPlayer;
+  final int? inFallbackId;
+  final int? outFallbackId;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final nameStyle = textTheme.bodyMedium;
+
+    Widget sideName(
+      Player? p,
+      int? id, {
+      required TextAlign align,
+      Color? color,
+    }) {
+      final s = color != null ? nameStyle?.copyWith(color: color) : nameStyle;
+      if (p != null) {
+        return PlayerDorsalNameText(
+          player: p,
+          style: s,
+          textAlign: align,
+        );
+      }
+      final t = id != null ? 'Jugador $id' : '—';
+      return Text(
+        t,
+        textAlign: align,
+        style: s?.copyWith(fontWeight: FontWeight.w600),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _MinuteBadge(minute: minute),
           const SizedBox(width: 10),
@@ -143,17 +184,19 @@ class MatchSubstitutionItem extends StatelessWidget {
                 ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.arrow_downward_rounded, size: 18, color: scheme.primary),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(Icons.arrow_downward_rounded, size: 18, color: scheme.primary),
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(
-                      inName,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: scheme.primary,
-                      ),
+                    child: sideName(
+                      inPlayer,
+                      inFallbackId,
+                      align: TextAlign.left,
+                      color: scheme.primary,
                     ),
                   ),
                   Padding(
@@ -165,18 +208,18 @@ class MatchSubstitutionItem extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: Text(
-                      outName,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: scheme.error,
-                      ),
+                    child: sideName(
+                      outPlayer,
+                      outFallbackId,
+                      align: TextAlign.right,
+                      color: scheme.error,
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Icon(Icons.arrow_upward_rounded, size: 18, color: scheme.error),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Icon(Icons.arrow_upward_rounded, size: 18, color: scheme.error),
+                  ),
                 ],
               ),
             ),
@@ -191,12 +234,14 @@ class MatchCardItem extends StatelessWidget {
   const MatchCardItem({
     super.key,
     required this.minute,
-    required this.playerName,
+    required this.player,
+    this.fallbackPlayerId,
     required this.isRed,
   });
 
   final int minute;
-  final String playerName;
+  final Player? player;
+  final int? fallbackPlayerId;
   final bool isRed;
 
   @override
@@ -212,7 +257,7 @@ class MatchCardItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _MinuteBadge(minute: minute),
           const SizedBox(width: 10),
@@ -227,6 +272,7 @@ class MatchCardItem extends StatelessWidget {
                 ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     width: 14,
@@ -242,13 +288,36 @@ class MatchCardItem extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      '$label · $playerName',
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '$label · ',
+                            style: textTheme.bodyMedium!.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                          if (player != null)
+                            ...playerDorsalNameSpanList(
+                              player!,
+                              textTheme.bodyMedium!.copyWith(
+                                color: textColor,
+                              ),
+                            )
+                          else
+                            TextSpan(
+                              text: fallbackPlayerId != null
+                                  ? 'Jugador $fallbackPlayerId'
+                                  : '—',
+                              style: textTheme.bodyMedium!.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
+                            ),
+                        ],
                       ),
+                      softWrap: true,
                     ),
                   ),
                 ],
@@ -267,26 +336,26 @@ class MatchGoalItem extends StatelessWidget {
     required this.minute,
     required this.isOurGoal,
     required this.isAgainstGoal,
-    this.scorerName,
-    this.assistName,
+    this.scorerPlayer,
+    this.assistPlayer,
   });
 
   final int minute;
   final bool isOurGoal;
   final bool isAgainstGoal;
-  final String? scorerName;
-  final String? assistName;
+  final Player? scorerPlayer;
+  final Player? assistPlayer;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    if (isOurGoal && scorerName != null) {
+    if (isOurGoal && scorerPlayer != null) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _MinuteBadge(minute: minute),
             const SizedBox(width: 10),
@@ -301,31 +370,31 @@ class MatchGoalItem extends StatelessWidget {
                   ),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.sports_soccer_rounded, size: 22, color: scheme.primary),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(Icons.sports_soccer_rounded, size: 22, color: scheme.primary),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        scorerName!,
-                        overflow: TextOverflow.ellipsis,
+                      child: PlayerDorsalNameText(
+                        player: scorerPlayer!,
                         style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
                           color: scheme.onPrimaryContainer,
                         ),
                       ),
                     ),
-                    if (assistName != null) ...[
+                    if (assistPlayer != null) ...[
                       Icon(Icons.directions_run_rounded, size: 20, color: scheme.tertiary),
                       const SizedBox(width: 6),
                       Flexible(
-                        child: Text(
-                          assistName!,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
+                        child: PlayerDorsalNameText(
+                          player: assistPlayer!,
                           style: textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
                             color: scheme.onTertiaryContainer,
                           ),
+                          textAlign: TextAlign.right,
                         ),
                       ),
                     ],

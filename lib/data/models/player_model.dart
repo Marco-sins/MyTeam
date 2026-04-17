@@ -1,3 +1,4 @@
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/data/models/player_stats_model.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
 import 'package:football_manager/domain/entities/player.dart';
@@ -11,9 +12,16 @@ class PlayerModel extends Player {
     super.number,
     super.phone,
     super.email,
+    super.imgUrl,
     super.positions,
     PlayerStatsModel? super.stats,
   });
+
+  static String? _optionalString(dynamic v) {
+    if (v == null) return null;
+    final s = v.toString().trim();
+    return s.isEmpty ? null : s;
+  }
 
   factory PlayerModel.fromJson(Map<String, dynamic> json) {
     final rawPositions = json['positions'] as String?;
@@ -27,14 +35,23 @@ class PlayerModel extends Player {
           .toList();
     }
 
+    final rawImg = json['img_url'];
+    final String? imgUrl = rawImg == null
+        ? null
+        : rawImg.toString().trim().isEmpty
+        ? null
+        : rawImg.toString().trim();
+
     return PlayerModel(
-      id: json['id'],
-      teamId: json['team_id'],
-      firstName: json['firstname'],
-      lastName: json['lastname'] ?? '',
-      number: json['number'] ?? 0,
-      phone: json['phone'] ?? '',
-      email: json['email'] ?? '',
+      id: supabaseInt(json['id']) ?? 0,
+      teamId: supabaseInt(json['team_id']) ?? 0,
+      firstName:
+          (json['firstname'] ?? json['firstName'])?.toString().trim() ?? '',
+      lastName: _optionalString(json['lastname'] ?? json['lastName']),
+      number: supabaseInt(json['number']),
+      phone: _optionalString(json['phone']),
+      email: _optionalString(json['email']),
+      imgUrl: imgUrl,
       positions: positions,
       stats: _statsFromEmbed(json['stats'] ?? json['player_stats']),
     );
@@ -81,6 +98,7 @@ class PlayerModel extends Player {
       'phone': phone,
       'email': email,
       'positions': positionsString,
+      'img_url': imgUrl,
     };
 
     return map;
@@ -94,6 +112,7 @@ class PlayerModel extends Player {
     int? number,
     String? phone,
     String? email,
+    String? imgUrl,
     List<PlayerPosition>? positions,
     PlayerStatsModel? stats,
   }) {
@@ -105,6 +124,7 @@ class PlayerModel extends Player {
       number: number ?? this.number,
       phone: phone ?? this.phone,
       email: email ?? this.email,
+      imgUrl: imgUrl ?? this.imgUrl,
       positions: positions ?? this.positions,
       stats: stats ?? this.stats as PlayerStatsModel?,
     );

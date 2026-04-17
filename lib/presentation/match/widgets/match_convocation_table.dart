@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 class MatchConvocationTable extends StatelessWidget {
   final bool loading;
@@ -109,10 +110,6 @@ class MatchConvocationTable extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
     final dorsal = player.number?.toString() ?? '-';
-    final name = player.firstName;
-    final lastName = player.lastName ?? '';
-    final displayName = lastName.isNotEmpty ? '$name $lastName' : name;
-
     final assignedIndex = positionPlayers.indexWhere(
       (p) => p != null && p.id == player.id,
     );
@@ -123,29 +120,32 @@ class MatchConvocationTable extends StatelessWidget {
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: scheme.surfaceContainerHigh,
-            foregroundColor: scheme.onSurface,
-            child: Text(
-              dorsal,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: scheme.surfaceContainerHigh,
+              foregroundColor: scheme.onSurface,
+              child: Text(
+                dorsal,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              displayName,
+            child: PlayerNameText(
+              player: player,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           Row(

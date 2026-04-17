@@ -11,9 +11,12 @@ class TeamRosterPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Plantilla'), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: TeamRosterWidget(team: team),
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: TeamRosterWidget(team: team),
+        ),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
@@ -17,16 +19,16 @@ class PlayerRepository implements IPlayerRepository {
   PlayerRepository(this._remoteDatasource);
 
   @override
-  Future<Either<Failure, Unit>> createPlayer(
+  Future<Either<Failure, Player>> createPlayer(
     Player player,
     PlayerStats playerStats,
   ) async {
     try {
-      await _remoteDatasource.createPlayer(
+      final created = await _remoteDatasource.createPlayer(
         PlayerMapper.toModel(player),
         PlayerStatsMapper.toModel(playerStats),
       );
-      return const Right(unit);
+      return Right(PlayerMapper.toEntity(created));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on UnknowException catch (e) {
@@ -162,6 +164,40 @@ class PlayerRepository implements IPlayerRepository {
   Future<Either<Failure, Unit>> updatePlayer(Player player) async {
     try {
       await _remoteDatasource.updatePlayer(PlayerMapper.toModel(player));
+      return const Right(unit);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(ServerFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadPlayerPhoto({
+    required Uint8List bytes,
+    required String fileName,
+    required int teamId,
+    int? playerId,
+  }) async {
+    try {
+      final url = await _remoteDatasource.uploadPlayerPhoto(
+        bytes: bytes,
+        fileName: fileName,
+        teamId: teamId,
+        playerId: playerId,
+      );
+      return Right(url);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } on UnknowException catch (e) {
+      return Left(ServerFailure('Unexpected error: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> deleteStoredPlayerPhoto(String? publicUrl) async {
+    try {
+      await _remoteDatasource.removePlayerPhotoIfInBucket(publicUrl);
       return const Right(unit);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));

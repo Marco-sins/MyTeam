@@ -5,6 +5,7 @@ import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/presentation/match/utils/match_formation_utils.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 
@@ -51,7 +52,17 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
           .order('minute', ascending: false)
           .order('created_at', ascending: false);
 
-      final events = List<Map<String, dynamic>>.from(rawEvents as List);
+      final events = (rawEvents as List)
+          .map((row) {
+            final m = Map<String, dynamic>.from(row as Map);
+            m['minute'] = resolveMatchEventMinute(m);
+            final id1 = supabaseInt(m['player_id1']);
+            final id2 = supabaseInt(m['player_id2']);
+            if (id1 != null) m['player_id1'] = id1;
+            if (id2 != null) m['player_id2'] = id2;
+            return m;
+          })
+          .toList();
 
       final playersEither = await getPlayersByTeamUseCase(match.teamId);
 
