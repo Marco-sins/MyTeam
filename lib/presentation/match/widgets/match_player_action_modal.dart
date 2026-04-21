@@ -10,6 +10,7 @@ enum MatchPlayerActionType {
   goodPass,
   goodPlay,
   ballRecovery,
+  shot,
   yellowCard,
   redCard,
   badPass,
@@ -65,7 +66,7 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 400, minWidth: 280),
+          constraints: const BoxConstraints(maxHeight: 460, minWidth: 280),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -124,6 +125,12 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.ballRecovery),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelShot,
+                        textColor: Colors.green,
+                        onTap: () =>
+                            Navigator.of(ctx).pop(MatchPlayerActionType.shot),
                       ),
                       const SizedBox(height: 8),
                       MatchPlayerActionButton(

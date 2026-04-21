@@ -525,13 +525,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vous devez être connecté pour terminer le match';
 
   @override
-  String get matchOpponentGoal => 'But adverse';
-
-  @override
-  String get matchSubtractOur => '− Nous';
-
-  @override
-  String get matchSubtractRival => '− Eux';
+  String get matchOpponentGoal => 'But encaissé';
 
   @override
   String get matchDeleteEventQuestion =>
@@ -666,8 +660,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get matchQuickScore => 'Score rapide';
 
   @override
-  String get matchGoalsFromFieldHint =>
-      'Les buts sont enregistrés depuis le terrain (joueur) ou les actions.';
+  String get matchShotsOnGoalSection => 'Tirs au but';
+
+  @override
+  String get matchEventRivalShot => 'Tir cadré (adversaire)';
+
+  @override
+  String get matchRivalShotAddTooltip => 'Ajouter un tir adverse cadré';
+
+  @override
+  String get matchRivalShotRemoveTooltip =>
+      'Retirer le dernier tir adverse cadré';
+
+  @override
+  String get matchNoRivalShotsToRemove => 'Aucun tir adverse à retirer';
 
   @override
   String get matchFieldAndFormation => 'Emplacement et formation';
@@ -724,7 +730,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajouter un objectif pour votre équipe ?';
 
   @override
-  String get matchConfirmAddGoalRival => 'Ajouter un but pour l\'adversaire ?';
+  String get matchConfirmAddGoalRival => 'Enregistrer un but encaissé ?';
 
   @override
   String get matchMustLoginRegisterGoals =>
@@ -735,36 +741,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les buts de votre équipe sont enregistrés par un joueur sur le terrain';
 
   @override
-  String get matchOpponentGoalRegisteredOk => 'But adverse sauvé';
+  String get matchOpponentGoalRegisteredOk => 'But encaissé enregistré';
 
   @override
   String get matchGoalSaveFail => 'Impossible de sauver le but';
-
-  @override
-  String get matchRemoveGoalTitle => 'Supprimer l\'objectif';
-
-  @override
-  String get matchConfirmRemoveGoalOur => 'Supprimer un but de votre équipe ?';
-
-  @override
-  String get matchConfirmRemoveGoalRival => 'Retirer un but à l\'adversaire ?';
-
-  @override
-  String get matchMustLoginRemoveGoals =>
-      'Vous devez être connecté pour supprimer des objectifs';
-
-  @override
-  String get matchNoGoalsToRemove => 'Aucun objectif à supprimer';
-
-  @override
-  String get matchGoalNotFoundInDb =>
-      'Objectif introuvable dans la base de données';
-
-  @override
-  String get matchGoalRemovedOk => 'Objectif supprimé';
-
-  @override
-  String get matchGoalRemoveFail => 'Impossible de supprimer l\'objectif';
 
   @override
   String get matchConvocationLoadError =>
@@ -906,6 +886,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get matchActionLabelBallRecovery => 'Récupération du ballon';
+
+  @override
+  String get matchActionLabelShot => 'Tir';
 
   @override
   String get matchActionLabelYellowCard => 'Carton jaune';

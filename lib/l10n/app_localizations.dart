@@ -1035,20 +1035,8 @@ abstract class AppLocalizations {
   /// No description provided for @matchOpponentGoal.
   ///
   /// In es, this message translates to:
-  /// **'Gol del rival'**
+  /// **'Gol en contra'**
   String get matchOpponentGoal;
-
-  /// No description provided for @matchSubtractOur.
-  ///
-  /// In es, this message translates to:
-  /// **'− Nuestro'**
-  String get matchSubtractOur;
-
-  /// No description provided for @matchSubtractRival.
-  ///
-  /// In es, this message translates to:
-  /// **'− Rival'**
-  String get matchSubtractRival;
 
   /// No description provided for @matchDeleteEventQuestion.
   ///
@@ -1290,11 +1278,35 @@ abstract class AppLocalizations {
   /// **'Marcador rápido'**
   String get matchQuickScore;
 
-  /// No description provided for @matchGoalsFromFieldHint.
+  /// No description provided for @matchShotsOnGoalSection.
   ///
   /// In es, this message translates to:
-  /// **'Los goles a favor se registran desde el campo (jugador) o las acciones.'**
-  String get matchGoalsFromFieldHint;
+  /// **'Tiros a puerta'**
+  String get matchShotsOnGoalSection;
+
+  /// No description provided for @matchEventRivalShot.
+  ///
+  /// In es, this message translates to:
+  /// **'Tiro a puerta (rival)'**
+  String get matchEventRivalShot;
+
+  /// No description provided for @matchRivalShotAddTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Más un tiro a puerta del rival'**
+  String get matchRivalShotAddTooltip;
+
+  /// No description provided for @matchRivalShotRemoveTooltip.
+  ///
+  /// In es, this message translates to:
+  /// **'Menos un tiro a puerta del rival'**
+  String get matchRivalShotRemoveTooltip;
+
+  /// No description provided for @matchNoRivalShotsToRemove.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay tiros a puerta del rival que quitar'**
+  String get matchNoRivalShotsToRemove;
 
   /// No description provided for @matchFieldAndFormation.
   ///
@@ -1395,7 +1407,7 @@ abstract class AppLocalizations {
   /// No description provided for @matchConfirmAddGoalRival.
   ///
   /// In es, this message translates to:
-  /// **'¿Seguro que quieres añadir un gol al rival?'**
+  /// **'¿Seguro que quieres registrar un gol en contra?'**
   String get matchConfirmAddGoalRival;
 
   /// No description provided for @matchMustLoginRegisterGoals.
@@ -1413,7 +1425,7 @@ abstract class AppLocalizations {
   /// No description provided for @matchOpponentGoalRegisteredOk.
   ///
   /// In es, this message translates to:
-  /// **'Gol del rival registrado correctamente'**
+  /// **'Gol en contra registrado correctamente'**
   String get matchOpponentGoalRegisteredOk;
 
   /// No description provided for @matchGoalSaveFail.
@@ -1421,54 +1433,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se ha podido registrar el gol'**
   String get matchGoalSaveFail;
-
-  /// No description provided for @matchRemoveGoalTitle.
-  ///
-  /// In es, this message translates to:
-  /// **'Quitar gol'**
-  String get matchRemoveGoalTitle;
-
-  /// No description provided for @matchConfirmRemoveGoalOur.
-  ///
-  /// In es, this message translates to:
-  /// **'¿Seguro que quieres quitar un gol a tu equipo?'**
-  String get matchConfirmRemoveGoalOur;
-
-  /// No description provided for @matchConfirmRemoveGoalRival.
-  ///
-  /// In es, this message translates to:
-  /// **'¿Seguro que quieres quitar un gol al rival?'**
-  String get matchConfirmRemoveGoalRival;
-
-  /// No description provided for @matchMustLoginRemoveGoals.
-  ///
-  /// In es, this message translates to:
-  /// **'Debes iniciar sesión para quitar goles'**
-  String get matchMustLoginRemoveGoals;
-
-  /// No description provided for @matchNoGoalsToRemove.
-  ///
-  /// In es, this message translates to:
-  /// **'No hay goles que quitar'**
-  String get matchNoGoalsToRemove;
-
-  /// No description provided for @matchGoalNotFoundInDb.
-  ///
-  /// In es, this message translates to:
-  /// **'No se ha encontrado el gol en la base de datos'**
-  String get matchGoalNotFoundInDb;
-
-  /// No description provided for @matchGoalRemovedOk.
-  ///
-  /// In es, this message translates to:
-  /// **'Gol eliminado correctamente'**
-  String get matchGoalRemovedOk;
-
-  /// No description provided for @matchGoalRemoveFail.
-  ///
-  /// In es, this message translates to:
-  /// **'No se ha podido quitar el gol'**
-  String get matchGoalRemoveFail;
 
   /// No description provided for @matchConvocationLoadError.
   ///
@@ -1727,6 +1691,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Balón recuperado'**
   String get matchActionLabelBallRecovery;
+
+  /// No description provided for @matchActionLabelShot.
+  ///
+  /// In es, this message translates to:
+  /// **'Tiro'**
+  String get matchActionLabelShot;
 
   /// No description provided for @matchActionLabelYellowCard.
   ///

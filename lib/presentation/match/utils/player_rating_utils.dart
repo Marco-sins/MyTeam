@@ -43,6 +43,11 @@ double calculatePlayerRating(
       continue;
     }
 
+    if (typeKey == 'shot') {
+      rating += 0.12;
+      continue;
+    }
+
     // Gol en propia / autogol
     if (typeKey == 'owngoal' ||
         noteLower == 'gol en propia' ||

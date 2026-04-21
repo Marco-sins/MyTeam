@@ -44,7 +44,8 @@ class MatchListPage extends StatefulWidget {
   State<MatchListPage> createState() => _MatchListPageState();
 }
 
-class _MatchListPageState extends State<MatchListPage> {
+class _MatchListPageState extends State<MatchListPage>
+    with WidgetsBindingObserver {
   late Future<dynamic> _matchesFuture;
   Timer? _timer;
 
@@ -66,6 +67,7 @@ class _MatchListPageState extends State<MatchListPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMatches();
     // Actualizamos la UI cada segundo para que el tiempo transcurrido
     // de los partidos en juego se vea en tiempo real.
@@ -76,7 +78,16 @@ class _MatchListPageState extends State<MatchListPage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && mounted && _isThisRouteVisible()) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }

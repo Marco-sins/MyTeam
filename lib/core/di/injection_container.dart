@@ -16,12 +16,14 @@ import 'package:football_manager/data/repositories/match_event_repository.dart';
 import 'package:football_manager/data/repositories/match_repository.dart';
 import 'package:football_manager/data/repositories/player_repository.dart';
 import 'package:football_manager/data/repositories/profile_repository.dart';
+import 'package:football_manager/data/realtime/match_spectator_realtime_service.dart';
 import 'package:football_manager/data/repositories/team_repository.dart';
 import 'package:football_manager/domain/repositories/i_attendance_repository.dart';
 import 'package:football_manager/domain/repositories/i_auth_repository.dart';
 import 'package:football_manager/domain/repositories/i_invitation_repository.dart';
 import 'package:football_manager/domain/repositories/i_match_event_repository.dart';
 import 'package:football_manager/domain/repositories/i_match_repository.dart';
+import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
 import 'package:football_manager/domain/repositories/i_player_repository.dart';
 import 'package:football_manager/domain/repositories/i_profile_repository.dart';
 import 'package:football_manager/domain/repositories/i_team_repository.dart';
@@ -40,15 +42,29 @@ import 'package:football_manager/domain/usecase/invitation/accept_invitation_use
 import 'package:football_manager/domain/usecase/invitation/create_invitation_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/reject_invitation_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_half_time_status_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_lineup_starters_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_second_half_started_use_case.dart';
 import 'package:football_manager/domain/usecase/match/create_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/delete_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_convoked_player_ids_for_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_match_lineup_positions_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_remote_match_status_use_case.dart';
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/get_match_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_latest_match_event_by_db_type_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_live_timeline_maps_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_sent_off_player_ids_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_card_summary_for_match_player_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_rating_event_rows_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/player/add_new_player_use_case.dart';
 import 'package:football_manager/domain/usecase/player/delete_player_use_case.dart';
@@ -100,6 +116,9 @@ Future<void> configureDependencies() async {
   );
   sl.registerLazySingleton<IInvitationRepository>(
     () => InvitationRepository(InvitationRemoteDatasource(client)),
+  );
+  sl.registerLazySingleton<IMatchSpectatorRealtime>(
+    () => MatchSpectatorRealtimeService(client),
   );
 
   // —— Casos de uso ——
@@ -193,6 +212,52 @@ Future<void> configureDependencies() async {
   );
   sl.registerLazySingleton(
     () => GetLatestFormationNoteByMatchUseCase(sl<IMatchEventRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetMatchByIdUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetMatchEventAggregatesFromEventsUseCase(
+      sl<IMatchEventRepository>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => GetMatchLiveTimelineMapsUseCase(sl<IMatchEventRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetMatchSentOffPlayerIdsUseCase(sl<IMatchEventRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetPlayerRatingEventRowsUseCase(sl<IMatchEventRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => GetPlayerCardSummaryForMatchPlayerUseCase(
+      sl<IMatchEventRepository>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => GetLatestMatchEventByDbTypeUseCase(sl<IMatchEventRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => FetchRemoteMatchStatusUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => ApplyMatchHalfTimeStatusUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => ApplyMatchSecondHalfStartedUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => PersistMatchLineupPositionsUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => ApplyMatchLineupStartersUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => FetchConvokedPlayerIdsForMatchUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => FetchMatchLineupPositionsUseCase(sl<IMatchRepository>()),
   );
   sl.registerLazySingleton(
     () => GetMatchLineupsByMatchUseCase(sl<IMatchRepository>()),

@@ -1,10 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/exception/server_exception.dart';
-import 'package:football_manager/core/errors/exception/unknow_exception.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
-import 'package:football_manager/core/errors/failure/server_failure.dart';
+import 'package:football_manager/core/utils/repository_guard.dart';
 import 'package:football_manager/data/datasource/player_remote_datasource.dart';
 import 'package:football_manager/data/mappers/player_mapper.dart';
 import 'package:football_manager/data/mappers/player_stats_mapper.dart';
@@ -22,154 +20,95 @@ class PlayerRepository implements IPlayerRepository {
   Future<Either<Failure, Player>> createPlayer(
     Player player,
     PlayerStats playerStats,
-  ) async {
-    try {
+  ) {
+    return runRepositoryGuard(() async {
       final created = await _remoteDatasource.createPlayer(
         PlayerMapper.toModel(player),
         PlayerStatsMapper.toModel(playerStats),
       );
-      return Right(PlayerMapper.toEntity(created));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return PlayerMapper.toEntity(created);
+    });
   }
 
   @override
-  Future<Either<Failure, Unit>> deletePlayer(int id) async {
-    try {
+  Future<Either<Failure, Unit>> deletePlayer(int id) {
+    return runRepositoryGuard(() async {
       await _remoteDatasource.deletePlayer(id);
-      return const Right(unit);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return unit;
+    });
   }
 
   @override
-  Future<Either<Failure, Player>> getPlayerById(int id) async {
-    try {
+  Future<Either<Failure, Player>> getPlayerById(int id) {
+    return runRepositoryGuard(() async {
       final response = await _remoteDatasource.getPlayerById(id);
-      Player player = PlayerMapper.toEntity(response);
-      return Right(player);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return PlayerMapper.toEntity(response);
+    });
   }
 
   @override
-  Future<Either<Failure, List<Player>>> getPlayerByMatchId(int matchId) async {
-    try {
+  Future<Either<Failure, List<Player>>> getPlayerByMatchId(int matchId) {
+    return runRepositoryGuard(() async {
       final result = await _remoteDatasource.getPlayerByMatchId(matchId);
-      List<Player> players = result
-          .map((e) => PlayerMapper.toEntity(e))
-          .toList();
-      return Right(players);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return result.map(PlayerMapper.toEntity).toList();
+    });
   }
 
   @override
-  Future<Either<Failure, List<Player>>> getPlayerByName(String name) async {
-    try {
+  Future<Either<Failure, List<Player>>> getPlayerByName(String name) {
+    return runRepositoryGuard(() async {
       final result = await _remoteDatasource.getPlayerByName(name);
-      List<Player> players = result
-          .map((e) => PlayerMapper.toEntity(e))
-          .toList();
-      return Right(players);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return result.map(PlayerMapper.toEntity).toList();
+    });
   }
 
   @override
-  Future<Either<Failure, List<Player>>> getPlayers() async {
-    try {
+  Future<Either<Failure, List<Player>>> getPlayers() {
+    return runRepositoryGuard(() async {
       final response = await _remoteDatasource.getPlayers();
-      List<Player> players = response
-          .map((e) => PlayerMapper.toEntity(e))
-          .toList();
-      return Right(players);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return response.map(PlayerMapper.toEntity).toList();
+    });
   }
 
   @override
   Future<Either<Failure, List<Player>>> getPlayersByNumber(
     int teamId,
     int number,
-  ) async {
-    try {
+  ) {
+    return runRepositoryGuard(() async {
       final result = await _remoteDatasource.getPlayersByNumber(teamId, number);
-      List<Player> players = result
-          .map((e) => PlayerMapper.toEntity(e))
-          .toList();
-      return Right(players);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return result.map(PlayerMapper.toEntity).toList();
+    });
   }
 
   @override
   Future<Either<Failure, List<Player>>> getPlayersByPosition(
     int teamId,
     PlayerPosition position,
-  ) async {
-    try {
+  ) {
+    return runRepositoryGuard(() async {
       final result = await _remoteDatasource.getPlayersByPosition(
         teamId,
         position,
       );
-      List<Player> players = result
-          .map((e) => PlayerMapper.toEntity(e))
-          .toList();
-      return Right(players);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return result.map(PlayerMapper.toEntity).toList();
+    });
   }
 
   @override
-  Future<Either<Failure, List<Player>>> getPlayersByTeam(int teamId) async {
-    try {
+  Future<Either<Failure, List<Player>>> getPlayersByTeam(int teamId) {
+    return runRepositoryGuard(() async {
       final result = await _remoteDatasource.getPlayersByTeam(teamId);
-      List<Player> players = result
-          .map((e) => PlayerMapper.toEntity(e))
-          .toList();
-      return Right(players);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return result.map(PlayerMapper.toEntity).toList();
+    });
   }
 
   @override
-  Future<Either<Failure, Unit>> updatePlayer(Player player) async {
-    try {
+  Future<Either<Failure, Unit>> updatePlayer(Player player) {
+    return runRepositoryGuard(() async {
       await _remoteDatasource.updatePlayer(PlayerMapper.toModel(player));
-      return const Right(unit);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return unit;
+    });
   }
 
   @override
@@ -178,75 +117,54 @@ class PlayerRepository implements IPlayerRepository {
     required String fileName,
     required int teamId,
     int? playerId,
-  }) async {
-    try {
-      final url = await _remoteDatasource.uploadPlayerPhoto(
+  }) {
+    return runRepositoryGuard(() async {
+      return _remoteDatasource.uploadPlayerPhoto(
         bytes: bytes,
         fileName: fileName,
         teamId: teamId,
         playerId: playerId,
       );
-      return Right(url);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+    });
   }
 
   @override
-  Future<Either<Failure, Unit>> deleteStoredPlayerPhoto(String? publicUrl) async {
-    try {
+  Future<Either<Failure, Unit>> deleteStoredPlayerPhoto(String? publicUrl) {
+    return runRepositoryGuard(() async {
       await _remoteDatasource.removePlayerPhotoIfInBucket(publicUrl);
-      return const Right(unit);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return unit;
+    });
   }
 
   @override
   Future<Either<Failure, Unit>> updatePlayerStats(
     int playerId,
     PlayerStats playerStats,
-  ) async {
-    try {
+  ) {
+    return runRepositoryGuard(() async {
       await _remoteDatasource.updatePlayerStats(
         playerId,
         PlayerStatsMapper.toModel(playerStats),
       );
-      return const Right(unit);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return unit;
+    });
   }
 
   @override
-  Future<Either<Failure, Unit>> syncParticipationStatsForTeam(int teamId) async {
-    try {
+  Future<Either<Failure, Unit>> syncParticipationStatsForTeam(int teamId) {
+    return runRepositoryGuard(() async {
       await _remoteDatasource.syncParticipationStatsForTeam(teamId);
-      return const Right(unit);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return unit;
+    });
   }
 
   @override
   Future<Either<Failure, Unit>> recalculateAllAggregatedStatsForTeam(
     int teamId,
-  ) async {
-    try {
+  ) {
+    return runRepositoryGuard(() async {
       await _remoteDatasource.recalculateAllAggregatedStatsForTeam(teamId);
-      return const Right(unit);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on UnknowException catch (e) {
-      return Left(ServerFailure('Unexpected error: $e'));
-    }
+      return unit;
+    });
   }
 }

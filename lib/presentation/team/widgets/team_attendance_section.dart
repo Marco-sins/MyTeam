@@ -8,10 +8,14 @@ class TeamAttendanceSection extends StatelessWidget {
   final Team team;
   final List<Player> players;
 
+  /// Admin / superAdmin: muestra columna de foto en la tabla de plantilla.
+  final bool showPlayerPhotos;
+
   const TeamAttendanceSection({
     super.key,
     required this.team,
     required this.players,
+    this.showPlayerPhotos = false,
   });
 
   @override
@@ -38,7 +42,14 @@ class TeamAttendanceSection extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-              child: AttendanceSummaryTable(team: team, players: players),
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: AttendanceSummaryTable(
+                  team: team,
+                  players: players,
+                  showPlayerPhotos: showPlayerPhotos,
+                ),
+              ),
             ),
           ),
         ),

@@ -511,13 +511,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matchMustLoginFinish => 'You must be signed in to end the match';
 
   @override
-  String get matchOpponentGoal => 'Opponent goal';
-
-  @override
-  String get matchSubtractOur => '− Us';
-
-  @override
-  String get matchSubtractRival => '− Them';
+  String get matchOpponentGoal => 'Goal against';
 
   @override
   String get matchDeleteEventQuestion =>
@@ -648,8 +642,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matchQuickScore => 'Quick score';
 
   @override
-  String get matchGoalsFromFieldHint =>
-      'Goals for are logged from the pitch (player) or actions.';
+  String get matchShotsOnGoalSection => 'Shots on goal';
+
+  @override
+  String get matchEventRivalShot => 'Shot on goal (opponent)';
+
+  @override
+  String get matchRivalShotAddTooltip => 'Add an opponent shot on goal';
+
+  @override
+  String get matchRivalShotRemoveTooltip => 'Remove last opponent shot on goal';
+
+  @override
+  String get matchNoRivalShotsToRemove => 'No opponent shots on goal to remove';
 
   @override
   String get matchFieldAndFormation => 'Pitch and formation';
@@ -705,7 +710,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matchConfirmAddGoalOur => 'Add a goal for your team?';
 
   @override
-  String get matchConfirmAddGoalRival => 'Add a goal for the opponent?';
+  String get matchConfirmAddGoalRival => 'Register a goal against?';
 
   @override
   String get matchMustLoginRegisterGoals =>
@@ -716,35 +721,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your team\'s goals are logged from a player on the pitch';
 
   @override
-  String get matchOpponentGoalRegisteredOk => 'Opponent goal saved';
+  String get matchOpponentGoalRegisteredOk => 'Goal against saved';
 
   @override
   String get matchGoalSaveFail => 'Could not save the goal';
-
-  @override
-  String get matchRemoveGoalTitle => 'Remove goal';
-
-  @override
-  String get matchConfirmRemoveGoalOur => 'Remove a goal from your team?';
-
-  @override
-  String get matchConfirmRemoveGoalRival => 'Remove a goal from the opponent?';
-
-  @override
-  String get matchMustLoginRemoveGoals =>
-      'You must be signed in to remove goals';
-
-  @override
-  String get matchNoGoalsToRemove => 'No goals to remove';
-
-  @override
-  String get matchGoalNotFoundInDb => 'Goal not found in the database';
-
-  @override
-  String get matchGoalRemovedOk => 'Goal removed';
-
-  @override
-  String get matchGoalRemoveFail => 'Could not remove the goal';
 
   @override
   String get matchConvocationLoadError => 'Could not load the squad list';
@@ -884,6 +864,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get matchActionLabelBallRecovery => 'Ball recovery';
+
+  @override
+  String get matchActionLabelShot => 'Shot';
 
   @override
   String get matchActionLabelYellowCard => 'Yellow card';

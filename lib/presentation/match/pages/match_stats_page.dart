@@ -84,6 +84,48 @@ String _localizedTimeStatusNote(AppLocalizations l10n, String raw) {
   return raw;
 }
 
+/// Rol [external]: cronología reducida (alineada con
+/// [MatchLiveTimelineFilter.shouldIncludeRow] en modo espectador).
+bool _matchStatsTimelineEventVisibleToExternal(Map<String, dynamic> event) {
+  final typeKey = canonicalMatchEventTypeKey(event['type']);
+
+  if (typeKey == 'formation') {
+    return false;
+  }
+
+  if (typeKey == 'substitution') {
+    final p1 = supabaseInt(event['player_id1']);
+    final p2 = supabaseInt(event['player_id2']);
+    return p1 != null && p2 != null;
+  }
+
+  if (typeKey == 'scoregoal' ||
+      typeKey == 'concedegoal' ||
+      typeKey == 'owngoal') {
+    return true;
+  }
+
+  if (typeKey == 'yellowcard' || typeKey == 'redcard') {
+    return true;
+  }
+
+  if (typeKey == 'statuschange') {
+    final rawLabel = (event['note'] as String?) ?? '';
+    final lowerLabel = rawLabel.toLowerCase();
+    const allowedStatusNotes = [
+      'inicio 1ª parte',
+      'inicio 1a parte',
+      'descanso',
+      'inicio 2ª parte',
+      'inicio 2a parte',
+      'final del partido',
+    ];
+    return allowedStatusNotes.any((n) => lowerLabel == n.toLowerCase());
+  }
+
+  return false;
+}
+
 class MatchStatsPage extends StatelessWidget {
   const MatchStatsPage({super.key, required this.match});
 
@@ -308,6 +350,40 @@ class MatchStatsPage extends StatelessWidget {
         );
       }
       return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'shot') {
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
+      final scheme = Theme.of(context).colorScheme;
+      final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w600,
+            color: scheme.primary,
+          );
+      final headline = l10n.matchActionLabelShot;
+      if (player != null) {
+        return MatchStatusChangeItem(
+          minute: minute,
+          label: headline,
+          labelWidget: RichText(
+            textAlign: TextAlign.center,
+            text: TextSpan(
+              style: accentStyle,
+              children: [
+                TextSpan(text: '$headline · '),
+                ...playerDorsalNameSpanList(player, accentStyle),
+              ],
+            ),
+          ),
+        );
+      }
+      return MatchStatusChangeItem(label: headline, minute: minute);
+    }
+
+    if (typeKey == 'rivalshot') {
+      return MatchStatusChangeItem(
+        minute: minute,
+        label: l10n.matchEventRivalShot,
+      );
     }
 
     if (typeKey == 'badpass') {
@@ -540,6 +616,9 @@ class MatchStatsPage extends StatelessWidget {
 
             final eventTiles = <Widget>[];
             for (final e in state.events) {
+              if (isExternal && !_matchStatsTimelineEventVisibleToExternal(e)) {
+                continue;
+              }
               final tile = _eventTile(context, state, e);
               if (tile != null) {
                 eventTiles.add(tile);

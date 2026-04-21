@@ -175,4 +175,154 @@ class MatchRemoteDatasource {
       throw UnknowException('Unexpected error: $e');
     }
   }
+
+  Future<String?> getMatchStatusString(int matchId) async {
+    try {
+      final row = await _supabase
+          .from('matches')
+          .select('status')
+          .eq('id', matchId)
+          .maybeSingle();
+      if (row == null) return null;
+      final raw = row['status'];
+      if (raw == null) return null;
+      return raw.toString().split('.').last;
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> updateMatchStatusHalfTime(int matchId) async {
+    try {
+      await _supabase
+          .from('matches')
+          .update({'status': 'halfTime'})
+          .eq('id', matchId);
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> updateMatchStatusSecondHalf({
+    required int matchId,
+    required DateTime secondHalfStart,
+  }) async {
+    try {
+      final iso = secondHalfStart.toIso8601String();
+      await _supabase.from('matches').update({
+        'status': 'secondHalf',
+        'date': iso,
+        'hour': iso,
+      }).eq('id', matchId);
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<List<int>> getConvokedPlayerIds(int matchId) async {
+    try {
+      final result = await _supabase
+          .from('match_lineup')
+          .select('player_id')
+          .eq('match_id', matchId);
+      final list = result as List<dynamic>? ?? const [];
+      final ids = <int>{};
+      for (final row in list) {
+        final m = row as Map;
+        final pid = m['player_id'];
+        if (pid is int) {
+          ids.add(pid);
+        } else if (pid is num) {
+          ids.add(pid.round());
+        }
+      }
+      return ids.toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> updateMatchLineupPosition({
+    required int matchId,
+    required int playerId,
+    required int? position,
+  }) async {
+    try {
+      await _supabase
+          .from('match_lineup')
+          .update({'position': position})
+          .eq('match_id', matchId)
+          .eq('player_id', playerId);
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> setAllLineupNotStarters(int matchId) async {
+    try {
+      await _supabase
+          .from('match_lineup')
+          .update({'is_start': false})
+          .eq('match_id', matchId);
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> setLineupStarter({
+    required int matchId,
+    required int playerId,
+    required bool isStart,
+  }) async {
+    try {
+      await _supabase
+          .from('match_lineup')
+          .update({'is_start': isStart})
+          .eq('match_id', matchId)
+          .eq('player_id', playerId);
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<List<({int playerId, int positionIndex})>> getLineupPositions(
+    int matchId,
+  ) async {
+    try {
+      final lineupRows = await _supabase
+          .from('match_lineup')
+          .select('player_id, position')
+          .eq('match_id', matchId);
+      final list = lineupRows as List<dynamic>? ?? const [];
+      final out = <({int playerId, int positionIndex})>[];
+      for (final row in list) {
+        final m = row as Map;
+        final pid = m['player_id'];
+        final pos = m['position'];
+        final int? playerId = pid is int ? pid : (pid as num?)?.round();
+        final int? positionIndex = pos is int ? pos : (pos as num?)?.round();
+        if (playerId == null || positionIndex == null) continue;
+        out.add((playerId: playerId, positionIndex: positionIndex));
+      }
+      return out;
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
 }

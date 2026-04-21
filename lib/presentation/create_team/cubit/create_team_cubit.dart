@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/team/create_team_use_case.dart';
 import 'package:football_manager/domain/usecase/team/upload_team_logo_use_case.dart';
+
 import 'create_team_state.dart';
 
 class CreateTeamCubit extends Cubit<CreateTeamState> {
@@ -24,20 +25,18 @@ class CreateTeamCubit extends Cubit<CreateTeamState> {
     String? logoUrl;
     if (logoBytes != null && logoFileName != null) {
       final uploadResult = await uploadTeamLogoUseCase(logoBytes, logoFileName);
-      if (!isClosed && uploadResult.isLeft()) {
-        emit(
-          CreateTeamError(
-            uploadResult
-                .swap()
-                .getOrElse(
-                  () => throw Exception('Unexpected error uploading logo'),
-                )
-                .message,
-          ),
-        );
-        return;
-      }
-      logoUrl = uploadResult.getOrElse(() => '');
+      if (isClosed) return;
+      var uploadFailed = false;
+      uploadResult.fold(
+        (failure) {
+          uploadFailed = true;
+          emit(CreateTeamError(failure.message));
+        },
+        (url) {
+          logoUrl = url;
+        },
+      );
+      if (uploadFailed) return;
     }
 
     final result = await createTeamUseCase(

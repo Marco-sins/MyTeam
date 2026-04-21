@@ -371,10 +371,12 @@ class _TeamDetailPageState extends State<TeamDetailPage>
 
                         final authState = context.read<AuthCubit>().state;
                         var loadedIsExternal = false;
+                        var rosterShowPlayerPhotos = false;
                         if (authState is Authenticated) {
-                          loadedIsExternal =
-                              authState.user.teamRoles[team.id] ==
-                                  UserRole.external;
+                          final role = authState.user.teamRoles[team.id];
+                          loadedIsExternal = role == UserRole.external;
+                          rosterShowPlayerPhotos =
+                              role?.hasAdminPrivileges ?? false;
                         }
 
                         if (loadedIsExternal) {
@@ -384,6 +386,7 @@ class _TeamDetailPageState extends State<TeamDetailPage>
                         return TeamAttendanceSection(
                           team: team,
                           players: state.players,
+                          showPlayerPhotos: rosterShowPlayerPhotos,
                         );
                       }
                       return const SizedBox.shrink();

@@ -17,4 +17,8 @@ enum MatchEventEnum {
   substitution,
   formation,
   statusChange,
+  /// Tiro a puerta registrado desde un jugador en campo.
+  shot,
+  /// Tiro a puerta del rival (solo contador manual +/−).
+  rivalShot,
 }

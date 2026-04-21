@@ -522,13 +522,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Debes iniciar sesión para terminar el partido';
 
   @override
-  String get matchOpponentGoal => 'Gol del rival';
-
-  @override
-  String get matchSubtractOur => '− Nuestro';
-
-  @override
-  String get matchSubtractRival => '− Rival';
+  String get matchOpponentGoal => 'Gol en contra';
 
   @override
   String get matchDeleteEventQuestion =>
@@ -664,8 +658,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get matchQuickScore => 'Marcador rápido';
 
   @override
-  String get matchGoalsFromFieldHint =>
-      'Los goles a favor se registran desde el campo (jugador) o las acciones.';
+  String get matchShotsOnGoalSection => 'Tiros a puerta';
+
+  @override
+  String get matchEventRivalShot => 'Tiro a puerta (rival)';
+
+  @override
+  String get matchRivalShotAddTooltip => 'Más un tiro a puerta del rival';
+
+  @override
+  String get matchRivalShotRemoveTooltip => 'Menos un tiro a puerta del rival';
+
+  @override
+  String get matchNoRivalShotsToRemove =>
+      'No hay tiros a puerta del rival que quitar';
 
   @override
   String get matchFieldAndFormation => 'Campo y formación';
@@ -723,7 +729,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get matchConfirmAddGoalRival =>
-      '¿Seguro que quieres añadir un gol al rival?';
+      '¿Seguro que quieres registrar un gol en contra?';
 
   @override
   String get matchMustLoginRegisterGoals =>
@@ -735,38 +741,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get matchOpponentGoalRegisteredOk =>
-      'Gol del rival registrado correctamente';
+      'Gol en contra registrado correctamente';
 
   @override
   String get matchGoalSaveFail => 'No se ha podido registrar el gol';
-
-  @override
-  String get matchRemoveGoalTitle => 'Quitar gol';
-
-  @override
-  String get matchConfirmRemoveGoalOur =>
-      '¿Seguro que quieres quitar un gol a tu equipo?';
-
-  @override
-  String get matchConfirmRemoveGoalRival =>
-      '¿Seguro que quieres quitar un gol al rival?';
-
-  @override
-  String get matchMustLoginRemoveGoals =>
-      'Debes iniciar sesión para quitar goles';
-
-  @override
-  String get matchNoGoalsToRemove => 'No hay goles que quitar';
-
-  @override
-  String get matchGoalNotFoundInDb =>
-      'No se ha encontrado el gol en la base de datos';
-
-  @override
-  String get matchGoalRemovedOk => 'Gol eliminado correctamente';
-
-  @override
-  String get matchGoalRemoveFail => 'No se ha podido quitar el gol';
 
   @override
   String get matchConvocationLoadError =>
@@ -909,6 +887,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get matchActionLabelBallRecovery => 'Balón recuperado';
+
+  @override
+  String get matchActionLabelShot => 'Tiro';
 
   @override
   String get matchActionLabelYellowCard => 'Tarjeta amarilla';

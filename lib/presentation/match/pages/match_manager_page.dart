@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/auth_user.dart' as tfg_auth;
@@ -11,11 +10,26 @@ import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
+import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
+import 'package:football_manager/domain/entities/match_live_timeline_row.dart';
+import 'package:football_manager/domain/services/match_live_timeline_filter.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_half_time_status_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_lineup_starters_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_second_half_started_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_convoked_player_ids_for_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_match_lineup_positions_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_remote_match_status_use_case.dart';
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_live_timeline_maps_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_sent_off_player_ids_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_card_summary_for_match_player_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_rating_event_rows_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
@@ -71,6 +85,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   // Jugadores expulsados (roja o doble amarilla).
   final Set<int> _sentOffPlayerIds = {};
 
+  /// Tiros a puerta (eventos `shot` / `rivalShot`), derivados de [match_events].
+  int _shotsOur = 0;
+  int _shotsRival = 0;
+
   /// Cronología: 2ª arriba / 1ª abajo; en cada parte menos minuto abajo y más arriba.
   List<Map<String, dynamic>> _liveEvents = [];
 
@@ -91,7 +109,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   _MatchPhase _phase = _MatchPhase.notStarted;
   bool _isTimerRunning = false;
 
-  RealtimeChannel? _spectatorMatchRealtimeChannel;
+  IMatchSpectatorRealtime? _spectatorRealtime;
   Timer? _spectatorRealtimeDebounce;
 
   late AnimationController _lastEventBlinkController;
@@ -311,10 +329,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     _lastEventBlinkController.dispose();
     _timer?.cancel();
     _spectatorRealtimeDebounce?.cancel();
-    final ch = _spectatorMatchRealtimeChannel;
-    _spectatorMatchRealtimeChannel = null;
-    if (ch != null) {
-      unawaited(Supabase.instance.client.removeChannel(ch));
+    final rt = _spectatorRealtime;
+    _spectatorRealtime = null;
+    if (rt != null) {
+      unawaited(rt.unsubscribe());
     }
     super.dispose();
   }
@@ -345,7 +363,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// Externo: cambios en BD (eventos, alineación, estado del partido) sin tirar del listado.
   void _subscribeSpectatorRealtime() {
     if (!_isExternal) return;
-    if (_spectatorMatchRealtimeChannel != null) return;
+    if (_spectatorRealtime != null) return;
     if (_match.status == MatchStatus.finished) return;
 
     final mid = _match.id;
@@ -354,42 +372,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       _scheduleSpectatorRealtimeRefresh();
     }
 
-    _spectatorMatchRealtimeChannel = Supabase.instance.client
-        .channel('match_spectator_$mid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'match_events',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'match_id',
-            value: mid,
-          ),
-          callback: (_) => onRemoteChange(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'match_lineup',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'match_id',
-            value: mid,
-          ),
-          callback: (_) => onRemoteChange(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update,
-          schema: 'public',
-          table: 'matches',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'id',
-            value: mid,
-          ),
-          callback: (_) => onRemoteChange(),
-        )
-        .subscribe();
+    final port = context.read<IMatchSpectatorRealtime>();
+    _spectatorRealtime = port;
+    port.subscribeToMatch(mid, onRemoteChange);
   }
 
   void _scheduleSpectatorRealtimeRefresh() {
@@ -401,70 +386,59 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     });
   }
 
-  MatchStatus? _parseMatchStatusColumn(dynamic raw) {
-    if (raw == null) return null;
-    final tail = raw.toString().split('.').last;
-    for (final v in MatchStatus.values) {
-      if (v.toString().split('.').last == tail) {
-        return v;
-      }
-    }
-    return null;
-  }
-
   Future<void> _syncMatchMetaFromServer() async {
     try {
-      final row = await Supabase.instance.client
-          .from('matches')
-          .select('status')
-          .eq('id', _match.id)
-          .maybeSingle();
-      if (!mounted || row == null) return;
-      final status = _parseMatchStatusColumn(row['status']);
-      if (status == null || status == _match.status) return;
+      final uc = context.read<FetchRemoteMatchStatusUseCase>();
+      final result = await uc(_match.id);
+      await result.fold<Future<void>>(
+        (_) async {},
+        (status) async {
+          if (!mounted || status == null || status == _match.status) return;
 
-      setState(() {
-        _match = Match(
-          id: _match.id,
-          teamId: _match.teamId,
-          opponent: _match.opponent,
-          goalsScored: _match.goalsScored,
-          goalsConceded: _match.goalsConceded,
-          date: _match.date,
-          hour: _match.hour,
-          status: status,
-          lineups: _match.lineups,
-          isHome: _match.isHome,
-        );
-        switch (status) {
-          case MatchStatus.notStarted:
-            _phase = _MatchPhase.notStarted;
-            _isTimerRunning = false;
-            _timer?.cancel();
-            break;
-          case MatchStatus.firstHalf:
-            _phase = _MatchPhase.firstHalf;
-            break;
-          case MatchStatus.halfTime:
-            _phase = _MatchPhase.halfTime;
-            _isTimerRunning = false;
-            _timer?.cancel();
-            break;
-          case MatchStatus.secondHalf:
-            _phase = _MatchPhase.secondHalf;
-            break;
-          case MatchStatus.finished:
-            _isTimerRunning = false;
-            _timer?.cancel();
-            break;
-        }
-      });
+          setState(() {
+            _match = Match(
+              id: _match.id,
+              teamId: _match.teamId,
+              opponent: _match.opponent,
+              goalsScored: _match.goalsScored,
+              goalsConceded: _match.goalsConceded,
+              date: _match.date,
+              hour: _match.hour,
+              status: status,
+              lineups: _match.lineups,
+              isHome: _match.isHome,
+            );
+            switch (status) {
+              case MatchStatus.notStarted:
+                _phase = _MatchPhase.notStarted;
+                _isTimerRunning = false;
+                _timer?.cancel();
+                break;
+              case MatchStatus.firstHalf:
+                _phase = _MatchPhase.firstHalf;
+                break;
+              case MatchStatus.halfTime:
+                _phase = _MatchPhase.halfTime;
+                _isTimerRunning = false;
+                _timer?.cancel();
+                break;
+              case MatchStatus.secondHalf:
+                _phase = _MatchPhase.secondHalf;
+                break;
+              case MatchStatus.finished:
+                _isTimerRunning = false;
+                _timer?.cancel();
+                break;
+            }
+          });
 
-      if (status == MatchStatus.firstHalf || status == MatchStatus.secondHalf) {
-        if (mounted && !_isTimerRunning) {
-          _initializeTimer();
-        }
-      }
+          if (status == MatchStatus.firstHalf || status == MatchStatus.secondHalf) {
+            if (mounted && !_isTimerRunning) {
+              _initializeTimer();
+            }
+          }
+        },
+      );
     } catch (e) {
       debugPrint('Error syncing match meta: $e');
     }
@@ -540,8 +514,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _persistCurrentPositionsToMatchLineup() async {
     try {
-      final supabase = Supabase.instance.client;
-
       final Map<int, int> positionByPlayerId = {};
       for (int i = 0; i < _positionPlayers.length; i++) {
         final player = _positionPlayers[i];
@@ -550,14 +522,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         }
       }
 
-      for (final player in _convokedPlayers) {
-        final int? pos = positionByPlayerId[player.id];
-        await supabase
-            .from('match_lineup')
-            .update({'position': pos})
-            .eq('match_id', _match.id)
-            .eq('player_id', player.id);
-      }
+      final uc = context.read<PersistMatchLineupPositionsUseCase>();
+      final res = await uc(
+        matchId: _match.id,
+        convokedPlayerIds: _convokedPlayers.map((p) => p.id).toList(),
+        onFieldPositionByPlayerId: positionByPlayerId,
+      );
+      res.fold((f) => debugPrint(f.message), (_) {});
     } catch (e) {
       debugPrint('Error updating positions in match_lineup: $e');
     }
@@ -692,6 +663,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   int _halfDurationSeconds() => _firstHalfDurationMinutesForCategory() * 60;
 
+  /// Cronómetro: tiempo transcurrido de la parte (sube desde 0:00), topeado al reglamentario.
   int _mainClockSeconds() {
     final limit = _halfDurationSeconds();
     final value = _elapsedSeconds <= limit ? _elapsedSeconds : limit;
@@ -748,69 +720,60 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
-  Future<({int scored, int conceded})?> _queryScoreCountsFromEvents() async {
+  Future<({
+    int scored,
+    int conceded,
+    int shotsOur,
+    int shotsRival,
+  })?> _queryEventAggregatesFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type')
-          .eq('match_id', _match.id);
-
-      int scored = 0;
-      int conceded = 0;
-
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-
-        if (typeString == 'scoreGoal') {
-          scored++;
-        } else if (typeString == 'concedeGoal' || typeString == 'ownGoal') {
-          conceded++;
-        }
-      }
-
-      return (scored: scored, conceded: conceded);
+      final uc = context.read<GetMatchEventAggregatesFromEventsUseCase>();
+      final result = await uc(_match.id);
+      return result.fold((_) => null, (a) {
+        return (
+          scored: a.goalsScored,
+          conceded: a.goalsConceded,
+          shotsOur: a.shotsOur,
+          shotsRival: a.shotsRival,
+        );
+      });
     } catch (_) {
       return null;
     }
   }
 
   Future<void> _reloadScoreFromEvents() async {
-    final counts = await _queryScoreCountsFromEvents();
-    if (counts == null || !mounted) return;
+    final agg = await _queryEventAggregatesFromEvents();
+    if (agg == null || !mounted) return;
     setState(() {
       _match = Match(
         id: _match.id,
         teamId: _match.teamId,
         opponent: _match.opponent,
-        goalsScored: counts.scored,
-        goalsConceded: counts.conceded,
+        goalsScored: agg.scored,
+        goalsConceded: agg.conceded,
         date: _match.date,
         hour: _match.hour,
         status: _match.status,
         lineups: _match.lineups,
         isHome: _match.isHome,
       );
+      _shotsOur = agg.shotsOur;
+      _shotsRival = agg.shotsRival;
     });
   }
 
   Future<Map<int, double>?> _queryPlayerRatingsMap() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1, player_id2, note')
-          .eq('match_id', _match.id);
-
-      final events = List<Map<String, dynamic>>.from(result as List);
-
-      final Map<int, double> newRatings = {};
-      for (final player in _convokedPlayers) {
-        newRatings[player.id] = calculatePlayerRating(player.id, events);
-      }
-      return newRatings;
+      final uc = context.read<GetPlayerRatingEventRowsUseCase>();
+      final result = await uc(_match.id);
+      return result.fold((_) => null, (events) {
+        final Map<int, double> newRatings = {};
+        for (final player in _convokedPlayers) {
+          newRatings[player.id] = calculatePlayerRating(player.id, events);
+        }
+        return newRatings;
+      });
     } catch (e) {
       debugPrint('Error calculating player ratings: $e');
       return null;
@@ -875,76 +838,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// Une variantes como scoreGoal, score_goal, enums en español, etc.
   String _canonicalEventTypeKey(dynamic raw) => canonicalMatchEventTypeKey(raw);
 
-  /// Notas de [statusChange] que marcan el reloj del partido (alineado con estadísticas).
-  bool _isMatchTimeStatusNote(String? note) {
-    if (note == null || note.isEmpty) return false;
-    final lower = note.trim().toLowerCase();
-    const allowed = [
-      'inicio 1ª parte',
-      'inicio 1a parte',
-      'descanso',
-      'inicio 2ª parte',
-      'inicio 2a parte',
-      'final del partido',
-    ];
-    return allowed.any((n) => lower == n.toLowerCase());
-  }
-
-  /// Lista de eventos en vivo: solo goles, cambios de tiempo y cambios de jugador.
-  /// Pases, jugadas, recuperaciones, tarjetas, etc. siguen guardados pero no se listan aquí.
-  bool _shouldIncludeInLiveEventsList(Map<String, dynamic> row) {
-    final key = _canonicalEventTypeKey(row['type']);
-    if (key == 'formation') {
-      return false;
-    }
-    if (key == 'substitution') {
-      return _dynToInt(row['player_id2']) != null;
-    }
-    if (key == 'scoregoal' || key == 'concedegoal' || key == 'owngoal') {
-      return true;
-    }
-    if (key == 'statuschange') {
-      return _isMatchTimeStatusNote(_dynToStr(row['note']));
-    }
-    return false;
-  }
-
-  DateTime _parseEventCreatedAt(dynamic v) {
-    if (v == null) return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    try {
-      return DateTime.parse(v.toString());
-    } catch (_) {
-      return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    }
-  }
-
-  /// Nota del evento [statusChange] al pasar a la 2ª parte (ver [_saveStatusChangeEvent]).
-  bool _noteIndicatesSecondHalfKickoff(String? note) {
-    if (note == null || note.isEmpty) return false;
-    final n = note.toLowerCase();
-    return n.contains('inicio') && n.contains('2') && n.contains('parte');
-  }
-
-  /// Momento del último "Inicio 2ª parte" en la lista ya filtrada (por si hubiera duplicados).
-  DateTime? _resolveSecondHalfStartFromRows(List<Map<String, dynamic>> rows) {
-    DateTime? best;
-    for (final r in rows) {
-      if (_canonicalEventTypeKey(r['type']) != 'statuschange') continue;
-      final note = _dynToStr(r['note']);
-      if (!_noteIndicatesSecondHalfKickoff(note)) continue;
-      final t = _parseEventCreatedAt(r['created_at']);
-      if (best == null || t.isAfter(best)) {
-        best = t;
-      }
-    }
-    return best;
-  }
-
   /// 1 = primera parte, 2 = segunda. Sin ancla de inicio 2ª: todo se trata como 1ª.
   int _eventMatchHalf(Map<String, dynamic> row, DateTime? secondHalfStart) {
-    if (secondHalfStart == null) return 1;
-    final t = _parseEventCreatedAt(row['created_at']);
-    return !t.isBefore(secondHalfStart) ? 2 : 1;
+    final r = MatchLiveTimelineRow.fromPostgresMap(
+      Map<String, dynamic>.from(row),
+    );
+    return MatchLiveTimelineFilter.eventHalf(r, secondHalfStart);
   }
 
   /// Etiqueta de minuto: en descuento, [reglamentario]+[added] (p. ej. 45+2, 90+1).
@@ -963,65 +862,25 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return "$minute'";
   }
 
-  DateTime? _resolvedSecondHalfStart() =>
-      _resolveSecondHalfStartFromRows(_liveEvents);
-
-  /// 2ª parte arriba, 1ª abajo. En cada parte: de abajo a arriba de menos a más
-  /// minuto (en la columna, más minutos arriba; mismo minuto, más reciente arriba).
-  int _compareLiveEventsDisplayOrder(
-    Map<String, dynamic> a,
-    Map<String, dynamic> b,
-    DateTime? secondHalfStart,
-  ) {
-    final ha = _eventMatchHalf(a, secondHalfStart);
-    final hb = _eventMatchHalf(b, secondHalfStart);
-    if (ha != hb) {
-      return hb.compareTo(ha);
-    }
-    final ma = _dynToInt(a['minute']) ?? 0;
-    final mb = _dynToInt(b['minute']) ?? 0;
-    if (ma != mb) {
-      return mb.compareTo(ma);
-    }
-    final ca = _parseEventCreatedAt(a['created_at']);
-    final cb = _parseEventCreatedAt(b['created_at']);
-    final byTime = cb.compareTo(ca);
-    if (byTime != 0) {
-      return byTime;
-    }
-    final ida = _dynToInt(a['id']) ?? 0;
-    final idb = _dynToInt(b['id']) ?? 0;
-    return idb.compareTo(ida);
+  DateTime? _resolvedSecondHalfStart() {
+    final rows = _liveEvents
+        .map(
+          (m) => MatchLiveTimelineRow.fromPostgresMap(
+                Map<String, dynamic>.from(m),
+              ),
+        )
+        .toList();
+    return MatchLiveTimelineFilter.resolveSecondHalfStart(rows);
   }
 
   Future<List<Map<String, dynamic>>?> _queryLiveEventsFiltered() async {
     try {
-      final supabase = Supabase.instance.client;
-      final raw = await supabase
-          .from('match_events')
-          .select(
-            'id, match_id, type, minute, player_id1, player_id2, note, created_at',
-          )
-          .eq('match_id', _match.id)
-          .order('minute', ascending: true)
-          .order('created_at', ascending: true);
-
-      final list = raw as List;
-      final out = list
-          .map((e) {
-            final m = Map<String, dynamic>.from(e as Map);
-            m['minute'] = resolveMatchEventMinute(m);
-            final id1 = supabaseInt(m['player_id1']);
-            final id2 = supabaseInt(m['player_id2']);
-            if (id1 != null) m['player_id1'] = id1;
-            if (id2 != null) m['player_id2'] = id2;
-            return m;
-          })
-          .where(_shouldIncludeInLiveEventsList)
-          .toList();
-      final t2h = _resolveSecondHalfStartFromRows(out);
-      out.sort((a, b) => _compareLiveEventsDisplayOrder(a, b, t2h));
-      return out;
+      final uc = context.read<GetMatchLiveTimelineMapsUseCase>();
+      final result = await uc(
+        matchId: _match.id,
+        isExternalSpectator: _isExternal,
+      );
+      return result.fold((_) => null, (rows) => rows);
     } catch (e) {
       debugPrint('Error loading live events: $e');
       return null;
@@ -1030,34 +889,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<Set<int>?> _querySentOffIdsFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1')
-          .eq('match_id', _match.id);
-
-      final Map<int, int> yellowCounts = {};
-      final Set<int> sentOff = {};
-
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-        final p1 = _dynToInt(row['player_id1']);
-        if (p1 == null) continue;
-
-        if (typeString == 'redCard') {
-          sentOff.add(p1);
-        } else if (typeString == 'yellowCard') {
-          final current = yellowCounts[p1] ?? 0;
-          final next = current + 1;
-          yellowCounts[p1] = next;
-          if (next >= 2) {
-            sentOff.add(p1);
-          }
-        }
-      }
-      return sentOff;
+      final uc = context.read<GetMatchSentOffPlayerIdsUseCase>();
+      final result = await uc(_match.id);
+      return result.fold((_) => null, (s) => s);
     } catch (e) {
       debugPrint('Error querying discipline: $e');
       return null;
@@ -1073,6 +907,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         type == MatchEventEnum.scoreGoal ||
         type == MatchEventEnum.concedeGoal ||
         type == MatchEventEnum.ownGoal;
+    final needsShots =
+        type == MatchEventEnum.shot || type == MatchEventEnum.rivalShot;
     final needsDiscipline =
         type == MatchEventEnum.yellowCard || type == MatchEventEnum.redCard;
 
@@ -1080,8 +916,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
     final fRatings = _queryPlayerRatingsMap();
     final fLive = _queryLiveEventsFiltered();
-    final Future<({int scored, int conceded})?>? fScore = needsScore
-        ? _queryScoreCountsFromEvents()
+    final Future<
+        ({
+          int scored,
+          int conceded,
+          int shotsOur,
+          int shotsRival,
+        })?>? fAgg = (needsScore || needsShots)
+        ? _queryEventAggregatesFromEvents()
         : null;
     final Future<Set<int>?>? fDisc = needsDiscipline
         ? _querySentOffIdsFromEvents()
@@ -1089,7 +931,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
     final ratings = await fRatings;
     final live = await fLive;
-    final score = fScore != null ? await fScore : null;
+    final agg = fAgg != null ? await fAgg : null;
     final sentOff = fDisc != null ? await fDisc : null;
 
     if (!mounted) return;
@@ -1097,7 +939,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       await _refreshDerivedMatchData();
       return;
     }
-    if (needsScore && score == null) {
+    if ((needsScore || needsShots) && agg == null) {
       await _refreshDerivedMatchData();
       return;
     }
@@ -1107,19 +949,21 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
 
     setState(() {
-      if (score != null) {
+      if (agg != null) {
         _match = Match(
           id: _match.id,
           teamId: _match.teamId,
           opponent: _match.opponent,
-          goalsScored: score.scored,
-          goalsConceded: score.conceded,
+          goalsScored: agg.scored,
+          goalsConceded: agg.conceded,
           date: _match.date,
           hour: _match.hour,
           status: _match.status,
           lineups: _match.lineups,
           isHome: _match.isHome,
         );
+        _shotsOur = agg.shotsOur;
+        _shotsRival = agg.shotsRival;
       }
       _playerRatings = ratings;
       _liveEvents = live;
@@ -1152,26 +996,18 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _showCardExpulsionSnack(Player player) async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1')
-          .eq('match_id', _match.id)
-          .eq('player_id1', player.id);
+      final uc = context.read<GetPlayerCardSummaryForMatchPlayerUseCase>();
+      final summaryResult = await uc(
+        matchId: _match.id,
+        playerId: player.id,
+      );
 
       int yellowCount = 0;
       bool hasRed = false;
-
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-        if (typeString == 'yellowCard') {
-          yellowCount++;
-        } else if (typeString == 'redCard') {
-          hasRed = true;
-        }
-      }
+      summaryResult.fold((_) {}, (s) {
+        yellowCount = s.yellowCount;
+        hasRed = s.hasRed;
+      });
 
       if (!mounted) return;
 
@@ -1493,41 +1329,33 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _loadLastFormationFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('id, type, note, minute')
-          .eq('match_id', _match.id)
-          .eq('type', 'formation')
-          // Usamos el id descendente para asegurar que obtenemos
-          // siempre la última formación guardada, incluso si varias
-          // tienen el mismo minuto (0 antes de empezar el partido).
-          .order('id', ascending: false)
-          .limit(1);
+      final uc = context.read<GetLatestFormationNoteByMatchUseCase>();
+      final result = await uc(_match.id);
+      await result.fold<Future<void>>(
+        (_) async {},
+        (formationNote) async {
+          final formation = formationNote?.trim();
+          if (formation == null || !_formationOptions.containsKey(formation)) {
+            return;
+          }
 
-      if (result.isEmpty) return;
+          if (!mounted) return;
+          final outfieldLines = _formationOptions[formation]!;
+          final newFormationLines = [1, ...outfieldLines];
+          final totalPositions = newFormationLines.fold<int>(
+            0,
+            (sum, value) => sum + value,
+          );
 
-      final row = result.first;
-      final formation = (row['note'] as String?)?.trim();
-      if (formation == null || !_formationOptions.containsKey(formation)) {
-        return;
-      }
-
-      if (!mounted) return;
-      final outfieldLines = _formationOptions[formation]!;
-      final newFormationLines = [1, ...outfieldLines];
-      final totalPositions = newFormationLines.fold<int>(
-        0,
-        (sum, value) => sum + value,
+          setState(() {
+            _selectedFormation = formation;
+            _formationLines = newFormationLines;
+            if (_positionPlayers.length != totalPositions) {
+              _positionPlayers = List<Player?>.filled(totalPositions, null);
+            }
+          });
+        },
       );
-
-      setState(() {
-        _selectedFormation = formation;
-        _formationLines = newFormationLines;
-        if (_positionPlayers.length != totalPositions) {
-          _positionPlayers = List<Player?>.filled(totalPositions, null);
-        }
-      });
     } catch (_) {
       // Si falla, mantenemos la formación actual
     }
@@ -1591,16 +1419,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _updateStartersInMatchLineup() async {
     try {
-      final supabase = Supabase.instance.client;
-
-      // Primero marcamos a todos los convocados de este partido como no titulares.
-      await supabase
-          .from('match_lineup')
-          .update({'is_start': false})
-          .eq('match_id', _match.id);
-
-      // Luego marcamos como titulares a los jugadores que están en el campo
-      // cuando se inicia el partido.
       final starterIds = _positionPlayers
           .where((p) => p != null)
           .map((p) => p!.id)
@@ -1608,15 +1426,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           .toList();
 
       if (starterIds.isEmpty) return;
-      // En esta versión del cliente Postgrest no está disponible in_,
-      // así que actualizamos uno a uno.
-      for (final playerId in starterIds) {
-        await supabase
-            .from('match_lineup')
-            .update({'is_start': true})
-            .eq('match_id', _match.id)
-            .eq('player_id', playerId);
-      }
+
+      final uc = context.read<ApplyMatchLineupStartersUseCase>();
+      await uc(matchId: _match.id, starterPlayerIds: starterIds);
     } catch (e) {
       // No rompemos la UI si falla; solo registramos el error.
       debugPrint('Error updating starters in match_lineup: $e');
@@ -1708,7 +1520,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     if (!confirmed) return;
 
     try {
-      // Solo permitimos registrar goles del rival desde este botón.
       if (ourTeam) {
         _showSnack(
           l10n.matchGoalsOurTeamFromField,
@@ -1753,92 +1564,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
-  Future<void> _onRemoveGoal({required bool ourTeam}) async {
-    final l10n = AppLocalizations.of(context)!;
-    final currentGoals = ourTeam ? _match.goalsScored : _match.goalsConceded;
-    if (currentGoals <= 0) {
-      _showSnack(l10n.matchNoGoalsToRemove, error: true);
-      return;
-    }
-
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! Authenticated) {
-      _showSnack(l10n.matchMustLoginRemoveGoals, error: true);
-      return;
-    }
-
-    final confirmed = await _confirmAction(
-      l10n.matchRemoveGoalTitle,
-      ourTeam
-          ? l10n.matchConfirmRemoveGoalOur
-          : l10n.matchConfirmRemoveGoalRival,
-    );
-    if (!confirmed) return;
-
-    try {
-      final supabase = Supabase.instance.client;
-
-      final String eventTypeFilter = ourTeam ? 'scoreGoal' : 'concedeGoal';
-
-      final result = await supabase
-          .from('match_events')
-          .select()
-          .eq('match_id', _match.id)
-          .eq('type', eventTypeFilter)
-          .order('minute', ascending: false)
-          .limit(1);
-
-      if (result.isEmpty) {
-        _showSnack(
-          l10n.matchGoalNotFoundInDb,
-          error: true,
-        );
-        return;
-      }
-
-      final row = result.first;
-
-      final String? eventTypeString = row['type'] as String?;
-      final MatchEventEnum eventType = eventTypeString != null
-          ? MatchEventEnum.values.firstWhere(
-              (e) => e.toString() == 'MatchEventEnum.$eventTypeString',
-              orElse: () => MatchEventEnum.scoreGoal,
-            )
-          : MatchEventEnum.scoreGoal;
-
-      final event = MatchEvent(
-        id: row['id'] as int,
-        matchId: _match.id,
-        playerId1: row['player_id1'] as int?,
-        playerId2: row['player_id2'] as int?,
-        minute: supabaseInt(row['minute']) ?? 0,
-        type: eventType,
-        note: row['note'] as String?,
-      );
-
-      final deleteMatchEventUseCase = context.read<DeleteMatchEventUseCase>();
-      final deleteResult = await deleteMatchEventUseCase(
-        event,
-        authState.user,
-        widget.team.id,
-      );
-
-      await deleteResult.fold<Future<void>>(
-        (failure) async {
-          _showSnack(failure.message, error: true);
-        },
-        (_) async {
-          await _refreshDerivedMatchData();
-          if (mounted) {
-            _showSnack(l10n.matchGoalRemovedOk);
-          }
-        },
-      );
-    } catch (e) {
-      _showSnack(l10n.matchGoalRemoveFail, error: true);
-    }
-  }
-
   Future<void> _loadConvocationPlayers() async {
     setState(() {
       _loadingPlayers = true;
@@ -1851,19 +1576,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     // todos los jugadores del equipo como fallback.
     Set<int> playerIds = {};
     try {
-      final supabase = Supabase.instance.client;
-      final lineupResult = await supabase
-          .from('match_lineup')
-          .select('player_id')
-          .eq('match_id', _match.id);
-
-      playerIds = lineupResult
-          .map<int>((row) => row['player_id'] as int)
-          .toSet();
+      final idsUc = context.read<FetchConvokedPlayerIdsForMatchUseCase>();
+      final idsRes = await idsUc(_match.id);
+      playerIds = idsRes.fold((_) => <int>{}, (s) => s);
     } catch (e) {
       debugPrint('Error loading match_lineup for convocation: $e');
-      // playerIds se queda vacío y más abajo mostraremos
-      // todos los jugadores del equipo como fallback.
     }
 
     // 2) Cargamos los jugadores del equipo y filtramos por los
@@ -1922,39 +1639,40 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _loadPositionsFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-
-      final lineupRows = await supabase
-          .from('match_lineup')
-          .select('player_id, position')
-          .eq('match_id', _match.id);
+      final uc = context.read<FetchMatchLineupPositionsUseCase>();
+      final res = await uc(_match.id);
 
       if (!mounted) return;
 
-      final List<Player?> newPositions = List<Player?>.filled(
-        _positionPlayers.length,
-        null,
+      await res.fold<Future<void>>(
+        (_) async {},
+        (assignments) async {
+          final List<Player?> newPositions = List<Player?>.filled(
+            _positionPlayers.length,
+            null,
+          );
+
+          for (final a in assignments) {
+            final playerId = a.playerId;
+            final pos = a.positionIndex;
+            if (pos < 0 || pos >= newPositions.length) continue;
+
+            final player = _convokedPlayers.firstWhere(
+              (p) => p.id == playerId,
+              orElse: () => const Player(teamId: 0, firstName: ''),
+            );
+
+            if (player.id != 0) {
+              newPositions[pos] = player;
+            }
+          }
+
+          if (!mounted) return;
+          setState(() {
+            _positionPlayers = newPositions;
+          });
+        },
       );
-
-      for (final row in lineupRows as List) {
-        final int? playerId = row['player_id'] as int?;
-        final int? pos = row['position'] as int?;
-        if (playerId == null || pos == null) continue;
-        if (pos < 0 || pos >= newPositions.length) continue;
-
-        final player = _convokedPlayers.firstWhere(
-          (p) => p.id == playerId,
-          orElse: () => const Player(teamId: 0, firstName: ''),
-        );
-
-        if (player.id != 0) {
-          newPositions[pos] = player;
-        }
-      }
-
-      setState(() {
-        _positionPlayers = newPositions;
-      });
     } catch (e) {
       debugPrint('Error loading positions from match_lineup: $e');
     }
@@ -2080,6 +1798,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         return l10n.matchActionLabelGoodPlay;
       case MatchPlayerActionType.ballRecovery:
         return l10n.matchActionLabelBallRecovery;
+      case MatchPlayerActionType.shot:
+        return l10n.matchActionLabelShot;
       case MatchPlayerActionType.yellowCard:
         return l10n.matchActionLabelYellowCard;
       case MatchPlayerActionType.redCard:
@@ -2135,6 +1855,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         case MatchPlayerActionType.ballRecovery:
           type = MatchEventEnum.ballRecovery;
           note = 'Balón recuperado';
+          break;
+        case MatchPlayerActionType.shot:
+          type = MatchEventEnum.shot;
+          note = 'Tiro';
           break;
         case MatchPlayerActionType.badPass:
           type = MatchEventEnum.badPass;
@@ -2429,11 +2153,19 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       if (!loadingCubit.state) {
         loadingCubit.start();
         try {
-          final supabase = Supabase.instance.client;
-          await supabase
-              .from('matches')
-              .update({'status': 'halfTime'})
-              .eq('id', _match.id);
+          final applyHt = context.read<ApplyMatchHalfTimeStatusUseCase>();
+          final htRes = await applyHt(_match.id);
+          htRes.fold(
+            (failure) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(failure.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            (_) {},
+          );
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2490,15 +2222,22 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       if (!loadingCubit.state) {
         loadingCubit.start();
         try {
-          final supabase = Supabase.instance.client;
-          await supabase
-              .from('matches')
-              .update({
-                'status': 'secondHalf',
-                'date': secondHalfStart.toIso8601String(),
-                'hour': secondHalfStart.toIso8601String(),
-              })
-              .eq('id', _match.id);
+          final apply2 = context.read<ApplyMatchSecondHalfStartedUseCase>();
+          final shRes = await apply2(
+            matchId: _match.id,
+            secondHalfStart: secondHalfStart,
+          );
+          shRes.fold(
+            (failure) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(failure.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            (_) {},
+          );
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2579,7 +2318,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         },
         (_) async {
           if (!mounted) return;
-          final counts = await _queryScoreCountsFromEvents();
+          final counts = await _queryEventAggregatesFromEvents();
           final finishedMatch = Match(
             id: _match.id,
             teamId: _match.teamId,
@@ -2729,17 +2468,47 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      BlocBuilder<LoadingCubit, bool>(
+                        builder: (context, isLoading) {
+                          final schemeBtn = Theme.of(context).colorScheme;
+                          return FilledButton(
+                            onPressed: (isLoading || isExternal)
+                                ? null
+                                : _onBottomButtonPressed,
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: isLoading
+                                ? SizedBox(
+                                    width: 26,
+                                    height: 26,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: schemeBtn.onPrimary,
+                                    ),
+                                  )
+                                : Text(
+                                    _bottomButtonLabel(l10n),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                          );
+                        },
+                      ),
                       const SizedBox(height: 14),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 10,
+                          vertical: 20,
+                          horizontal: 12,
                         ),
                         decoration: BoxDecoration(
                           color: scheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: scheme.outlineVariant.withValues(alpha: 0.5),
+                            color: scheme.outlineVariant.withValues(alpha: 0.55),
                           ),
                         ),
                         child: Row(
@@ -2751,14 +2520,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                 textAlign: TextAlign.end,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
+                                horizontal: 12,
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -2767,30 +2536,33 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                 children: [
                                   Text(
                                     '${_match.goalsScored}',
-                                    style: theme.textTheme.headlineSmall
+                                    style: theme.textTheme.displaySmall
                                         ?.copyWith(
                                           fontWeight: FontWeight.w900,
+                                          height: 1,
                                           color: scheme.primary,
                                         ),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
+                                      horizontal: 8,
                                     ),
                                     child: Text(
                                       '—',
-                                      style: theme.textTheme.titleMedium
+                                      style: theme.textTheme.headlineSmall
                                           ?.copyWith(
                                             color: scheme.outline,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w700,
+                                            height: 1,
                                           ),
                                     ),
                                   ),
                                   Text(
                                     '${_match.goalsConceded}',
-                                    style: theme.textTheme.headlineSmall
+                                    style: theme.textTheme.displaySmall
                                         ?.copyWith(
                                           fontWeight: FontWeight.w900,
+                                          height: 1,
                                           color: scheme.onSurface,
                                         ),
                                   ),
@@ -2803,7 +2575,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                 textAlign: TextAlign.start,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -2813,6 +2585,25 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                       ),
                       const SizedBox(height: 14),
                       Center(child: clockWidget()),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Center(
+                          child: Text(
+                            '${l10n.matchShotsOnGoalSection}  '
+                            '$_shotsOur — $_shotsRival',
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant.withValues(
+                                alpha: 0.92,
+                              ),
+                              fontWeight: FontWeight.w500,
+                              height: 1.25,
+                            ),
+                          ),
+                        ),
+                      ),
                       if (!isExternal) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -2831,32 +2622,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           onPressed: () => _onAddGoal(ourTeam: false),
                           icon: const Icon(Icons.sports_soccer, size: 20),
                           label: Text(l10n.matchOpponentGoal),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _onRemoveGoal(ourTeam: true),
-                                child: Text(l10n.matchSubtractOur),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _onRemoveGoal(ourTeam: false),
-                                child: Text(l10n.matchSubtractRival),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.matchGoalsFromFieldHint,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            height: 1.3,
-                          ),
                         ),
                       ],
                     ],
@@ -3183,36 +2948,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              BlocBuilder<LoadingCubit, bool>(
-                builder: (context, isLoading) {
-                  final schemeBtn = Theme.of(context).colorScheme;
-                  return FilledButton(
-                    onPressed: (isLoading || isExternal)
-                        ? null
-                        : _onBottomButtonPressed,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: isLoading
-                        ? SizedBox(
-                            width: 26,
-                            height: 26,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: schemeBtn.onPrimary,
-                            ),
-                          )
-                        : Text(
-                            _bottomButtonLabel(l10n),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                  );
-                },
               ),
             ],
           ),

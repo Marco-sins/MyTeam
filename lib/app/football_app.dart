@@ -5,6 +5,7 @@ import 'package:football_manager/core/constants/app_branding.dart';
 import 'package:football_manager/core/di/injection_container.dart';
 import 'package:football_manager/core/locale/locale_cubit.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
+import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
 import 'package:football_manager/domain/repositories/i_team_repository.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_day_use_case.dart';
@@ -21,15 +22,29 @@ import 'package:football_manager/domain/usecase/invitation/accept_invitation_use
 import 'package:football_manager/domain/usecase/invitation/create_invitation_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
 import 'package:football_manager/domain/usecase/invitation/reject_invitation_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_half_time_status_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_lineup_starters_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_second_half_started_use_case.dart';
 import 'package:football_manager/domain/usecase/match/create_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/delete_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_convoked_player_ids_for_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_match_lineup_positions_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_remote_match_status_use_case.dart';
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/get_match_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_latest_match_event_by_db_type_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_live_timeline_maps_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_sent_off_player_ids_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_card_summary_for_match_player_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_rating_event_rows_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/player/add_new_player_use_case.dart';
 import 'package:football_manager/domain/usecase/player/delete_player_use_case.dart';
@@ -110,8 +125,51 @@ class FootballApp extends StatelessWidget {
               RepositoryProvider.value(
                 value: sl<GetLatestFormationNoteByMatchUseCase>(),
               ),
+              RepositoryProvider.value(value: sl<GetMatchByIdUseCase>()),
+              RepositoryProvider.value(
+                value: sl<GetMatchEventAggregatesFromEventsUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<GetMatchLiveTimelineMapsUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<GetMatchSentOffPlayerIdsUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<GetPlayerRatingEventRowsUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<GetPlayerCardSummaryForMatchPlayerUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<GetLatestMatchEventByDbTypeUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<FetchRemoteMatchStatusUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<ApplyMatchHalfTimeStatusUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<ApplyMatchSecondHalfStartedUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<PersistMatchLineupPositionsUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<ApplyMatchLineupStartersUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<FetchConvokedPlayerIdsForMatchUseCase>(),
+              ),
+              RepositoryProvider.value(
+                value: sl<FetchMatchLineupPositionsUseCase>(),
+              ),
               RepositoryProvider.value(
                 value: sl<GetMatchLineupsByMatchUseCase>(),
+              ),
+              RepositoryProvider<IMatchSpectatorRealtime>.value(
+                value: sl<IMatchSpectatorRealtime>(),
               ),
               RepositoryProvider.value(value: sl<GetProfilesByIdsUseCase>()),
               RepositoryProvider.value(value: sl<CreateInvitationUseCase>()),
