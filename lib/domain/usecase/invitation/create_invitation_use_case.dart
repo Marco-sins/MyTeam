@@ -26,6 +26,13 @@ class CreateInvitationUseCase {
         PermissionFailure('You do not have permission to invite users.'),
       );
     }
+    if (teamRole == UserRole.admin && invitation.role != UserRole.external) {
+      return Left(
+        PermissionFailure(
+          'Los administradores solo pueden invitar espectadores.',
+        ),
+      );
+    }
     final response = await _invitationRepository.createInvitation(invitation);
     if (response.isLeft()) {
       return response as Left<Failure, void>;

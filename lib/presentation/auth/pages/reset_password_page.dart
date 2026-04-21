@@ -42,7 +42,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         const SnackBar(
           content: Text('Contraseña actualizada correctamente.'),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 1),
+          duration: const Duration(seconds: 4),
         ),
       );
       Navigator.of(context).pop();

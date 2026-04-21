@@ -144,6 +144,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tableColumnPlayer => 'Joueur';
 
   @override
+  String get tableColumnPhoto => 'Photo';
+
+  @override
   String get tableColumnAttends => 'Présent';
 
   @override
@@ -167,6 +170,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commonNo => 'Non';
+
+  @override
+  String get accessInviteSpectatorOnlyHint =>
+      'En tant qu\'administrateur, vous ne pouvez inviter que des spectateurs.';
 
   @override
   String get accessInviteSend => 'Envoyer une invitation';
@@ -439,6 +446,48 @@ class AppLocalizationsFr extends AppLocalizations {
       'Inviter des administrateurs ou des spectateurs dans l\'équipe';
 
   @override
+  String get teamImportPlayerTitle => 'Importer d\'une autre équipe';
+
+  @override
+  String get teamImportPlayerSubtitle =>
+      'Choisissez une équipe que vous gérez et un joueur. Copie du nom, coordonnées, photo et postes ; les statistiques dans cette équipe repartent de zéro.';
+
+  @override
+  String get teamImportPlayerStatsHint =>
+      'Les stats de l\'ancienne équipe ne sont pas transférées.';
+
+  @override
+  String get teamImportPlayerButton => 'Importer d\'une autre équipe';
+
+  @override
+  String get teamImportPlayerSelectTeam => 'Équipe d\'origine';
+
+  @override
+  String get teamImportPlayerNoSourceTeams =>
+      'Vous n\'avez pas d\'autre équipe où vous êtes admin ou super admin.';
+
+  @override
+  String get teamImportPlayerPickTeamFirst =>
+      'Sélectionnez une équipe pour afficher ses joueurs.';
+
+  @override
+  String get teamImportPlayerEmptyRoster => 'Cette équipe n\'a pas de joueurs.';
+
+  @override
+  String get teamImportPlayerConfirmTitle => 'Importer un joueur';
+
+  @override
+  String teamImportPlayerConfirmBody(String playerName, String sourceTeamName) {
+    return 'Importer $playerName depuis $sourceTeamName dans cette équipe ? Ici ses stats repartent de zéro.';
+  }
+
+  @override
+  String get teamImportPlayerConfirmAction => 'Importer';
+
+  @override
+  String get teamImportPlayerSuccess => 'Joueur importé';
+
+  @override
   String get teamMgmtSectionMaintenance => 'Maintenance des données';
 
   @override
@@ -660,6 +709,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get matchQuickScore => 'Score rapide';
 
   @override
+  String get matchLiveStatsCardTitle => 'Statistiques';
+
+  @override
   String get matchShotsOnGoalSection => 'Tirs au but';
 
   @override
@@ -674,6 +726,31 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get matchNoRivalShotsToRemove => 'Aucun tir adverse à retirer';
+
+  @override
+  String get matchSpectatorCannotStart =>
+      'Seuls les entraîneurs et admins peuvent lancer le match.';
+
+  @override
+  String get matchFoulsAndCornersSection => 'Fautes et corners';
+
+  @override
+  String get matchFoulsShort => 'Fautes';
+
+  @override
+  String get matchCornersShort => 'Corners';
+
+  @override
+  String get matchCounterAddTooltip => 'Ajouter';
+
+  @override
+  String get matchCounterRemoveTooltip => 'Retirer le dernier';
+
+  @override
+  String get matchNoCounterToRemove => 'Rien à retirer';
+
+  @override
+  String get matchActionLabelFoul => 'Faute';
 
   @override
   String get matchFieldAndFormation => 'Emplacement et formation';
@@ -858,6 +935,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get matchLiveBallRecovery => 'Ballon gagné :';
 
   @override
+  String get matchLiveGoodSave => 'Bel arrêt :';
+
+  @override
+  String get matchLiveShot => 'Tir :';
+
+  @override
+  String get matchLiveFoul => 'Faute :';
+
+  @override
+  String get matchLiveCantada => 'Grosse erreur :';
+
+  @override
   String get matchLiveEvent => 'Événement';
 
   @override
@@ -904,6 +993,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get matchActionLabelKeyPass => 'Passe-clé';
+
+  @override
+  String get matchActionLabelGoodSave => 'Bel arrêt';
+
+  @override
+  String get matchActionLabelCantada => 'Grosse erreur';
 
   @override
   String get matchGoalRegisteredPrefix => 'Objectif enregistré pour';

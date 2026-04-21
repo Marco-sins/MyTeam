@@ -141,6 +141,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tableColumnPlayer => 'Player';
 
   @override
+  String get tableColumnPhoto => 'Photo';
+
+  @override
   String get tableColumnAttends => 'Present';
 
   @override
@@ -164,6 +167,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonNo => 'No';
+
+  @override
+  String get accessInviteSpectatorOnlyHint =>
+      'As an administrator, you can only invite spectators.';
 
   @override
   String get accessInviteSend => 'Send invitation';
@@ -430,6 +437,47 @@ class AppLocalizationsEn extends AppLocalizations {
       'Invite admins or spectators to the team';
 
   @override
+  String get teamImportPlayerTitle => 'Import from another team';
+
+  @override
+  String get teamImportPlayerSubtitle =>
+      'Choose a team you manage and a player. Name, contact details, photo and positions are copied; statistics for this team are new (zeroed).';
+
+  @override
+  String get teamImportPlayerStatsHint => 'Old team stats are not transferred.';
+
+  @override
+  String get teamImportPlayerButton => 'Import from another team';
+
+  @override
+  String get teamImportPlayerSelectTeam => 'Source team';
+
+  @override
+  String get teamImportPlayerNoSourceTeams =>
+      'You have no other team where you are an admin or super admin.';
+
+  @override
+  String get teamImportPlayerPickTeamFirst =>
+      'Select a team to list its players.';
+
+  @override
+  String get teamImportPlayerEmptyRoster => 'This squad has no players.';
+
+  @override
+  String get teamImportPlayerConfirmTitle => 'Import player';
+
+  @override
+  String teamImportPlayerConfirmBody(String playerName, String sourceTeamName) {
+    return 'Import $playerName from $sourceTeamName into this squad? Their stats here start at zero.';
+  }
+
+  @override
+  String get teamImportPlayerConfirmAction => 'Import';
+
+  @override
+  String get teamImportPlayerSuccess => 'Player imported';
+
+  @override
   String get teamMgmtSectionMaintenance => 'Data maintenance';
 
   @override
@@ -642,6 +690,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matchQuickScore => 'Quick score';
 
   @override
+  String get matchLiveStatsCardTitle => 'Match stats';
+
+  @override
   String get matchShotsOnGoalSection => 'Shots on goal';
 
   @override
@@ -655,6 +706,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get matchNoRivalShotsToRemove => 'No opponent shots on goal to remove';
+
+  @override
+  String get matchSpectatorCannotStart =>
+      'Only coaches and admins can start the match.';
+
+  @override
+  String get matchFoulsAndCornersSection => 'Fouls and corners';
+
+  @override
+  String get matchFoulsShort => 'Fouls';
+
+  @override
+  String get matchCornersShort => 'Corners';
+
+  @override
+  String get matchCounterAddTooltip => 'Add one';
+
+  @override
+  String get matchCounterRemoveTooltip => 'Remove last';
+
+  @override
+  String get matchNoCounterToRemove => 'Nothing to remove';
+
+  @override
+  String get matchActionLabelFoul => 'Foul';
 
   @override
   String get matchFieldAndFormation => 'Pitch and formation';
@@ -825,16 +901,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matchLiveGoodPass => 'Good pass: ';
 
   @override
-  String get matchLiveBadPass => 'Poor pass: ';
+  String get matchLiveBadPass => 'Bad pass: ';
 
   @override
   String get matchLiveGoodPlay => 'Good play: ';
 
   @override
-  String get matchLiveBadPlay => 'Poor play: ';
+  String get matchLiveBadPlay => 'Bad play: ';
 
   @override
   String get matchLiveBallRecovery => 'Ball won: ';
+
+  @override
+  String get matchLiveGoodSave => 'Good save: ';
+
+  @override
+  String get matchLiveShot => 'Shot: ';
+
+  @override
+  String get matchLiveFoul => 'Foul: ';
+
+  @override
+  String get matchLiveCantada => 'Howler: ';
 
   @override
   String get matchLiveEvent => 'Event';
@@ -875,13 +963,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matchActionLabelRedCard => 'Red card';
 
   @override
-  String get matchActionLabelBadPass => 'Poor pass';
+  String get matchActionLabelBadPass => 'Bad pass';
 
   @override
-  String get matchActionLabelBadPlay => 'Poor play';
+  String get matchActionLabelBadPlay => 'Bad play';
 
   @override
   String get matchActionLabelKeyPass => 'Key pass';
+
+  @override
+  String get matchActionLabelGoodSave => 'Good save';
+
+  @override
+  String get matchActionLabelCantada => 'Howler';
 
   @override
   String get matchGoalRegisteredPrefix => 'Goal saved for ';

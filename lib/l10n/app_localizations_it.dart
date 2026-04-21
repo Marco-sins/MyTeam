@@ -141,6 +141,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get tableColumnPlayer => 'Giocatore';
 
   @override
+  String get tableColumnPhoto => 'Foto';
+
+  @override
   String get tableColumnAttends => 'Presente';
 
   @override
@@ -164,6 +167,10 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get commonNo => 'NO';
+
+  @override
+  String get accessInviteSpectatorOnlyHint =>
+      'Come amministratore puoi invitare solo spettatori.';
 
   @override
   String get accessInviteSend => 'Invia invito';
@@ -434,6 +441,48 @@ class AppLocalizationsIt extends AppLocalizations {
       'Invita amministratori o spettatori nella squadra';
 
   @override
+  String get teamImportPlayerTitle => 'Importa da un\'altra squadra';
+
+  @override
+  String get teamImportPlayerSubtitle =>
+      'Scegli una squadra che gestisci e un giocatore. Si copiano nome, contatti, foto e ruoli; le statistiche in questa squadra ripartono da zero.';
+
+  @override
+  String get teamImportPlayerStatsHint =>
+      'Le statistiche della squadra precedente non si trasferiscono.';
+
+  @override
+  String get teamImportPlayerButton => 'Importa da un\'altra squadra';
+
+  @override
+  String get teamImportPlayerSelectTeam => 'Squadra di origine';
+
+  @override
+  String get teamImportPlayerNoSourceTeams =>
+      'Non hai altre squadre in cui sei admin o super admin.';
+
+  @override
+  String get teamImportPlayerPickTeamFirst =>
+      'Seleziona una squadra per vedere la rosa.';
+
+  @override
+  String get teamImportPlayerEmptyRoster => 'Questa rosa non ha giocatori.';
+
+  @override
+  String get teamImportPlayerConfirmTitle => 'Importa giocatore';
+
+  @override
+  String teamImportPlayerConfirmBody(String playerName, String sourceTeamName) {
+    return 'Importare $playerName da $sourceTeamName in questa rosa? Le statistiche qui ripartono da zero.';
+  }
+
+  @override
+  String get teamImportPlayerConfirmAction => 'Importa';
+
+  @override
+  String get teamImportPlayerSuccess => 'Giocatore importato';
+
+  @override
   String get teamMgmtSectionMaintenance => 'Manutenzione dei dati';
 
   @override
@@ -655,6 +704,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchQuickScore => 'Punteggio veloce';
 
   @override
+  String get matchLiveStatsCardTitle => 'Statistiche';
+
+  @override
   String get matchShotsOnGoalSection => 'Tiri in porta';
 
   @override
@@ -669,6 +721,31 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchNoRivalShotsToRemove => 'Nessun tiro avversario da rimuovere';
+
+  @override
+  String get matchSpectatorCannotStart =>
+      'Solo allenatori e admin possono avviare la partita.';
+
+  @override
+  String get matchFoulsAndCornersSection => 'Falli e calci d\'angolo';
+
+  @override
+  String get matchFoulsShort => 'Falli';
+
+  @override
+  String get matchCornersShort => 'Calci d\'angolo';
+
+  @override
+  String get matchCounterAddTooltip => 'Aggiungi';
+
+  @override
+  String get matchCounterRemoveTooltip => 'Rimuovi l\'ultimo';
+
+  @override
+  String get matchNoCounterToRemove => 'Niente da rimuovere';
+
+  @override
+  String get matchActionLabelFoul => 'Fallo';
 
   @override
   String get matchFieldAndFormation => 'Passo e formazione';
@@ -853,6 +930,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchLiveBallRecovery => 'Palla vinta:';
 
   @override
+  String get matchLiveGoodSave => 'Grande parata:';
+
+  @override
+  String get matchLiveShot => 'Tiro:';
+
+  @override
+  String get matchLiveFoul => 'Fallo:';
+
+  @override
+  String get matchLiveCantada => 'Papera:';
+
+  @override
   String get matchLiveEvent => 'Evento';
 
   @override
@@ -898,6 +987,12 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchActionLabelKeyPass => 'Passaggio chiave';
+
+  @override
+  String get matchActionLabelGoodSave => 'Grande parata';
+
+  @override
+  String get matchActionLabelCantada => 'Papera';
 
   @override
   String get matchGoalRegisteredPrefix => 'Gol salvato per';

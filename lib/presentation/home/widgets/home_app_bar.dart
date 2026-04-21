@@ -19,17 +19,34 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         icon: const Icon(Icons.logout_rounded),
         onPressed: () => context.read<AuthCubit>().logout(),
       ),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.sports_soccer_rounded,
-            size: 24,
-            color: scheme.onPrimary,
-          ),
-          const SizedBox(width: 10),
-          Text(l10n.appTitle, style: titleStyle),
-        ],
+      title: LayoutBuilder(
+        builder: (context, constraints) {
+          final titleText = Text(
+            l10n.appTitle,
+            style: titleStyle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          );
+          // Con centerTitle + acciones anchas el hueco del título puede ser < 40 px;
+          // icono + separador ya no caben sin desbordar.
+          if (constraints.maxWidth < 48) {
+            return titleText;
+          }
+          return Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.sports_soccer_rounded,
+                size: 22,
+                color: scheme.onPrimary,
+              ),
+              const SizedBox(width: 8),
+              Flexible(child: titleText),
+            ],
+          );
+        },
       ),
       centerTitle: true,
       actions: const [

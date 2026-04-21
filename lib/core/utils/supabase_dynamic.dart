@@ -65,6 +65,10 @@ String canonicalMatchEventTypeKey(dynamic rawType) {
     'golrival': 'concedegoal',
     'tiro': 'shot',
     'tirorival': 'rivalshot',
+    'falta': 'foul',
+    'corner': 'corner',
+    'cornerrival': 'rivalcorner',
+    'faltarival': 'rivalfoul',
   };
 
   return aliases[k] ?? k;

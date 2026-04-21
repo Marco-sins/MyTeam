@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/player.dart';
@@ -17,60 +19,85 @@ class AttendanceDateBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
+    /// Evita overflow cuando el ancho es muy estrecho (panel estrecho / texto grande).
+    const minBarLayoutWidth = 320.0;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: Row(
-        children: [
-          Icon(Icons.event_outlined, color: scheme.primary, size: 22),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: scheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.6),
-                ),
-              ),
-              child: Text(
-                formattedDate,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final targetWidth = math.max(
+            constraints.maxWidth,
+            minBarLayoutWidth,
+          );
+          return FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: targetWidth,
+              child: Row(
+                children: [
+                  Icon(Icons.event_outlined, color: scheme.primary, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      child: Text(
+                        formattedDate,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
                     ),
+                  ),
+                  IconButton.filledTonal(
+                    onPressed: () async {
+                      final attendanceState =
+                          context.read<AttendanceCubit>().state;
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: attendanceState.selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        final authState = context.read<AuthCubit>().state;
+                        final teamState =
+                            context.read<TeamDetailCubit>().state;
+                        if (authState is! Authenticated ||
+                            teamState is! TeamDetailLoaded) {
+                          return;
+                        }
+                        final players = List<Player>.from(teamState.players);
+                        await context.read<AttendanceCubit>().loadForDate(
+                              picked,
+                              authState.user,
+                              players,
+                            );
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_month_rounded),
+                    tooltip: 'Cambiar fecha',
+                  ),
+                  const SizedBox(width: 4),
+                  const AttendancePresentAbsentCounters(),
+                ],
               ),
             ),
-          ),
-          IconButton.filledTonal(
-            onPressed: () async {
-              final attendanceState = context.read<AttendanceCubit>().state;
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: attendanceState.selectedDate,
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
-              if (picked != null) {
-                final authState = context.read<AuthCubit>().state;
-                final teamState = context.read<TeamDetailCubit>().state;
-                if (authState is! Authenticated ||
-                    teamState is! TeamDetailLoaded) {
-                  return;
-                }
-                final players = List<Player>.from(teamState.players);
-                await context.read<AttendanceCubit>().loadForDate(
- picked,
-                      authState.user,
-                      players,
-                    );
-              }
-            },
-            icon: const Icon(Icons.calendar_month_rounded),
-            tooltip: 'Cambiar fecha',
-          ),
-          const SizedBox(width: 4),
-          const AttendancePresentAbsentCounters(),
-        ],
+          );
+        },
       ),
     );
   }

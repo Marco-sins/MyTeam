@@ -1,6 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/utils/player_name_parts.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
+import 'package:football_manager/presentation/match/utils/match_formation_utils.dart';
+
+/// Píxeles de `media/campo.png`. Debe coincidir con el asset para que [_campoContainRect]
+/// reproduzca el mismo rectángulo que [BoxFit.contain] sobre la imagen.
+const double _kCampoPngWidth = 374;
+const double _kCampoPngHeight = 253;
+
+/// Ancho / alto del PNG del campo. El contenedor del tablero usa esta misma relación
+/// (misma altura que la imagen dibujada, sin hueco 4:3 artificial).
+const double kMatchCampoAspectRatio = _kCampoPngWidth / _kCampoPngHeight;
+
+Rect _campoContainRect(double maxWidth, double maxHeight) {
+  if (maxWidth <= 0 || maxHeight <= 0) {
+    return Rect.zero;
+  }
+  final srcAspect = _kCampoPngWidth / _kCampoPngHeight;
+  final dstAspect = maxWidth / maxHeight;
+  if (srcAspect > dstAspect) {
+    final h = maxWidth / srcAspect;
+    final top = (maxHeight - h) * 0.5;
+    return Rect.fromLTWH(0, top, maxWidth, h);
+  }
+  final w = maxHeight * srcAspect;
+  final left = (maxWidth - w) * 0.5;
+  return Rect.fromLTWH(left, 0, w, maxHeight);
+}
+
+/// Rectángulo de juego dentro del PNG (marco blanco + líneas; suele haber más aire abajo).
+Rect _grassRectFromFieldPaint(Rect fieldPaint) {
+  if (fieldPaint.width <= 0 || fieldPaint.height <= 0) {
+    return fieldPaint;
+  }
+  const insetL = 0.045;
+  const insetR = 0.045;
+  const insetT = 0.055;
+  const insetB = 0.078;
+  return Rect.fromLTWH(
+    fieldPaint.left + fieldPaint.width * insetL,
+    fieldPaint.top + fieldPaint.height * insetT,
+    fieldPaint.width * (1 - insetL - insetR),
+    fieldPaint.height * (1 - insetT - insetB),
+  );
+}
+
+/// [nx],[ny] ∈ [0,1] dentro del césped útil (0 arriba = ataque, 1 abajo = portería).
+double _grassX(Rect grass, double nx) {
+  return grass.left + grass.width * nx.clamp(0.0, 1.0);
+}
+
+double _grassY(Rect grass, double ny) {
+  return grass.top + grass.height * ny.clamp(0.0, 1.0);
+}
 
 /// Campo táctil: colocación por **jugador seleccionado en la lista + toque en la posición**.
 /// Se evitó [DragTarget]/arrastre desde lista porque en scrollables dispara asserts de
@@ -18,6 +71,8 @@ class MatchFieldWithFormation extends StatelessWidget {
   onSubstitutionRequested;
   final void Function(Player player) onPlayerActionRequested;
   final bool readOnly;
+  /// Clave guardada (`3-2-1`, …). Solo F7: activa posiciones del diagrama táctico.
+  final String? formationLayoutKey;
 
   const MatchFieldWithFormation({
     super.key,
@@ -32,6 +87,7 @@ class MatchFieldWithFormation extends StatelessWidget {
     required this.onSubstitutionRequested,
     required this.onPlayerActionRequested,
     this.readOnly = false,
+    this.formationLayoutKey,
   });
 
   @override
@@ -40,13 +96,48 @@ class MatchFieldWithFormation extends StatelessWidget {
       builder: (context, constraints) {
         final scheme = Theme.of(context).colorScheme;
         final l10n = AppLocalizations.of(context)!;
-        final fieldWidth = constraints.maxWidth;
-        final fieldHeight = constraints.maxHeight;
+        final maxW = constraints.maxWidth;
+        final maxH = constraints.maxHeight;
+        // Ancho máximo del tablero; nunca supera esto, pero si el padre es más
+        // estrecho o bajo, se encoge para seguir viéndose entero.
+        const maxBoardW = 440.0;
+        var boardW = maxW < maxBoardW ? maxW : maxBoardW;
+        // Alto = solo proporción del PNG respecto a [boardW]. No aumenta con la
+        // altura disponible del padre (evita huecos al maximizar la ventana).
+        var boardH = boardW * _kCampoPngHeight / _kCampoPngWidth;
+        if (boardH > maxH && maxH.isFinite) {
+          boardH = maxH;
+          boardW = boardH * _kCampoPngWidth / _kCampoPngHeight;
+          if (boardW > maxBoardW) {
+            boardW = maxBoardW;
+            boardH = boardW * _kCampoPngHeight / _kCampoPngWidth;
+          }
+          if (boardW > maxW) {
+            boardW = maxW;
+            boardH = boardW * _kCampoPngHeight / _kCampoPngWidth;
+          }
+        }
+        // Mismo rectángulo que el PNG con BoxFit.contain sobre el tablero real.
+        final fieldPaint = _campoContainRect(boardW, boardH);
+        final grass = _grassRectFromFieldPaint(fieldPaint);
         final rows = formationLines.length;
+        final totalSlots = formationLines.fold<int>(
+          0,
+          (a, b) => a + b,
+        );
+        final List<Offset>? tacticalCenters =
+            MatchFormationUtils.tacticalSlotCentersOrNull(
+          formationLayoutKey,
+          totalSlots,
+        );
 
         final List<Widget> children = [
           Positioned.fill(
-            child: Image.asset('media/campo.png', fit: BoxFit.contain),
+            child: Image.asset(
+              'media/campo.png',
+              fit: BoxFit.contain,
+              alignment: Alignment.center,
+            ),
           ),
         ];
 
@@ -55,21 +146,36 @@ class MatchFieldWithFormation extends StatelessWidget {
           // Invertimos las filas para que el portero (primera línea) quede abajo
           final displayRow = rows - 1 - row;
           final countInRow = formationLines[row];
-          final top = fieldHeight * ((displayRow + 1) / (rows + 1));
+          final fracY = (displayRow + 1) / (rows + 1);
+          final gridRowTop = _grassY(grass, fracY);
 
           for (int col = 0; col < countInRow; col++) {
-            final left = fieldWidth * ((col + 1) / (countInRow + 1));
             final index = positionNumber - 1;
+            final double left;
+            final double top;
+            if (tacticalCenters != null && index < tacticalCenters.length) {
+              final o = tacticalCenters[index];
+              left = _grassX(grass, o.dx);
+              top = _grassY(grass, o.dy);
+            } else {
+              left = _grassX(grass, (col + 1) / (countInRow + 1));
+              top = gridRowTop;
+            }
             final assignedPlayer = index < positionPlayers.length
                 ? positionPlayers[index]
                 : null;
             final displayNumber = assignedPlayer?.number?.toString() ?? '';
 
+            const nameBlockWidth = 92.0;
+            final hasName = assignedPlayer != null;
+
             children.add(
               Positioned(
-                left: left - 16,
+                left: hasName ? left - nameBlockWidth / 2 : left - 16,
                 top: top - 16,
+                width: hasName ? nameBlockWidth : 32,
                 child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
                   onTap: () {
                     if (readOnly) {
                       return;
@@ -142,22 +248,44 @@ class MatchFieldWithFormation extends StatelessWidget {
                       assignedPlayer,
                     );
                   },
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: assignedPlayer != null
-                        ? scheme.primaryContainer
-                        : scheme.surfaceContainerHighest
-                            .withValues(alpha: 0.92),
-                    child: Text(
-                      displayNumber,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: assignedPlayer != null
-                            ? scheme.onPrimaryContainer
-                            : scheme.onSurfaceVariant,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Center(
+                        child: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: assignedPlayer != null
+                              ? scheme.primaryContainer
+                              : scheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.92),
+                          child: Text(
+                            displayNumber,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: assignedPlayer != null
+                                  ? scheme.onPrimaryContainer
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      if (assignedPlayer != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          _fieldDisplayFirstName(assignedPlayer),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.1,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -167,11 +295,36 @@ class MatchFieldWithFormation extends StatelessWidget {
           }
         }
 
-        return Stack(
-          clipBehavior: Clip.none,
-          children: children,
+        return Center(
+          child: SizedBox(
+            width: boardW,
+            height: boardH,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: children,
+            ),
+          ),
         );
       },
     );
   }
+}
+
+String _fieldDisplayFirstName(Player player) {
+  final g = playerNamePartsMatchShort(player).given.trim();
+  if (g.isNotEmpty) {
+    return g;
+  }
+  final fn = player.firstName.trim();
+  final fnTok = fn.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+  if (fnTok.isNotEmpty) {
+    return fnTok.first;
+  }
+  final full = player.fullName.trim();
+  final fullTok = full.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+  if (fullTok.isEmpty) {
+    return '—';
+  }
+  return fullTok.first;
 }

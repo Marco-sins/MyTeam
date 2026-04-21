@@ -10,14 +10,10 @@ class GetMatchLiveTimelineMapsUseCase {
 
   Future<Either<Failure, List<Map<String, dynamic>>>> call({
     required int matchId,
-    required bool isExternalSpectator,
   }) async {
     final res = await _repository.getLiveTimelineSourceRows(matchId);
     return res.fold(Left.new, (rows) {
-      final sorted = MatchLiveTimelineFilter.filterAndSort(
-        rows,
-        isExternalSpectator: isExternalSpectator,
-      );
+      final sorted = MatchLiveTimelineFilter.filterAndSort(rows);
       return Right(sorted.map((e) => e.toLegacyMap()).toList());
     });
   }

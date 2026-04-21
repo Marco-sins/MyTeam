@@ -5,6 +5,7 @@ import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/services/match_live_timeline_filter.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
@@ -82,48 +83,6 @@ String _localizedTimeStatusNote(AppLocalizations l10n, String raw) {
   }
   if (lower == 'final del partido') return l10n.matchNoteMatchFinished;
   return raw;
-}
-
-/// Rol [external]: cronología reducida (alineada con
-/// [MatchLiveTimelineFilter.shouldIncludeRow] en modo espectador).
-bool _matchStatsTimelineEventVisibleToExternal(Map<String, dynamic> event) {
-  final typeKey = canonicalMatchEventTypeKey(event['type']);
-
-  if (typeKey == 'formation') {
-    return false;
-  }
-
-  if (typeKey == 'substitution') {
-    final p1 = supabaseInt(event['player_id1']);
-    final p2 = supabaseInt(event['player_id2']);
-    return p1 != null && p2 != null;
-  }
-
-  if (typeKey == 'scoregoal' ||
-      typeKey == 'concedegoal' ||
-      typeKey == 'owngoal') {
-    return true;
-  }
-
-  if (typeKey == 'yellowcard' || typeKey == 'redcard') {
-    return true;
-  }
-
-  if (typeKey == 'statuschange') {
-    final rawLabel = (event['note'] as String?) ?? '';
-    final lowerLabel = rawLabel.toLowerCase();
-    const allowedStatusNotes = [
-      'inicio 1ª parte',
-      'inicio 1a parte',
-      'descanso',
-      'inicio 2ª parte',
-      'inicio 2a parte',
-      'final del partido',
-    ];
-    return allowedStatusNotes.any((n) => lowerLabel == n.toLowerCase());
-  }
-
-  return false;
 }
 
 class MatchStatsPage extends StatelessWidget {
@@ -616,7 +575,7 @@ class MatchStatsPage extends StatelessWidget {
 
             final eventTiles = <Widget>[];
             for (final e in state.events) {
-              if (isExternal && !_matchStatsTimelineEventVisibleToExternal(e)) {
+              if (!MatchLiveTimelineFilter.shouldIncludeChronologyMap(e)) {
                 continue;
               }
               final tile = _eventTile(context, state, e);
@@ -702,30 +661,27 @@ class MatchStatsPage extends StatelessWidget {
                             ),
                           Center(
                             child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                maxWidth: 420,
-                                maxHeight: 320,
+                              constraints: BoxConstraints(
+                                maxWidth: MediaQuery.sizeOf(context).width - 32,
                               ),
-                              child: AspectRatio(
-                                aspectRatio: 4 / 3,
-                                child: MatchFieldWithFormation(
-                                  formationLines: state.formationLines,
-                                  positionPlayers: state.fieldPositionPlayers,
-                                  selectedPlayer: null,
-                                  sentOffPlayerIds: state.sentOffPlayerIds,
-                                  currentPlayersOnField: () => state
-                                      .fieldPositionPlayers
-                                      .where((p) => p != null)
-                                      .length,
-                                  maxPlayersOnField: () =>
-                                      state.fieldPositionPlayers.length,
-                                  showSnack: (_, {bool error = false}) {},
-                                  onPositionsChanged: (_) {},
-                                  onSubstitutionRequested:
-                                      (playerIn, playerOut) {},
-                                  onPlayerActionRequested: (_) {},
-                                  readOnly: true,
-                                ),
+                              child: MatchFieldWithFormation(
+                                formationLines: state.formationLines,
+                                formationLayoutKey: state.formationLabel,
+                                positionPlayers: state.fieldPositionPlayers,
+                                selectedPlayer: null,
+                                sentOffPlayerIds: state.sentOffPlayerIds,
+                                currentPlayersOnField: () => state
+                                    .fieldPositionPlayers
+                                    .where((p) => p != null)
+                                    .length,
+                                maxPlayersOnField: () =>
+                                    state.fieldPositionPlayers.length,
+                                showSnack: (_, {bool error = false}) {},
+                                onPositionsChanged: (_) {},
+                                onSubstitutionRequested:
+                                    (playerIn, playerOut) {},
+                                onPlayerActionRequested: (_) {},
+                                readOnly: true,
                               ),
                             ),
                           ),
@@ -1256,16 +1212,24 @@ _PlayerMatchStats _calculatePlayerMatchStats(
       goodPlays++;
     } else if (isGoodPlay ||
         isBallRecovery ||
+        typeKey == 'shot' ||
+        typeKey == 'goodsave' ||
         note == 'Buena jugada' ||
         note == 'Recuperación' ||
         note == 'Balón recuperado' ||
+        note == 'Buena parada' ||
+        note == 'Tiro' ||
         note == 'Buen tiro' ||
         note == 'Recupera posesión' ||
         note == 'Gana posesión') {
       goodPlays++;
     } else if (isBadPlay ||
+        typeKey == 'foul' ||
+        typeKey == 'cantada' ||
         note == 'Mala jugada' ||
         note == 'Jugada imprecisa' ||
+        note == 'Falta' ||
+        note == 'Cantada' ||
         note == 'Pierde marca' ||
         note == 'Pierde posición' ||
         note == 'Pierde posesión' ||

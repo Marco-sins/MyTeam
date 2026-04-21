@@ -37,15 +37,21 @@ int matchEndMinuteFromEvents(List<MatchEvent> events) {
 
 /// Misma lógica que en la pantalla de estadísticas del partido: titulares,
 /// sustituciones y minuto de fin reconstruyen los minutos disputados.
+///
+/// Si [overrideMatchEndMinute] no es null, se usa como minuto tope (p. ej. el
+/// minuto actual del cronómetro en el gestor en vivo). Si es null, se deduce
+/// del partido terminado o del último evento ([matchEndMinuteFromEvents]).
 int minutesPlayedForPlayer({
   required List<MatchEvent> events,
   required int playerId,
   required bool isStarter,
+  int? overrideMatchEndMinute,
 }) {
   final sorted = List<MatchEvent>.from(events);
   sortMatchEventsByTime(sorted);
 
-  final int matchEndMinute = matchEndMinuteFromEvents(sorted);
+  final int matchEndMinute =
+      overrideMatchEndMinute ?? matchEndMinuteFromEvents(sorted);
   if (matchEndMinute <= 0) {
     return 0;
   }

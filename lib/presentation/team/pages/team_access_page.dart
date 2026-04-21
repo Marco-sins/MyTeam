@@ -123,7 +123,9 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       }
 
       if (!mounted) return;
-      final defaultUserName = AppLocalizations.of(context)!.accessDefaultUserName;
+      final defaultUserName = AppLocalizations.of(
+        context,
+      )!.accessDefaultUserName;
       final members = <_TeamMember>[];
       for (final row in rows) {
         final idUser = row['id_user'] as String?;
@@ -160,6 +162,9 @@ class _TeamAccessPageState extends State<TeamAccessPage>
     }
   }
 
+  ColorScheme _brandedScheme(BuildContext context) =>
+      TeamBrandTheme.wrap(context, widget.team.color).colorScheme;
+
   bool _memberRoleIsSuperAdmin(String roleStr) {
     try {
       return UserRole.fromString(roleStr) == UserRole.superAdmin;
@@ -176,10 +181,8 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            AppLocalizations.of(context)!.accessAdminOnlyRevoke,
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
+          content: Text(AppLocalizations.of(context)!.accessAdminOnlyRevoke),
+          backgroundColor: _brandedScheme(context).error,
         ),
       );
       return;
@@ -197,7 +200,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
           content: const Text(
             'Solo el creador del equipo (superadmin) puede quitar a otro superadmin.',
           ),
-          backgroundColor: Theme.of(context).colorScheme.error,
+          backgroundColor: _brandedScheme(context).error,
         ),
       );
       return;
@@ -207,23 +210,27 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       context: context,
       builder: (ctx) {
         final dlgL10n = AppLocalizations.of(ctx)!;
-        return AlertDialog(
-          title: Text(dlgL10n.dialogRevokeAccessTitle),
-          content: Text(dlgL10n.accessRevokeBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(dlgL10n.actionCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.error,
-                foregroundColor: Theme.of(ctx).colorScheme.onError,
+        final dlgScheme = _brandedScheme(ctx);
+        return Theme(
+          data: TeamBrandTheme.wrap(ctx, widget.team.color),
+          child: AlertDialog(
+            title: Text(dlgL10n.dialogRevokeAccessTitle),
+            content: Text(dlgL10n.accessRevokeBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(dlgL10n.actionCancel),
               ),
-              child: Text(dlgL10n.accessRevokeAction),
-            ),
-          ],
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: dlgScheme.error,
+                  foregroundColor: dlgScheme.onError,
+                ),
+                child: Text(dlgL10n.accessRevokeAction),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -242,10 +249,14 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       });
 
       if (!mounted) return;
+      final okScheme = _brandedScheme(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.accessRevokedOk),
-          backgroundColor: Theme.of(context).colorScheme.primary,
+          content: Text(
+            AppLocalizations.of(context)!.accessRevokedOk,
+            style: TextStyle(color: okScheme.onPrimary),
+          ),
+          backgroundColor: okScheme.primary,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -254,86 +265,154 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.accessRevokeFail),
-          backgroundColor: Theme.of(context).colorScheme.error,
+          backgroundColor: _brandedScheme(context).error,
         ),
       );
     }
   }
 
   Future<void> _showInviteDialog() async {
+    final authForInvite = context.read<AuthCubit>().state;
+    final myRoleForInvite = authForInvite is Authenticated
+        ? authForInvite.user.teamRoles[widget.team.id]
+        : null;
+    final canInviteAsAdmin = myRoleForInvite == UserRole.superAdmin;
+
     final emailController = TextEditingController();
-    String selectedRole = 'external'; // espectador por defecto
+    var selectedRole = 'external';
 
     final result = await showDialog<_InviteData>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setState) {
-            final scheme = Theme.of(ctx).colorScheme;
+            final scheme = _brandedScheme(ctx);
             final l10n = AppLocalizations.of(ctx)!;
-            return AlertDialog(
-              title: Text(l10n.dialogInviteUserTitle),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      labelText: l10n.loginEmailLabel,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    l10n.accessInviteRole,
-                    style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SegmentedButton<String>(
-                    segments: [
-                      ButtonSegment(
-                        value: 'external',
-                        label: Text(l10n.roleSpectator),
-                        icon: const Icon(Icons.visibility_outlined, size: 18),
-                      ),
-                      ButtonSegment(
-                        value: 'admin',
-                        label: Text(l10n.roleAdmin),
-                        icon: const Icon(
-                          Icons.admin_panel_settings_outlined,
-                          size: 18,
+            return Theme(
+              data: TeamBrandTheme.wrap(ctx, widget.team.color),
+              child: AlertDialog(
+                title: Text(l10n.dialogInviteUserTitle),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: l10n.loginEmailLabel,
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      Text(
+                        l10n.accessInviteRole,
+                        style: Theme.of(ctx).textTheme.labelLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (canInviteAsAdmin)
+                        SegmentedButton<String>(
+                          segments: [
+                            ButtonSegment(
+                              value: 'external',
+                              label: Text(l10n.roleSpectator),
+                              icon: const Icon(
+                                Icons.visibility_outlined,
+                                size: 18,
+                              ),
+                            ),
+                            ButtonSegment(
+                              value: 'admin',
+                              label: Text(l10n.roleAdmin),
+                              icon: const Icon(
+                                Icons.admin_panel_settings_outlined,
+                                size: 18,
+                              ),
+                            ),
+                          ],
+                          selected: {selectedRole},
+                          onSelectionChanged: (s) {
+                            setState(() => selectedRole = s.first);
+                          },
+                        )
+                      else
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              l10n.accessInviteSpectatorOnlyHint,
+                              style: Theme.of(ctx).textTheme.bodyMedium
+                                  ?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: scheme.outlineVariant
+                                      .withValues(alpha: 0.55),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.visibility_outlined,
+                                      size: 20,
+                                      color: scheme.primary,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.roleSpectator,
+                                        style: Theme.of(ctx)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                     ],
-                    selected: {selectedRole},
-                    onSelectionChanged: (s) {
-                      setState(() => selectedRole = s.first);
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: Text(l10n.actionCancel),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      final email = emailController.text.trim();
+                      if (email.isEmpty) {
+                        return;
+                      }
+                      Navigator.of(
+                        ctx,
+                      ).pop(_InviteData(email: email, role: selectedRole));
                     },
+                    child: Text(l10n.accessInviteSend),
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text(l10n.actionCancel),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    final email = emailController.text.trim();
-                    if (email.isEmpty) {
-                      return;
-                    }
-                    Navigator.of(
-                      ctx,
-                    ).pop(_InviteData(email: email, role: selectedRole));
-                  },
-                  child: Text(l10n.accessInviteSend),
-                ),
-              ],
             );
           },
         );
@@ -347,7 +426,7 @@ class _TeamAccessPageState extends State<TeamAccessPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.accessInviteNeedAuth),
-          backgroundColor: Theme.of(context).colorScheme.error,
+          backgroundColor: _brandedScheme(context).error,
         ),
       );
       return;
@@ -369,12 +448,14 @@ class _TeamAccessPageState extends State<TeamAccessPage>
     if (!mounted) return;
     response.fold(
       (failure) {
+        final s = _brandedScheme(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message), backgroundColor: Colors.red),
+          SnackBar(content: Text(failure.message), backgroundColor: s.error),
         );
       },
       (_) {
         final loc = AppLocalizations.of(context)!;
+        final s = _brandedScheme(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -382,9 +463,10 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                 result.email,
                 result.role == 'admin' ? loc.roleAdmin : loc.roleSpectator,
               ),
+              style: TextStyle(color: s.onPrimary),
             ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 1),
+            backgroundColor: s.primary,
+            duration: const Duration(seconds: 4),
           ),
         );
       },
@@ -394,153 +476,174 @@ class _TeamAccessPageState extends State<TeamAccessPage>
   @override
   Widget build(BuildContext context) {
     final brandingTeam = context.watch<TeamContextCubit>().state;
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
     final authState = context.watch<AuthCubit>().state;
     final UserRole? myTeamRole = authState is Authenticated
-        ? authState.user.teamRoles[brandingTeam.id]
+        ? authState.user.teamRoles[widget.team.id]
         : null;
     final bool canManageAccess = myTeamRole?.hasAdminPrivileges ?? false;
 
     return TeamBrandedScope(
-      team: brandingTeam,
-      child: Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.screenTeamAccess),
-        actions: const [TeamQuickNavAppBarButton()],
-      ),
-      body: SafeArea(
-        top: false,
-        child: TeamAreaBackground(
-          team: brandingTeam,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: _loading
-              ? RefreshIndicator(
-                  onRefresh: _loadMembers,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.sizeOf(context).height * 0.35,
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                    ],
-                  ),
-                )
-              : _error != null
-              ? RefreshIndicator(
-                  onRefresh: _loadMembers,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.error_outline_rounded,
-                              size: 48,
-                              color: scheme.error,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _error!,
-                              style: textTheme.bodyLarge,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      brandingTeam.name,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                        color: scheme.onSurface,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 16),
-                    Card(
-                      margin: EdgeInsets.zero,
-                      color: scheme.surfaceContainerHighest.withValues(
-                        alpha: 0.55,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.people_outline_rounded,
-                                  size: 22,
-                                  color: scheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    l10n.accessUsersWithAccess,
-                                    style: textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n.accessListBlurb,
-                              style: textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                height: 1.35,
-                              ),
-                            ),
-                            if (_members.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                _members.length == 1
-                                    ? l10n.accessPeopleCountSingle
-                                    : l10n.accessPeopleCountMany(
-                                        _members.length,
-                                      ),
-                                style: textTheme.labelLarge?.copyWith(
-                                  color: scheme.primary,
-                                  fontWeight: FontWeight.w600,
+      team: widget.team,
+      child: Builder(
+        builder: (context) {
+          final scheme = Theme.of(context).colorScheme;
+          final textTheme = Theme.of(context).textTheme;
+
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(AppLocalizations.of(context)!.screenTeamAccess),
+              actions: const [TeamQuickNavAppBarButton()],
+            ),
+            body: SafeArea(
+              top: false,
+              child: TeamAreaBackground(
+                team: widget.team,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  child: _loading
+                      ? RefreshIndicator(
+                          onRefresh: _loadMembers,
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(
+                                height:
+                                    MediaQuery.sizeOf(context).height * 0.35,
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
                                 ),
                               ),
                             ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: _loadMembers,
-                        child: _members.isEmpty
-                            ? ListView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                children: [
-                                  SizedBox(
-                                    height:
-                                        MediaQuery.sizeOf(context).height *
-                                        0.35,
+                          ),
+                        )
+                      : _error != null
+                      ? RefreshIndicator(
+                          onRefresh: _loadMembers,
+                          child: ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline_rounded,
+                                      size: 48,
+                                      color: scheme.error,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _error!,
+                                      style: textTheme.bodyLarge,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadMembers,
+                          child: CustomScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            slivers: [
+                              SliverToBoxAdapter(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      brandingTeam.name,
+                                      style: textTheme.headlineSmall?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.4,
+                                        color: scheme.onSurface,
+                                        height: 1.15,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Card(
+                                      margin: EdgeInsets.zero,
+                                      color: scheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.55),
+                                      child: Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          14,
+                                          12,
+                                          14,
+                                          12,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.people_outline_rounded,
+                                                  size: 22,
+                                                  color: scheme.primary,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: Text(
+                                                    l10n.accessUsersWithAccess,
+                                                    style: textTheme.titleSmall
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              l10n.accessListBlurb,
+                                              style: textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        scheme.onSurfaceVariant,
+                                                    height: 1.35,
+                                                  ),
+                                            ),
+                                            if (_members.isNotEmpty) ...[
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                _members.length == 1
+                                                    ? l10n.accessPeopleCountSingle
+                                                    : l10n.accessPeopleCountMany(
+                                                        _members.length,
+                                                      ),
+                                                style: textTheme.labelLarge
+                                                    ?.copyWith(
+                                                      color: scheme.primary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                  ],
+                                ),
+                              ),
+                              if (_members.isEmpty)
+                                SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 20,
+                                    ),
                                     child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
                                           Icons.group_add_outlined,
@@ -564,171 +667,184 @@ class _TeamAccessPageState extends State<TeamAccessPage>
                                       ],
                                     ),
                                   ),
-                                ],
-                              )
-                            : Card(
-                                clipBehavior: Clip.antiAlias,
-                                child: SizedBox.expand(
-                                  child: ListView.separated(
-                                    physics:
-                                        const AlwaysScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 8,
-                                    ),
-                                    itemCount: _members.length,
-                                    separatorBuilder: (context, index) =>
-                                        Divider(
-                                          height: 1,
-                                          indent: 16,
-                                          endIndent: 16,
-                                          color: scheme.outlineVariant
-                                              .withValues(alpha: 0.45),
-                                        ),
-                                    itemBuilder: (context, index) {
-                                      final member = _members[index];
-                                      final isCurrentUser =
-                                          member.idUser == _currentUserId;
-                                      final bool hideRemoveForTarget =
-                                          _memberRoleIsSuperAdmin(
-                                                member.role,
-                                              ) &&
-                                              myTeamRole !=
-                                                  UserRole.superAdmin;
-                                      final bool showRemoveButton =
-                                          canManageAccess &&
-                                              !isCurrentUser &&
-                                              !hideRemoveForTarget;
+                                )
+                              else
+                                SliverToBoxAdapter(
+                                  child: Card(
+                                    clipBehavior: Clip.antiAlias,
+                                    child: ListView.separated(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      itemCount: _members.length,
+                                      separatorBuilder: (context, index) =>
+                                          Divider(
+                                            height: 1,
+                                            indent: 16,
+                                            endIndent: 16,
+                                            color: scheme.outlineVariant
+                                                .withValues(alpha: 0.45),
+                                          ),
+                                      itemBuilder: (context, index) {
+                                        final member = _members[index];
+                                        final isCurrentUser =
+                                            member.idUser == _currentUserId;
+                                        final bool hideRemoveForTarget =
+                                            _memberRoleIsSuperAdmin(
+                                              member.role,
+                                            ) &&
+                                            myTeamRole != UserRole.superAdmin;
+                                        final bool showRemoveButton =
+                                            canManageAccess &&
+                                            !isCurrentUser &&
+                                            !hideRemoveForTarget;
 
-                                      final displayName = member.name.isNotEmpty
-                                          ? member.name
-                                          : l10n.accessProfileNoName;
-                                      final displayEmail =
-                                          member.email.isNotEmpty
-                                          ? member.email
-                                          : l10n.accessProfileNoEmail;
+                                        final displayName =
+                                            member.name.isNotEmpty
+                                            ? member.name
+                                            : l10n.accessProfileNoName;
+                                        final displayEmail =
+                                            member.email.isNotEmpty
+                                            ? member.email
+                                            : l10n.accessProfileNoEmail;
 
-                                      return ListTile(
-                                        isThreeLine: true,
-                                        leading: CircleAvatar(
-                                          backgroundColor:
-                                              scheme.surfaceContainerHighest,
-                                          child: Text(
-                                            (member.name.isNotEmpty
-                                                    ? member.name[0]
-                                                    : '?')
-                                                .toUpperCase(),
-                                            style: TextStyle(
-                                              color: scheme.primary,
-                                              fontWeight: FontWeight.w700,
+                                        return ListTile(
+                                          isThreeLine: true,
+                                          leading: CircleAvatar(
+                                            backgroundColor:
+                                                scheme.surfaceContainerHighest,
+                                            child: Text(
+                                              (member.name.isNotEmpty
+                                                      ? member.name[0]
+                                                      : '?')
+                                                  .toUpperCase(),
+                                              style: TextStyle(
+                                                color: scheme.primary,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        title: Text(
-                                          '${l10n.accessNamePrefix}$displayName',
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: textTheme.titleSmall?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        subtitle: Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 4,
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                '${l10n.accessEmailPrefix}$displayEmail',
-                                                style: textTheme.bodySmall
-                                                    ?.copyWith(
-                                                      color:
-                                                          member
-                                                              .email
-                                                              .isNotEmpty
-                                                          ? scheme
-                                                                .onSurfaceVariant
-                                                          : scheme.outline,
-                                                      fontStyle:
-                                                          member
-                                                              .email
-                                                              .isNotEmpty
-                                                          ? FontStyle.normal
-                                                          : FontStyle.italic,
-                                                      height: 1.3,
-                                                    ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                '${l10n.accessRolePrefix}${_roleLabel(member.role, l10n)}',
-                                                style: textTheme.labelLarge
-                                                    ?.copyWith(
-                                                      color: scheme
-                                                          .onSurfaceVariant,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        trailing: isCurrentUser
-                                            ? Padding(
-                                                padding: const EdgeInsets.only(
-                                                  right: 8,
+                                          title: Text(
+                                            '${l10n.accessNamePrefix}$displayName',
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: textTheme.titleSmall
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
                                                 ),
-                                                child: Text(
-                                                  l10n.accessYou,
-                                                  style: textTheme.labelLarge
+                                          ),
+                                          subtitle: Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 4,
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '${l10n.accessEmailPrefix}$displayEmail',
+                                                  style: textTheme.bodySmall
                                                       ?.copyWith(
-                                                        color: scheme.primary,
-                                                        fontSize: 12,
+                                                        color:
+                                                            member
+                                                                .email
+                                                                .isNotEmpty
+                                                            ? scheme
+                                                                  .onSurfaceVariant
+                                                            : scheme.outline,
+                                                        fontStyle:
+                                                            member
+                                                                .email
+                                                                .isNotEmpty
+                                                            ? FontStyle.normal
+                                                            : FontStyle.italic,
+                                                        height: 1.3,
                                                       ),
                                                 ),
-                                              )
-                                            : showRemoveButton
-                                            ? IconButton(
-                                                icon: Icon(
-                                                  Icons.person_remove_outlined,
-                                                  color: scheme.error,
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${l10n.accessRolePrefix}${_roleLabel(member.role, l10n)}',
+                                                  style: textTheme.labelLarge
+                                                      ?.copyWith(
+                                                        color: scheme
+                                                            .onSurfaceVariant,
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
                                                 ),
-                                                tooltip: l10n.dialogRevokeAccessTitle,
-                                                onPressed: () =>
-                                                    _removeMember(member),
-                                              )
-                                            : const SizedBox.shrink(),
-                                      );
-                                    },
+                                              ],
+                                            ),
+                                          ),
+                                          trailing: isCurrentUser
+                                              ? Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        right: 8,
+                                                      ),
+                                                  child: Text(
+                                                    l10n.accessYou,
+                                                    style: textTheme.labelLarge
+                                                        ?.copyWith(
+                                                          color: scheme.primary,
+                                                          fontSize: 12,
+                                                        ),
+                                                  ),
+                                                )
+                                              : showRemoveButton
+                                              ? IconButton(
+                                                  icon: Icon(
+                                                    Icons
+                                                        .person_remove_outlined,
+                                                    color: scheme.error,
+                                                  ),
+                                                  tooltip: l10n
+                                                      .dialogRevokeAccessTitle,
+                                                  onPressed: () =>
+                                                      _removeMember(member),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
+                              SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: canManageAccess
+                                      ? FilledButton.icon(
+                                          onPressed: _showInviteDialog,
+                                          icon: const Icon(
+                                            Icons.person_add_alt_1_rounded,
+                                          ),
+                                          label: Text(
+                                            l10n.dialogInviteUserTitle,
+                                          ),
+                                        )
+                                      : Text(
+                                          l10n.accessAdminOnlyInvite,
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                            height: 1.35,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                ),
                               ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (canManageAccess)
-                      FilledButton.icon(
-                        onPressed: _showInviteDialog,
-                        icon: const Icon(Icons.person_add_alt_1_rounded),
-                        label: Text(l10n.dialogInviteUserTitle),
-                      )
-                    else
-                      Text(
-                        l10n.accessAdminOnlyInvite,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.35,
+                            ],
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                  ],
                 ),
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
-    ),
     );
   }
 

@@ -5,6 +5,23 @@ import 'package:football_manager/domain/entities/match_live_timeline_row.dart';
 class MatchLiveTimelineFilter {
   MatchLiveTimelineFilter._();
 
+  /// Acciones de jugador que **sí** entran en la cronología (además de goles,
+  /// sustituciones, tarjetas y cambios de periodo).
+  ///
+  /// No se listan: buena parada ([goodsave]), cantada ([cantada]), córners /
+  /// contadores manuales, ni tiro / recuperación / pases / jugadas (solo mal pase
+  /// y falta entre acciones de campo).
+  static const Set<String> _playerActionTimelineKeys = {
+    'badpass',
+    'foul',
+  };
+
+  static const Set<String> _hiddenPlayerActionKeys = {
+    'goodsave',
+    'cantada',
+  };
+
+  /// Notas de [statusChange] que marcan tiempo de partido (no acciones de jugador).
   static bool isMatchTimeStatusNote(String? note) {
     if (note == null || note.isEmpty) return false;
     final lower = note.trim().toLowerCase();
@@ -25,23 +42,14 @@ class MatchLiveTimelineFilter {
     return n.contains('inicio') && n.contains('2') && n.contains('parte');
   }
 
-  /// [isExternalSpectator]: vista reducida (como el detalle del partido para
-  /// externos). Si es `false` (entrenador/admin), se muestran todos los
-  /// eventos de juego salvo formaciones.
-  static bool shouldIncludeRow(
-    MatchLiveTimelineRow row, {
-    required bool isExternalSpectator,
-  }) {
+  /// Cronología visible: goles, sustituciones, tiempo de partido, tarjetas y
+  /// solo mal pase y falta entre acciones de campo (no tiro, recuperación, etc.).
+  static bool shouldIncludeRow(MatchLiveTimelineRow row) {
     final key = canonicalMatchEventTypeKey(row.rawType);
     if (key == 'formation') return false;
     if (key == 'substitution') {
-      return row.playerId2 != null;
+      return row.playerId1 != null && row.playerId2 != null;
     }
-
-    if (!isExternalSpectator) {
-      return true;
-    }
-
     if (key == 'scoregoal' || key == 'concedegoal' || key == 'owngoal') {
       return true;
     }
@@ -50,6 +58,38 @@ class MatchLiveTimelineFilter {
     }
     if (key == 'statuschange') {
       return isMatchTimeStatusNote(row.note);
+    }
+    if (_hiddenPlayerActionKeys.contains(key)) {
+      return false;
+    }
+    if (_playerActionTimelineKeys.contains(key)) {
+      return row.playerId1 != null;
+    }
+    return false;
+  }
+
+  /// Misma regla que [shouldIncludeRow] para mapas de evento (p. ej. detalle del partido).
+  static bool shouldIncludeChronologyMap(Map<String, dynamic> event) {
+    final key = canonicalMatchEventTypeKey(event['type']);
+    if (key == 'formation') return false;
+    if (key == 'substitution') {
+      return supabaseInt(event['player_id1']) != null &&
+          supabaseInt(event['player_id2']) != null;
+    }
+    if (key == 'scoregoal' || key == 'concedegoal' || key == 'owngoal') {
+      return true;
+    }
+    if (key == 'yellowcard' || key == 'redcard') {
+      return true;
+    }
+    if (key == 'statuschange') {
+      return isMatchTimeStatusNote(event['note'] as String?);
+    }
+    if (_hiddenPlayerActionKeys.contains(key)) {
+      return false;
+    }
+    if (_playerActionTimelineKeys.contains(key)) {
+      return supabaseInt(event['player_id1']) != null;
     }
     return false;
   }
@@ -97,17 +137,9 @@ class MatchLiveTimelineFilter {
   }
 
   static List<MatchLiveTimelineRow> filterAndSort(
-    List<MatchLiveTimelineRow> source, {
-    required bool isExternalSpectator,
-  }) {
-    final filtered = source
-        .where(
-          (r) => shouldIncludeRow(
-            r,
-            isExternalSpectator: isExternalSpectator,
-          ),
-        )
-        .toList();
+    List<MatchLiveTimelineRow> source,
+  ) {
+    final filtered = source.where(shouldIncludeRow).toList();
     final t2h = resolveSecondHalfStart(filtered);
     filtered.sort((a, b) => compareDisplayOrder(a, b, t2h));
     return filtered;

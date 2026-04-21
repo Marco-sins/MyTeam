@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:football_manager/core/theme/app_responsive.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:football_manager/domain/usecase/invitation/get_invitations_by_email_use_case.dart';
@@ -183,10 +184,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     await _loadInvitationsCount();
   }
 
-  int _crossAxisCountForWidth(double width) {
-    if (width >= 1200) return 4;
-    if (width >= 800) return 3;
-    return 2;
+  /// Misma separación horizontal que [SliverPadding] del grid (16+16).
+  static const double _gridHorizontalPadding = 32;
+  static const double _gridCrossAxisSpacing = 14;
+
+  /// Ancho mínimo aceptable por tarjeta en modo 2 columnas; si no caben dos, 1 columna.
+  static const double _minTeamCardWidthForTwoColumns = 158;
+
+  /// [bodyWidth] suele ser [LayoutBuilder.constraints.maxWidth] del body.
+  int _crossAxisCountForWidth(double bodyWidth) {
+    final gridW = bodyWidth - _gridHorizontalPadding;
+
+    if (bodyWidth >= 1200) return 4;
+    if (bodyWidth >= 800) return 3;
+
+    final twoColumnsFit =
+        (gridW - _gridCrossAxisSpacing) / 2 >= _minTeamCardWidthForTwoColumns;
+    if (twoColumnsFit) return 2;
+    return 1;
   }
 
   Widget _pullToRefreshWrapper({required Widget child}) {
@@ -211,71 +226,72 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           padding: EdgeInsets.only(
             bottom: MediaQuery.viewPaddingOf(context).bottom,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  FloatingActionButton.extended(
-                    heroTag: 'invitations',
-                    onPressed: () async {
-                      await Navigator.push(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.bottomCenter,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    FloatingActionButton.extended(
+                      heroTag: 'invitations',
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const InvitationsPage(),
+                          ),
+                        );
+                        if (!mounted) return;
+                        _loadInvitationsCount();
+                      },
+                      elevation: 1,
+                      backgroundColor: Theme.of(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const InvitationsPage(),
-                        ),
-                      );
-                      if (!mounted) return;
-                      _loadInvitationsCount();
-                    },
-                    elevation: 1,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.secondaryContainer,
-                    foregroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onSecondaryContainer,
-                    icon: const Icon(Icons.forward_to_inbox_rounded, size: 22),
-                    label: Text(AppLocalizations.of(context)!.homeInvitations),
-                  ),
-                  if (_invitationsCount > 0)
-                    Positioned(
-                      right: -2,
-                      top: -2,
-                      child: IgnorePointer(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.error,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _invitationsCount > 9 ? '9+' : '$_invitationsCount',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onError,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
+                      ).colorScheme.secondaryContainer,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onSecondaryContainer,
+                      icon: const Icon(Icons.forward_to_inbox_rounded, size: 22),
+                      label: Text(AppLocalizations.of(context)!.homeInvitations),
+                    ),
+                    if (_invitationsCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: IgnorePointer(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.error,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _invitationsCount > 9 ? '9+' : '$_invitationsCount',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onError,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 12),
-              const AddTeam(),
-            ],
+                  ],
+                ),
+                const SizedBox(width: 12),
+                const AddTeam(),
+              ],
+            ),
           ),
         ),
         body: BlocBuilder<HomeCubit, HomeState>(
           builder: (context, state) {
-            final width = MediaQuery.sizeOf(context).width;
-            final crossAxisCount = _crossAxisCountForWidth(width);
-
             if (state is HomeLoading || state is HomeInitial) {
               final l10n = AppLocalizations.of(context)!;
               return _pullToRefreshWrapper(
@@ -405,34 +421,44 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 );
               }
 
-              return _pullToRefreshWrapper(
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _HomeIntroHeader(teamCount: state.teams.length),
-                    ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        0,
-                        16,
-                        108 + MediaQuery.viewPaddingOf(context).bottom,
-                      ),
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                          mainAxisExtent: 206,
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount =
+                      _crossAxisCountForWidth(constraints.maxWidth);
+                  return _pullToRefreshWrapper(
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: _HomeIntroHeader(teamCount: state.teams.length),
                         ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          return TeamCard(team: state.teams[index]);
-                        }, childCount: state.teams.length),
-                      ),
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            AppResponsive.pageHorizontalPadding(context),
+                            0,
+                            AppResponsive.pageHorizontalPadding(context),
+                            108 + MediaQuery.viewPaddingOf(context).bottom,
+                          ),
+                          sliver: SliverGrid(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              crossAxisSpacing: _gridCrossAxisSpacing,
+                              mainAxisSpacing: 14,
+                              mainAxisExtent: 206,
+                            ),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                return TeamCard(team: state.teams[index]);
+                              },
+                              childCount: state.teams.length,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               );
             }
 
@@ -473,8 +499,9 @@ class _HomeIntroHeader extends StatelessWidget {
         ? l10n.homeTeamCountOne
         : l10n.homeTeamCountMany(teamCount);
 
+    final hPad = AppResponsive.pageHorizontalPadding(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

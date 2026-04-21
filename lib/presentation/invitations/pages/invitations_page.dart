@@ -369,7 +369,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                                   'Invitación rechazada',
                                                 ),
                                                 backgroundColor: Colors.green,
-                                                duration: Duration(seconds: 1),
+                                                duration: const Duration(seconds: 4),
                                               ),
                                             );
                                           },
@@ -439,7 +439,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
                                                   'Invitación aceptada. Ya puedes ver el equipo.',
                                                 ),
                                                 backgroundColor: Colors.green,
-                                                duration: Duration(seconds: 1),
+                                                duration: const Duration(seconds: 4),
                                               ),
                                             );
 

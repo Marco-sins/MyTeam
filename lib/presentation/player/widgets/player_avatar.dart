@@ -5,6 +5,7 @@ import 'package:football_manager/domain/entities/player.dart';
 
 /// Avatar del jugador en **formato retrato** (más alto que ancho, proporción 3:4).
 /// La foto se escala con [BoxFit.contain] para que **se vea entera** (puede haber bandas del tema si la proporción no coincide).
+/// Sin foto: icono de usuario sobre [ColorScheme.primaryContainer].
 /// [radius] es la mitad de la **altura** del marco.
 class PlayerAvatar extends StatelessWidget {
   const PlayerAvatar({
@@ -21,14 +22,6 @@ class PlayerAvatar extends StatelessWidget {
   final Uint8List? previewBytes;
 
   static const double _aspectWidthOverHeight = 3 / 4;
-
-  String get _label {
-    final n = player.number?.toString();
-    if (n != null && n.isNotEmpty && n != '0') return n;
-    final f = player.firstName.trim();
-    if (f.isEmpty) return '?';
-    return f[0].toUpperCase();
-  }
 
   BorderRadius get _r {
     final h = radius * 2;
@@ -97,6 +90,7 @@ class PlayerAvatar extends StatelessWidget {
   Widget _fallback(ColorScheme scheme) {
     final h = radius * 2;
     final w = h * _aspectWidthOverHeight;
+    final iconSize = (radius * 1.05).clamp(14.0, 40.0);
     return Material(
       color: scheme.primaryContainer,
       borderRadius: _r,
@@ -104,13 +98,10 @@ class PlayerAvatar extends StatelessWidget {
         width: w,
         height: h,
         child: Center(
-          child: Text(
-            _label,
-            style: TextStyle(
-              fontSize: radius * 0.85,
-              fontWeight: FontWeight.w800,
-              color: scheme.onPrimaryContainer,
-            ),
+          child: Icon(
+            Icons.person_rounded,
+            size: iconSize,
+            color: scheme.onPrimaryContainer.withValues(alpha: 0.9),
           ),
         ),
       ),
@@ -119,7 +110,7 @@ class PlayerAvatar extends StatelessWidget {
 }
 
 /// Foto del jugador en **retrato** con esquinas redondeadas; [BoxFit.contain] para no recortar.
-/// Misma lógica que [PlayerAvatar]: URL, bytes o iniciales.
+/// Misma lógica que [PlayerAvatar]: URL, bytes o icono de usuario si no hay foto.
 class PlayerPhotoRect extends StatelessWidget {
   const PlayerPhotoRect({
     super.key,
@@ -135,14 +126,6 @@ class PlayerPhotoRect extends StatelessWidget {
   final double height;
   final double borderRadius;
   final Uint8List? previewBytes;
-
-  String get _label {
-    final n = player.number?.toString();
-    if (n != null && n.isNotEmpty && n != '0') return n;
-    final f = player.firstName.trim();
-    if (f.isEmpty) return '?';
-    return f[0].toUpperCase();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,6 +176,7 @@ class PlayerPhotoRect extends StatelessWidget {
   }
 
   Widget _fallbackBox(ColorScheme scheme, BorderRadius r) {
+    final iconSize = (height * 0.42).clamp(20.0, 72.0);
     return Material(
       color: scheme.primaryContainer,
       borderRadius: r,
@@ -200,13 +184,10 @@ class PlayerPhotoRect extends StatelessWidget {
         width: width,
         height: height,
         child: Center(
-          child: Text(
-            _label,
-            style: TextStyle(
-              fontSize: height * 0.38,
-              fontWeight: FontWeight.w800,
-              color: scheme.onPrimaryContainer,
-            ),
+          child: Icon(
+            Icons.person_rounded,
+            size: iconSize,
+            color: scheme.onPrimaryContainer.withValues(alpha: 0.9),
           ),
         ),
       ),

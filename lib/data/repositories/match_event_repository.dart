@@ -72,6 +72,10 @@ class MatchEventRepository implements IMatchEventRepository {
         goalsConceded: a.goalsConceded,
         shotsOur: a.shotsOur,
         shotsRival: a.shotsRival,
+        foulsOur: a.foulsOur,
+        foulsRival: a.foulsRival,
+        cornersOur: a.cornersOur,
+        cornersRival: a.cornersRival,
       );
     });
   }

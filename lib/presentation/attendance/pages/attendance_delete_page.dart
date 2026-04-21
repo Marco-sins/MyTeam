@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
+import 'package:football_manager/core/utils/attendance_date_format.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_day_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/get_attendance_days_by_team_use_case.dart';
@@ -36,179 +37,192 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
     );
   }
 
-  String _formattedDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year.toString();
-    return '$day/$month/$year';
-  }
-
   @override
   Widget build(BuildContext context) {
     final team = context.watch<TeamContextCubit>().state;
     return TeamBrandedScope(
       team: team,
       child: Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.screenDeleteAttendance),
-        centerTitle: true,
-        actions: const [TeamQuickNavAppBarButton()],
-      ),
-      body: SafeArea(
-        top: false,
-        child: TeamAreaBackground(
-          team: team,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: FutureBuilder(
-            future: _daysFuture,
-            builder: (context, snapshot) {
-              final l10n = AppLocalizations.of(context)!;
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.screenDeleteAttendance),
+          centerTitle: true,
+          actions: const [TeamQuickNavAppBarButton()],
+        ),
+        body: SafeArea(
+          top: false,
+          child: TeamAreaBackground(
+            team: team,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: FutureBuilder(
+                future: _daysFuture,
+                builder: (context, snapshot) {
+                  final l10n = AppLocalizations.of(context)!;
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-              if (!snapshot.hasData) {
-                return Center(
-                  child: Text(l10n.attendanceDeleteLoadError),
-                );
-              }
+                  if (!snapshot.hasData) {
+                    return Center(child: Text(l10n.attendanceDeleteLoadError));
+                  }
 
-              final either = snapshot.data!;
-              return either.fold((failure) => Center(child: Text(failure.message)), (
-                dates,
-              ) {
-                if (dates.isEmpty) {
-                  return Center(
-                    child: Text(l10n.attendanceDeleteEmpty),
-                  );
-                }
+                  final either = snapshot.data!;
+                  return either.fold(
+                    (failure) => Center(child: Text(failure.message)),
+                    (dates) {
+                      if (dates.isEmpty) {
+                        return Center(child: Text(l10n.attendanceDeleteEmpty));
+                      }
 
-                return ListView.builder(
-                  itemCount: dates.length,
-                  itemBuilder: (context, index) {
-                    final date = dates[index] as DateTime;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        title: Text(_formattedDate(date)),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          onPressed: () async {
-                            final authState = context.read<AuthCubit>().state;
-                            if (authState is! Authenticated) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    AppLocalizations.of(context)!
-                                        .attendanceDeleteNeedLogin,
-                                  ),
-                                  backgroundColor: Colors.red,
+                      return ListView.builder(
+                        itemCount: dates.length,
+                        itemBuilder: (context, index) {
+                          final date = dates[index] as DateTime;
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            child: ListTile(
+                              title: Text(
+                                attendanceFormatDateWithFullWeekday(
+                                  context,
+                                  date,
                                 ),
-                              );
-                              return;
-                            }
-
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) {
-                                final dlgL10n = AppLocalizations.of(context)!;
-                                return AlertDialog(
-                                  title: Text(dlgL10n.screenDeleteAttendance),
-                                  content: Text(
-                                    dlgL10n.attendanceDeleteConfirmBody(
-                                      _formattedDate(date),
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(false),
-                                      child: Text(dlgL10n.actionCancel),
-                                    ),
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(true),
-                                      child: Text(
-                                        dlgL10n.actionRemove,
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-
-                            if (confirm != true) return;
-
-                            // Modal de cargando mientras se elimina la asistencia
-                            showDialog<void>(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (ctx) => const Center(
-                                child: CircularProgressIndicator(),
                               ),
-                            );
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () async {
+                                  final authState = context
+                                      .read<AuthCubit>()
+                                      .state;
+                                  if (authState is! Authenticated) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.attendanceDeleteNeedLogin,
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
 
-                            final deleteAttendanceDayUseCase = context
-                                .read<DeleteAttendanceDayUseCase>();
-                            final result = await deleteAttendanceDayUseCase(
-                              date,
-                              team.id,
-                              authState.user,
-                            );
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) {
+                                      final dlgL10n = AppLocalizations.of(
+                                        context,
+                                      )!;
+                                      return AlertDialog(
+                                        title: Text(
+                                          dlgL10n.screenDeleteAttendance,
+                                        ),
+                                        content: Text(
+                                          dlgL10n.attendanceDeleteConfirmBody(
+                                            attendanceFormatDateWithFullWeekday(
+                                              context,
+                                              date,
+                                            ),
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(false),
+                                            child: Text(dlgL10n.actionCancel),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(true),
+                                            child: Text(
+                                              dlgL10n.actionRemove,
+                                              style: const TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
 
-                            result.fold(
-                              (failure) {
-                                Navigator.of(
-                                  context,
-                                  rootNavigator: true,
-                                ).pop();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(failure.message),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              },
-                              (_) {
-                                Navigator.of(
-                                  context,
-                                  rootNavigator: true,
-                                ).pop();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Asistencia del día eliminada correctamente',
+                                  if (confirm != true) return;
+
+                                  // Modal de cargando mientras se elimina la asistencia
+                                  showDialog<void>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (ctx) => const Center(
+                                      child: CircularProgressIndicator(),
                                     ),
-                                    backgroundColor: Colors.green,
-                                    duration: Duration(seconds: 1),
-                                  ),
-                                );
+                                  );
 
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  TeamSessionRoutes.detailHomeReplacingStack(
-                                    context,
-                                  ),
-                                  (route) => route.isFirst,
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    );
-                  },
-                );
-              });
-            },
+                                  final deleteAttendanceDayUseCase = context
+                                      .read<DeleteAttendanceDayUseCase>();
+                                  final result =
+                                      await deleteAttendanceDayUseCase(
+                                        date,
+                                        team.id,
+                                        authState.user,
+                                      );
+
+                                  result.fold(
+                                    (failure) {
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).pop();
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(failure.message),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    },
+                                    (_) {
+                                      Navigator.of(
+                                        context,
+                                        rootNavigator: true,
+                                      ).pop();
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Asistencia del día eliminada correctamente',
+                                          ),
+                                          backgroundColor: Colors.green,
+                                          duration: const Duration(seconds: 4),
+                                        ),
+                                      );
+
+                                      Navigator.of(context).pushAndRemoveUntil(
+                                        TeamSessionRoutes.detailHomeReplacingStack(
+                                          context,
+                                        ),
+                                        (route) => route.isFirst,
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
           ),
         ),
-        ),
       ),
-    ),
     );
   }
 }

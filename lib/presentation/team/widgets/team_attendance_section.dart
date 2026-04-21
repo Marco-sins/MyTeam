@@ -23,37 +23,60 @@ class TeamAttendanceSection extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            l10n.screenRoster,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.3,
+    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: scheme.primary,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.3,
+        );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxH = constraints.maxHeight;
+        final titleH = maxH <= 0
+            ? 0.0
+            : ((maxH * 0.32).clamp(12.0, 44.0)).clamp(0.0, maxH);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (titleH > 0)
+              SizedBox(
+                height: titleH,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 4),
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        l10n.screenRoster,
+                        style: titleStyle,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ),
                 ),
-          ),
-        ),
-        Expanded(
-          child: Card(
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: AttendanceSummaryTable(
-                  team: team,
-                  players: players,
-                  showPlayerPhotos: showPlayerPhotos,
+              ),
+            Expanded(
+              child: Card(
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: AttendanceSummaryTable(
+                      team: team,
+                      players: players,
+                      showPlayerPhotos: showPlayerPhotos,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

@@ -12,6 +12,9 @@ class MatchConvocationTable extends StatelessWidget {
   final Set<int> sentOffPlayerIds;
   final Map<int, double> playerRatings;
 
+  /// Minutos disputados por [Player.id] (solo gestores; null = no mostrar).
+  final Map<int, int>? minutesPlayedByPlayerId;
+
   /// Si es true, no se usa [ListView] interno: el padre aporta el scroll.
   final bool scrollingChild;
   final void Function(Player player, bool isSentOff) onPlayerTap;
@@ -26,6 +29,7 @@ class MatchConvocationTable extends StatelessWidget {
     required this.selectedPlayer,
     required this.sentOffPlayerIds,
     required this.playerRatings,
+    this.minutesPlayedByPlayerId,
     this.scrollingChild = false,
     this.readOnly = false,
     required this.onPlayerTap,
@@ -111,6 +115,7 @@ class MatchConvocationTable extends StatelessWidget {
   Widget _buildPlayerRow(BuildContext context, Player player) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final dorsal = player.number?.toString() ?? '-';
     final assignedIndex = positionPlayers.indexWhere(
       (p) => p != null && p.id == player.id,
@@ -118,6 +123,7 @@ class MatchConvocationTable extends StatelessWidget {
     final isAssigned = assignedIndex != -1;
     final isSelected = selectedPlayer?.id == player.id;
     final isSentOff = sentOffPlayerIds.contains(player.id);
+    final minutesPlayed = minutesPlayedByPlayerId?[player.id];
 
     final row = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -150,27 +156,49 @@ class MatchConvocationTable extends StatelessWidget {
               ),
             ),
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!readOnly) _buildRatingCircle(context, player),
-              if (isAssigned)
-                Icon(Icons.check_circle, color: scheme.primary, size: 22),
-              if (isSentOff)
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(Icons.block, color: scheme.error, size: 22),
-                ),
-              if (!readOnly && isSelected)
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(
-                    Icons.touch_app,
-                    color: scheme.tertiary,
-                    size: 22,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (minutesPlayed != null)
+                  Tooltip(
+                    message:
+                        '${l10n.matchStatsMinutesPlayed}: $minutesPlayed',
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Text(
+                        "$minutesPlayed'",
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: scheme.primary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-            ],
+                if (!readOnly) _buildRatingCircle(context, player),
+                if (isAssigned)
+                  Icon(Icons.check_circle, color: scheme.primary, size: 22),
+                if (isSentOff)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Icon(Icons.block, color: scheme.error, size: 22),
+                  ),
+                if (!readOnly && isSelected)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Icon(
+                      Icons.touch_app,
+                      color: scheme.tertiary,
+                      size: 22,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),

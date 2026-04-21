@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:gotrue/gotrue.dart' show User;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:football_manager/core/config/auth_redirect_urls.dart';
 import 'package:football_manager/core/errors/exception/auth_server_exception.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
@@ -130,7 +131,7 @@ class AuthRemoteDatasource {
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
-        emailRedirectTo: 'com.example.tfg1://login',
+        emailRedirectTo: AuthRedirectUrls.emailConfirmation,
         data: {
           'name': name,
           'teamRoles': {}, // Inicialmente sin roles de equipo

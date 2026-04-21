@@ -67,6 +67,7 @@ import 'package:football_manager/domain/usecase/match_event/get_player_card_summ
 import 'package:football_manager/domain/usecase/match_event/get_player_rating_event_rows_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/player/add_new_player_use_case.dart';
+import 'package:football_manager/domain/usecase/player/import_player_from_other_team_use_case.dart';
 import 'package:football_manager/domain/usecase/player/delete_player_use_case.dart';
 import 'package:football_manager/domain/usecase/player/delete_stored_player_photo_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
@@ -136,6 +137,9 @@ Future<void> configureDependencies() async {
   );
   sl.registerLazySingleton(
     () => AddNewPlayerUseCase(sl<IPlayerRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => ImportPlayerFromOtherTeamUseCase(sl<IPlayerRepository>()),
   );
   sl.registerLazySingleton(
     () => DeletePlayerUseCase(sl<IPlayerRepository>()),

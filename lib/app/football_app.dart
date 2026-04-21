@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:football_manager/core/auth/supabase_auth_session_bridge.dart';
 import 'package:football_manager/core/constants/app_branding.dart';
 import 'package:football_manager/core/di/injection_container.dart';
 import 'package:football_manager/core/locale/locale_cubit.dart';
+import 'package:football_manager/core/theme/app_responsive.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
 import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
 import 'package:football_manager/domain/repositories/i_team_repository.dart';
@@ -47,6 +49,7 @@ import 'package:football_manager/domain/usecase/match_event/get_player_card_summ
 import 'package:football_manager/domain/usecase/match_event/get_player_rating_event_rows_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/player/add_new_player_use_case.dart';
+import 'package:football_manager/domain/usecase/player/import_player_from_other_team_use_case.dart';
 import 'package:football_manager/domain/usecase/player/delete_player_use_case.dart';
 import 'package:football_manager/domain/usecase/player/delete_stored_player_photo_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
@@ -85,6 +88,9 @@ class FootballApp extends StatelessWidget {
           return MultiRepositoryProvider(
             providers: [
               RepositoryProvider.value(value: sl<AddNewPlayerUseCase>()),
+              RepositoryProvider.value(
+                value: sl<ImportPlayerFromOtherTeamUseCase>(),
+              ),
               RepositoryProvider.value(value: sl<DeletePlayerUseCase>()),
               RepositoryProvider.value(value: sl<UpdatePlayerUseCase>()),
               RepositoryProvider.value(value: sl<GetPlayersByTeamUseCase>()),
@@ -93,25 +99,20 @@ class FootballApp extends StatelessWidget {
                 value: sl<DeleteStoredPlayerPhotoUseCase>(),
               ),
               RepositoryProvider.value(value: sl<DeleteTeamUseCase>()),
-              RepositoryProvider.value(
-                value: sl<LeaveTeamAsExternalUseCase>(),
-              ),
+              RepositoryProvider.value(value: sl<LeaveTeamAsExternalUseCase>()),
               RepositoryProvider.value(value: sl<UploadTeamLogoUseCase>()),
               RepositoryProvider.value(value: sl<UpdateTeamUseCase>()),
               RepositoryProvider.value(value: sl<GetTeamByIdUseCase>()),
+              RepositoryProvider.value(value: sl<GetTeamsUseCase>()),
               RepositoryProvider.value(value: sl<CreateAttendanceUseCase>()),
               RepositoryProvider.value(value: sl<UpdateAttendanceUseCase>()),
               RepositoryProvider.value(value: sl<DeleteAttendanceUseCase>()),
-              RepositoryProvider.value(
-                value: sl<GetAttendanceByDateUseCase>(),
-              ),
+              RepositoryProvider.value(value: sl<GetAttendanceByDateUseCase>()),
               RepositoryProvider.value(
                 value: sl<GetAttendanceDaysByTeamUseCase>(),
               ),
               RepositoryProvider.value(value: sl<GetAttendancesUseCase>()),
-              RepositoryProvider.value(
-                value: sl<DeleteAttendanceDayUseCase>(),
-              ),
+              RepositoryProvider.value(value: sl<DeleteAttendanceDayUseCase>()),
               RepositoryProvider.value(value: sl<CreateMatchUseCase>()),
               RepositoryProvider.value(value: sl<GetMatchesByTeamUseCase>()),
               RepositoryProvider.value(value: sl<DeleteMatchUseCase>()),
@@ -200,30 +201,33 @@ class FootballApp extends StatelessWidget {
                   ),
                 ),
               ],
-              child: MaterialApp(
-                title: AppBranding.displayName,
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.light(),
-                locale: locale,
-                localizationsDelegates: const [
-                  AppLocalizations.delegate,
-                  GlobalMaterialLocalizations.delegate,
-                  GlobalWidgetsLocalizations.delegate,
-                  GlobalCupertinoLocalizations.delegate,
-                ],
-                supportedLocales: AppLocalizations.supportedLocales,
-                home: BlocBuilder<AuthCubit, AuthState>(
-                  builder: (context, state) {
-                    if (state is AuthLoading) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (state is Authenticated) {
-                      return const HomePage();
-                    }
-                    return const LoginPage();
-                  },
+              child: SupabaseAuthSessionBridge(
+                child: MaterialApp(
+                  title: AppBranding.displayName,
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.light(),
+                  builder: AppResponsive.materialAppBuilder,
+                  locale: locale,
+                  localizationsDelegates: const [
+                    AppLocalizations.delegate,
+                    GlobalMaterialLocalizations.delegate,
+                    GlobalWidgetsLocalizations.delegate,
+                    GlobalCupertinoLocalizations.delegate,
+                  ],
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  home: BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      if (state is AuthLoading) {
+                        return const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (state is Authenticated) {
+                        return const HomePage();
+                      }
+                      return const LoginPage();
+                    },
+                  ),
                 ),
               ),
             ),
@@ -243,6 +247,7 @@ class SupabaseConfigErrorApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      builder: AppResponsive.materialAppBuilder,
       home: Scaffold(
         body: Center(
           child: Padding(

@@ -113,6 +113,10 @@ class MatchEventRemoteDatasource {
     int goalsConceded,
     int shotsOur,
     int shotsRival,
+    int foulsOur,
+    int foulsRival,
+    int cornersOur,
+    int cornersRival,
   })> getEventAggregates(int matchId) async {
     try {
       final result = await _supabase
@@ -124,6 +128,10 @@ class MatchEventRemoteDatasource {
       int conceded = 0;
       int shotsOur = 0;
       int shotsRival = 0;
+      int foulsOur = 0;
+      int foulsRival = 0;
+      int cornersOur = 0;
+      int cornersRival = 0;
 
       for (final row in supabaseResponseAsList(result)) {
         final raw = row['type'];
@@ -132,12 +140,21 @@ class MatchEventRemoteDatasource {
 
         if (typeString == 'scoreGoal') {
           scored++;
+          shotsOur++;
         } else if (typeString == 'concedeGoal' || typeString == 'ownGoal') {
           conceded++;
         } else if (typeString == 'shot') {
           shotsOur++;
         } else if (typeString == 'rivalShot') {
           shotsRival++;
+        } else if (typeString == 'foul') {
+          foulsOur++;
+        } else if (typeString == 'rivalFoul') {
+          foulsRival++;
+        } else if (typeString == 'corner') {
+          cornersOur++;
+        } else if (typeString == 'rivalCorner') {
+          cornersRival++;
         }
       }
 
@@ -146,6 +163,10 @@ class MatchEventRemoteDatasource {
         goalsConceded: conceded,
         shotsOur: shotsOur,
         shotsRival: shotsRival,
+        foulsOur: foulsOur,
+        foulsRival: foulsRival,
+        cornersOur: cornersOur,
+        cornersRival: cornersRival,
       );
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);

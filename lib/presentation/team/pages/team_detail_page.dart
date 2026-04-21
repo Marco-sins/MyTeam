@@ -258,19 +258,21 @@ class _TeamDetailPageState extends State<TeamDetailPage>
         ),
         body: TeamAreaBackground(
           team: team,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
+          child: CustomScrollView(
+            slivers: [
+              SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: TeamDetailHeader(
-                  team: team,
-                  onLeaveTeam: canLeaveTeam ? _confirmAndLeaveTeam : null,
+                sliver: SliverToBoxAdapter(
+                  child: TeamDetailHeader(
+                    team: team,
+                    onLeaveTeam: canLeaveTeam ? _confirmAndLeaveTeam : null,
+                  ),
                 ),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                sliver: SliverFillRemaining(
+                  hasScrollBody: true,
                   child: BlocBuilder<TeamDetailCubit, TeamDetailState>(
                     builder: (context, state) {
                       final l10n = AppLocalizations.of(context)!;

@@ -262,13 +262,19 @@ class MatchCardItem extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
-    final Color cardColor =
-        isRed ? scheme.error : scheme.secondary;
+    const amberCard = Color(0xFFFFC107);
+    final Color cardChipColor = isRed ? scheme.error : amberCard;
+    final Color panelBg = isRed
+        ? scheme.errorContainer.withValues(alpha: 0.42)
+        : const Color(0xFFFFF8E1);
+    final Color panelBorder = isRed
+        ? scheme.error.withValues(alpha: 0.55)
+        : amberCard.withValues(alpha: 0.75);
     final String label = isRed
         ? l10n.matchActionLabelRedCard
         : l10n.matchActionLabelYellowCard;
     final Color textColor =
-        isRed ? scheme.error : scheme.onSecondaryContainer;
+        isRed ? scheme.error : const Color(0xFF5D4000);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -281,10 +287,10 @@ class MatchCardItem extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: scheme.surfaceContainerLow,
+                color: panelBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.45),
+                  color: panelBorder,
                 ),
               ),
               child: Row(
@@ -294,10 +300,12 @@ class MatchCardItem extends StatelessWidget {
                     width: 14,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: cardColor,
+                      color: cardChipColor,
                       borderRadius: BorderRadius.circular(3),
                       border: Border.all(
-                        color: scheme.outline.withValues(alpha: 0.35),
+                        color: isRed
+                            ? scheme.onError.withValues(alpha: 0.35)
+                            : Colors.black26,
                         width: 0.5,
                       ),
                     ),

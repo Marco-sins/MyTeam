@@ -9,12 +9,15 @@ enum MatchPlayerActionType {
   goal,
   goodPass,
   goodPlay,
-  ballRecovery,
+  goodSave,
   shot,
+  ballRecovery,
   yellowCard,
   redCard,
   badPass,
   badPlay,
+  foul,
+  cantada,
 }
 
 class MatchPlayerActionButton extends StatelessWidget {
@@ -66,7 +69,7 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
       return Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 460, minWidth: 280),
+          constraints: const BoxConstraints(maxHeight: 620, minWidth: 280),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -120,17 +123,24 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         ).pop(MatchPlayerActionType.goodPlay),
                       ),
                       MatchPlayerActionButton(
-                        label: l10n.matchActionLabelBallRecovery,
+                        label: l10n.matchActionLabelGoodSave,
                         textColor: Colors.green,
                         onTap: () => Navigator.of(
                           ctx,
-                        ).pop(MatchPlayerActionType.ballRecovery),
+                        ).pop(MatchPlayerActionType.goodSave),
                       ),
                       MatchPlayerActionButton(
                         label: l10n.matchActionLabelShot,
                         textColor: Colors.green,
                         onTap: () =>
                             Navigator.of(ctx).pop(MatchPlayerActionType.shot),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelBallRecovery,
+                        textColor: Colors.green,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.ballRecovery),
                       ),
                       const SizedBox(height: 8),
                       MatchPlayerActionButton(
@@ -160,6 +170,19 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         onTap: () => Navigator.of(
                           ctx,
                         ).pop(MatchPlayerActionType.badPlay),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelFoul,
+                        textColor: Colors.red,
+                        onTap: () =>
+                            Navigator.of(ctx).pop(MatchPlayerActionType.foul),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelCantada,
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.cantada),
                       ),
                     ],
                   ),

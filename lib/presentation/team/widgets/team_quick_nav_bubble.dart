@@ -66,10 +66,12 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
               color: Colors.white,
               elevation: 16,
               shadowColor: Colors.black26,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: ListView(
+                padding: EdgeInsets.only(
+                  top: padding.top,
+                  bottom: padding.bottom + 16,
+                ),
                 children: [
-                  SizedBox(height: padding.top),
                   Align(
                     alignment: Alignment.centerRight,
                     child: IconButton(
@@ -79,86 +81,74 @@ void openTeamQuickNavPanel(BuildContext hostContext) {
                     ),
                   ),
                   const Divider(height: 1, thickness: 1),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      children: [
-                        _PanelTile(
-                          icon: Icons.home_outlined,
-                          title: l10n.navMyTeams,
-                          onTap: () {
-                            Navigator.pop(dialogContext);
-                            TeamSessionNavigation.popToAppHome(hostContext);
-                          },
-                          textPrimary: textPrimary,
-                          textSecondary: textSecondary,
-                        ),
-                        _PanelTile(
-                          icon: Icons.groups_2_outlined,
-                          title: team.name,
-                          subtitle: l10n.navTeamHomeSubtitle,
-                          onTap: () {
-                            Navigator.pop(dialogContext);
-                            TeamSessionNavigation.goToTeamHome(hostContext);
-                          },
-                          textPrimary: textPrimary,
-                          textSecondary: textSecondary,
-                        ),
-                        const Divider(height: 1),
-                        if (!isExternal) ...[
-                          _PanelTile(
-                            icon: Icons.check_circle_outline,
-                            title: l10n.navAttendance,
-                            onTap: () {
-                              Navigator.pop(dialogContext);
-                              TeamSessionNavigation.openAttendance(hostContext);
-                            },
-                            textPrimary: textPrimary,
-                            textSecondary: textSecondary,
-                          ),
-                          _PanelTile(
-                            icon: Icons.list_alt,
-                            title: l10n.navConvocation,
-                            onTap: () {
-                              Navigator.pop(dialogContext);
-                              TeamSessionNavigation.openConvocation(hostContext);
-                            },
-                            textPrimary: textPrimary,
-                            textSecondary: textSecondary,
-                          ),
-                        ],
-                        _PanelTile(
-                          icon: Icons.sports_soccer,
-                          title: l10n.navMatch,
-                          onTap: () {
-                            Navigator.pop(dialogContext);
-                            TeamSessionNavigation.openMatchList(hostContext);
-                          },
-                          textPrimary: textPrimary,
-                          textSecondary: textSecondary,
-                        ),
-                        if (!isExternal)
-                          _PanelTile(
-                            icon: Icons.settings_outlined,
-                            title: l10n.navManagement,
-                            onTap: () {
-                              Navigator.pop(dialogContext);
-                              TeamSessionNavigation.openManagement(hostContext);
-                            },
-                            textPrimary: textPrimary,
-                            textSecondary: textSecondary,
-                          ),
-                      ],
-                    ),
+                  _PanelTile(
+                    icon: Icons.home_outlined,
+                    title: l10n.navMyTeams,
+                    onTap: () {
+                      Navigator.pop(dialogContext);
+                      TeamSessionNavigation.popToAppHome(hostContext);
+                    },
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
                   ),
+                  _PanelTile(
+                    icon: Icons.groups_2_outlined,
+                    title: team.name,
+                    subtitle: l10n.navTeamHomeSubtitle,
+                    onTap: () {
+                      Navigator.pop(dialogContext);
+                      TeamSessionNavigation.goToTeamHome(hostContext);
+                    },
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                  ),
+                  const Divider(height: 1),
+                  if (!isExternal) ...[
+                    _PanelTile(
+                      icon: Icons.check_circle_outline,
+                      title: l10n.navAttendance,
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        TeamSessionNavigation.openAttendance(hostContext);
+                      },
+                      textPrimary: textPrimary,
+                      textSecondary: textSecondary,
+                    ),
+                    _PanelTile(
+                      icon: Icons.list_alt,
+                      title: l10n.navConvocation,
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        TeamSessionNavigation.openConvocation(hostContext);
+                      },
+                      textPrimary: textPrimary,
+                      textSecondary: textSecondary,
+                    ),
+                  ],
+                  _PanelTile(
+                    icon: Icons.sports_soccer,
+                    title: l10n.navMatch,
+                    onTap: () {
+                      Navigator.pop(dialogContext);
+                      TeamSessionNavigation.openMatchList(hostContext);
+                    },
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                  ),
+                  if (!isExternal)
+                    _PanelTile(
+                      icon: Icons.settings_outlined,
+                      title: l10n.navManagement,
+                      onTap: () {
+                        Navigator.pop(dialogContext);
+                        TeamSessionNavigation.openManagement(hostContext);
+                      },
+                      textPrimary: textPrimary,
+                      textSecondary: textSecondary,
+                    ),
                   const Divider(height: 1, thickness: 1),
                   Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      12,
-                      16,
-                      padding.bottom + 16,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: AppLanguageSelector(

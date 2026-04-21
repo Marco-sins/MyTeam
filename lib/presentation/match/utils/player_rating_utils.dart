@@ -5,11 +5,9 @@ import 'package:football_manager/core/utils/supabase_dynamic.dart';
 /// - Todos los jugadores empiezan con 5.0 de media.
 /// - El resultado se limita al rango [0, 10].
 ///
-/// Los eventos deben tener al menos las claves:
-/// - 'type' (String o enum.toString())
-/// - 'player_id1' (int?)
-/// - 'player_id2' (int?)
-/// - 'note' (String?)
+/// Eventos actuales (tipo canónico y notas equivalentes):
+/// - Gol, buen/mal pase, buena/mala jugada, buena parada, tiro, recuperación,
+///   amarilla, roja, falta, cantada.
 double calculatePlayerRating(
   int playerId,
   List<Map<String, dynamic>> events, {
@@ -31,20 +29,16 @@ double calculatePlayerRating(
     // Goles (goleador y asistente)
     if (typeKey == 'scoregoal') {
       if (p1 == playerId) {
-        rating += 1.0; // gol
+        rating += 1.0;
       }
       if (p2 == playerId) {
-        rating += 0.75; // asistencia
+        rating += 0.75;
       }
+      continue;
     }
 
     // A partir de aquí sólo aplicamos notas al jugador principal (player_id1).
     if (p1 != playerId) {
-      continue;
-    }
-
-    if (typeKey == 'shot') {
-      rating += 0.12;
       continue;
     }
 
@@ -56,131 +50,99 @@ double calculatePlayerRating(
       continue;
     }
 
-    // Gol concedido (a nivel individual, portero/defensa implicado)
+    // Gol concedido (portero/defensa)
     if (typeKey == 'concedegoal' || noteLower == 'gol concedido') {
       rating -= 0.4;
       continue;
     }
 
-    // Tarjetas
-    if (typeKey == 'yellowcard' || noteLower == 'tarjeta amarilla') {
-      rating -= 1.0;
-      continue;
+    switch (typeKey) {
+      case 'shot':
+        rating += 0.1;
+        continue;
+      case 'goodpass':
+        rating += 0.12;
+        continue;
+      case 'badpass':
+        rating -= 0.12;
+        continue;
+      case 'goodplay':
+        rating += 0.22;
+        continue;
+      case 'badplay':
+        rating -= 0.28;
+        continue;
+      case 'ballrecovery':
+        rating += 0.28;
+        continue;
+      case 'goodsave':
+        rating += 0.42;
+        continue;
+      case 'yellowcard':
+        rating -= 0.9;
+        continue;
+      case 'redcard':
+        rating -= 2.5;
+        continue;
+      case 'foul':
+        rating -= 0.32;
+        continue;
+      case 'cantada':
+        rating -= 1.25;
+        continue;
+      case 'keypass':
+        rating += 0.25;
+        continue;
+      default:
+        break;
     }
 
-    if (typeKey == 'redcard' || noteLower == 'tarjeta roja') {
-      rating -= 3.0;
+    // Compatibilidad con datos antiguos (solo nota / tipos legacy)
+    if (noteLower == 'buen pase' || noteLower == 'pase clave') {
+      rating += noteLower == 'pase clave' ? 0.25 : 0.12;
       continue;
     }
-
-    if (typeKey == 'goodpass') {
-      rating += 0.1;
+    if (noteLower == 'mal pase' ||
+        noteLower == 'pase impreciso') {
+      rating -= 0.12;
       continue;
     }
-
-    if (typeKey == 'badpass') {
-      rating -= 0.1;
+    if (noteLower == 'buena jugada' || noteLower == 'jugada clave') {
+      rating += noteLower == 'jugada clave' ? 0.35 : 0.22;
       continue;
     }
-
-    if (typeKey == 'goodplay') {
-      rating += 0.2;
-      continue;
-    }
-
-    if (typeKey == 'badplay') {
-      rating -= 0.3;
-      continue;
-    }
-
-    if (typeKey == 'ballrecovery') {
-      rating += 0.3;
-      continue;
-    }
-
-    if (typeKey == 'keypass') {
-      rating += 0.3;
-      continue;
-    }
-
-    if (typeKey == 'goodsave') {
-      if (noteLower.contains('increíble') || noteLower.contains('increible')) {
-        rating += 0.75;
-      } else {
-        rating += 0.35;
-      }
-      continue;
-    }
-
-    // Buen pase
-    if (noteLower == 'buen pase') {
-      rating += 0.1;
-      continue;
-    }
-
-    // Pase clave
-    if (noteLower == 'pase clave') {
-      rating += 0.3;
-      continue;
-    }
-
-    // Buena jugada
-    if (noteLower == 'buena jugada') {
-      rating += 0.2;
-      continue;
-    }
-
-    // Jugada clave
-    if (noteLower == 'jugada clave') {
-      rating += 0.5;
-      continue;
-    }
-
-    // Gana posesión
-    if (noteLower == 'gana posesión' || noteLower == 'gana posesion') {
-      rating += 0.3;
-      continue;
-    }
-
-    // Buena parada
-    if (noteLower == 'buena parada') {
-      rating += 0.35;
-      continue;
-    }
-
-    // Increíble parada
-    if (noteLower == 'increíble parada' || noteLower == 'increible parada') {
-      rating += 0.75;
-      continue;
-    }
-
-    // Mal pase / pase impreciso
-    if (noteLower == 'mal pase' || noteLower == 'pase impreciso') {
-      rating -= 0.1;
-      continue;
-    }
-
-    // Mala jugada / jugada imprecisa
     if (noteLower == 'mala jugada' || noteLower == 'jugada imprecisa') {
-      rating -= 0.3;
+      rating -= 0.28;
       continue;
     }
-
-    // Recuperación (solo nota, sin tipo dedicado)
     if (noteLower == 'balón recuperado' || noteLower == 'balon recuperado') {
-      rating += 0.3;
+      rating += 0.28;
       continue;
     }
-
-    // Pierde posesión
-    if (noteLower == 'pierde posesión' || noteLower == 'pierde posesion') {
-      rating -= 0.2;
+    if (noteLower == 'buena parada' ||
+        noteLower.contains('increíble parada') ||
+        noteLower.contains('increible parada')) {
+      rating += noteLower.contains('incre') ? 0.55 : 0.42;
       continue;
     }
-
-    // Pierde posición
-    if (noteLower == 'pierde posición' || noteLower == 'pierde posicion') {
-      rating -= 0.2;
+    if (noteLower == 'tiro') {
+      rating += 0.1;
+      continue;
+    }
+    if (noteLower == 'falta') {
+      rating -= 0.32;
+      continue;
+    }
+    if (noteLower == 'tarjeta amarilla') {
+      rating -= 0.9;
+      continue;
+    }
+    if (noteLower == 'tarjeta roja') {
+      rating -= 2.5;
+      continue;
+    }
+    if (noteLower == 'cantada') {
+      rating -= 1.25;
       continue;
     }
   }
