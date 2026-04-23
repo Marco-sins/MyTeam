@@ -741,6 +741,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get matchCornersShort => 'Corners';
 
   @override
+  String get matchYellowCardsShort => 'Cartons jaunes';
+
+  @override
+  String get matchRedCardsShort => 'Cartons rouges';
+
+  @override
+  String get matchRivalYellowCardNote => 'Carton jaune (adversaire)';
+
+  @override
+  String get matchRivalRedCardNote => 'Carton rouge (adversaire)';
+
+  @override
   String get matchCounterAddTooltip => 'Ajouter';
 
   @override
@@ -880,6 +892,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get matchLiveSubstitutionLeaves => '· Désactivé';
+
+  @override
+  String get matchLiveSubstitutionToFreeSlot => ' (place libre / banc)';
+
+  @override
+  String get matchLiveMinuteSquad => 'Composition';
 
   @override
   String get matchLivePeriodFallback => 'Changement de période ou de statut';
@@ -1123,10 +1141,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get matchStatsScoreLive => 'Score';
 
   @override
+  String get matchStatsTeamNamePlaceholder => 'Équipe';
+
+  @override
   String get matchStatsLoadingSummary => 'Chargement du résumé du match…';
 
   @override
-  String get matchStatsSectionField => 'Présentation finale';
+  String get matchStatsSectionField => 'Alignement';
 
   @override
   String matchStatsFormationChip(String formation) {
@@ -1135,7 +1156,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get matchStatsFieldDispositionHint =>
-      'Disposition basée sur les positions enregistrées à la fin du match.';
+      'Disposition des onze titulaires selon les positions enregistrées.';
 
   @override
   String get matchStatsSectionTimeline => 'Chronologie';
@@ -1234,4 +1255,64 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get matchEventLegacyActionRegistered => 'Action enregistrée';
+
+  @override
+  String get matchNotifTimeFirst => '1re mi-temps';
+
+  @override
+  String get matchNotifTimeHalf => 'Mi-temps';
+
+  @override
+  String get matchNotifTimeSecond => '2e mi-temps';
+
+  @override
+  String get matchNotifTimeEnd => 'Fin du match';
+
+  @override
+  String get matchNotifPlayerUnknown => 'Joueur';
+
+  @override
+  String matchNotifGoalByPlayer(String player, String team) {
+    return 'But de $player ($team)';
+  }
+
+  @override
+  String matchNotifGoalRivalOnly(String opponent) {
+    return 'But de $opponent';
+  }
+
+  @override
+  String matchNotifOwnGoalByPlayer(String player, String team) {
+    return 'But contre son camp de $player ($team)';
+  }
+
+  @override
+  String matchNotifCardYellowForTeam(String player, String team) {
+    return 'Carton jaune $player ($team)';
+  }
+
+  @override
+  String matchNotifCardRedForTeam(String player, String team) {
+    return 'Carton rouge $player ($team)';
+  }
+
+  @override
+  String matchNotifCardYellowRivalWithPlayer(String player, String opponent) {
+    return 'Carton jaune $player ($opponent)';
+  }
+
+  @override
+  String matchNotifCardRedRivalWithPlayer(String player, String opponent) {
+    return 'Carton rouge $player ($opponent)';
+  }
+
+  @override
+  String matchNotifCardYellowRivalOnly(String opponent) {
+    return 'Carton jaune ($opponent)';
+  }
+
+  @override
+  String matchNotifCardRedRivalOnly(String opponent) {
+    return 'Carton rouge ($opponent)';
+  }
 }

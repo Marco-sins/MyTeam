@@ -176,7 +176,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
   }
 
   void _onLogoTap() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.image,
       withData: true,
     );

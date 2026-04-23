@@ -324,6 +324,10 @@
   "matchFoulsAndCornersSection": "Faltas y córners",
   "matchFoulsShort": "Faltas",
   "matchCornersShort": "Córners",
+  "matchYellowCardsShort": "Amarillas",
+  "matchRedCardsShort": "Rojas",
+  "matchRivalYellowCardNote": "Tarjeta amarilla (rival)",
+  "matchRivalRedCardNote": "Tarjeta roja (rival)",
   "matchCounterAddTooltip": "Añadir uno",
   "matchCounterRemoveTooltip": "Quitar el último",
   "matchNoCounterToRemove": "No hay nada que quitar",
@@ -380,6 +384,8 @@
   },
   "matchLiveSubstitutionEnters": "Sustitución · Entra ",
   "matchLiveSubstitutionLeaves": " · Sale ",
+  "matchLiveSubstitutionToFreeSlot": " (hueco libre / banquillo)",
+  "matchLiveMinuteSquad": "Alineación",
   "matchLivePeriodFallback": "Cambio de periodo o estado",
   "matchLiveGoalBy": "Gol de ",
   "matchLiveAssistOpening": " (asistencia de ",
@@ -486,8 +492,9 @@
   "matchScoreAgainstLabel": "Encajados",
   "matchStatsScoreFinal": "Marcador final",
   "matchStatsScoreLive": "Marcador",
+  "matchStatsTeamNamePlaceholder": "Equipo",
   "matchStatsLoadingSummary": "Cargando resumen del partido…",
-  "matchStatsSectionField": "Campo final",
+  "matchStatsSectionField": "Alineación",
   "matchStatsFormationChip": "Formación: {formation}",
   "@matchStatsFormationChip": {
     "placeholders": {
@@ -496,7 +503,7 @@
       }
     }
   },
-  "matchStatsFieldDispositionHint": "Disposición según las posiciones guardadas al terminar el partido.",
+  "matchStatsFieldDispositionHint": "Disposición de los once titulares según las posiciones guardadas.",
   "matchStatsSectionTimeline": "Cronología",
   "matchStatsTimelineEmpty": "No hay eventos registrados",
   "matchStatsTimelineEmptyHint": "Los goles, cambios y tarjetas aparecerán aquí cuando se registren en el partido.",
@@ -533,5 +540,70 @@
   "matchFieldMaxPlayersExpulsionRule": "No puedes tener más jugadores en el campo. Por cada expulsado debe quedar un hueco libre.",
   "matchConvocationTableEmpty": "No hay jugadores convocados para este partido",
   "matchDeletedSuccess": "Partido eliminado correctamente",
-  "matchEventLegacyActionRegistered": "Acción registrada"
+  "matchEventLegacyActionRegistered": "Acción registrada",
+  "matchNotifTimeFirst": "Primera parte",
+  "matchNotifTimeHalf": "Descanso",
+  "matchNotifTimeSecond": "Segunda parte",
+  "matchNotifTimeEnd": "Fin del partido",
+  "matchNotifPlayerUnknown": "Jugador",
+  "matchNotifGoalByPlayer": "Gol de {player} ({team})",
+  "@matchNotifGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifGoalRivalOnly": "Gol de {opponent}",
+  "@matchNotifGoalRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifOwnGoalByPlayer": "Gol en propia de {player} ({team})",
+  "@matchNotifOwnGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowForTeam": "Tarjeta amarilla {player} ({team})",
+  "@matchNotifCardYellowForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedForTeam": "Tarjeta roja {player} ({team})",
+  "@matchNotifCardRedForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalWithPlayer": "Tarjeta amarilla {player} ({opponent})",
+  "@matchNotifCardYellowRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalWithPlayer": "Tarjeta roja {player} ({opponent})",
+  "@matchNotifCardRedRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalOnly": "Tarjeta amarilla ({opponent})",
+  "@matchNotifCardYellowRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalOnly": "Tarjeta roja ({opponent})",
+  "@matchNotifCardRedRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  }
 }

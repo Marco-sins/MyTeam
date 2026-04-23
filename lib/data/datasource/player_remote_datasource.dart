@@ -461,11 +461,12 @@ class PlayerRemoteDatasource {
       final assists = <int, int>{};
       final yellows = <int, int>{};
       final reds = <int, int>{};
+      final Map<String, int> yellowsByMatchAndPlayer = {};
 
       if (matchIds.isNotEmpty) {
         final events = await _supabase
             .from('match_events')
-            .select('type, player_id1, player_id2')
+            .select('match_id, type, player_id1, player_id2')
             .inFilter('match_id', matchIds);
 
         for (final row in events as List<dynamic>) {
@@ -473,6 +474,7 @@ class PlayerRemoteDatasource {
           final tail = _matchEventTypeTail(map['type']);
           final p1 = map['player_id1'] as int?;
           final p2 = map['player_id2'] as int?;
+          final matchId = map['match_id'] as int?;
 
           if (tail == 'scoreGoal') {
             if (p1 != null) {
@@ -484,12 +486,22 @@ class PlayerRemoteDatasource {
           } else if (tail == 'yellowCard') {
             if (p1 != null) {
               yellows[p1] = (yellows[p1] ?? 0) + 1;
+              if (matchId != null) {
+                final k = '$matchId,$p1';
+                yellowsByMatchAndPlayer[k] =
+                    (yellowsByMatchAndPlayer[k] ?? 0) + 1;
+              }
             }
           } else if (tail == 'redCard') {
             if (p1 != null) {
               reds[p1] = (reds[p1] ?? 0) + 1;
             }
           }
+        }
+        for (final e in yellowsByMatchAndPlayer.entries) {
+          if (e.value < 2) continue;
+          final playerId = int.parse(e.key.split(',')[1]);
+          reds[playerId] = (reds[playerId] ?? 0) + 1;
         }
       }
 

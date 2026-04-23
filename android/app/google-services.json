@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "757366524117",
+    "project_id": "myteam-1f0c8",
+    "storage_bucket": "myteam-1f0c8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:757366524117:android:bb51262a4b74da40a33a5c",
+        "android_client_info": {
+          "package_name": "com.marco.myteam"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPZ4foo7CHL_IDbFDTIAJxPTexI_J85og"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

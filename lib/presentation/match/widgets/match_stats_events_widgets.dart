@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/theme/team_screen_tint.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+
+Color _readableOnSolidFill(Color background) {
+  return ThemeData.estimateBrightnessForColor(background) == Brightness.light
+      ? const Color(0xFF1C1B1F)
+      : TeamScreenTint.readableOnDarkAccent;
+}
 
 /// Marca de minuto alineada con el tema de la app.
 class _MinuteBadge extends StatelessWidget {
@@ -139,7 +146,7 @@ class MatchSubstitutionItem extends StatelessWidget {
     super.key,
     required this.minute,
     required this.inPlayer,
-    required this.outPlayer,
+    this.outPlayer,
     this.inFallbackId,
     this.outFallbackId,
   });
@@ -221,12 +228,22 @@ class MatchSubstitutionItem extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: sideName(
-                      outPlayer,
-                      outFallbackId,
-                      align: TextAlign.right,
-                      color: scheme.error,
-                    ),
+                    child: outFallbackId == null
+                        ? Text(
+                            l10n.matchLiveSubstitutionToFreeSlot,
+                            textAlign: TextAlign.right,
+                            maxLines: 2,
+                            style: nameStyle?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          )
+                        : sideName(
+                            outPlayer,
+                            outFallbackId,
+                            align: TextAlign.right,
+                            color: scheme.error,
+                          ),
                   ),
                   const SizedBox(width: 6),
                   Padding(
@@ -438,7 +455,7 @@ class MatchGoalItem extends StatelessWidget {
     }
 
     final chipBg = isOurGoal ? scheme.primary : scheme.error;
-    final chipFg = isOurGoal ? scheme.onPrimary : scheme.onError;
+    final chipFg = _readableOnSolidFill(chipBg);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

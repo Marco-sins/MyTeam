@@ -324,6 +324,10 @@
   "matchFoulsAndCornersSection": "Falli e calci d'angolo",
   "matchFoulsShort": "Falli",
   "matchCornersShort": "Calci d'angolo",
+  "matchYellowCardsShort": "Cartellini gialli",
+  "matchRedCardsShort": "Cartellini rossi",
+  "matchRivalYellowCardNote": "Cartellino giallo (avversario)",
+  "matchRivalRedCardNote": "Cartellino rosso (avversario)",
   "matchCounterAddTooltip": "Aggiungi",
   "matchCounterRemoveTooltip": "Rimuovi l'ultimo",
   "matchNoCounterToRemove": "Niente da rimuovere",
@@ -380,6 +384,8 @@
   },
   "matchLiveSubstitutionEnters": "Sostituzione · On",
   "matchLiveSubstitutionLeaves": "· Spento",
+  "matchLiveSubstitutionToFreeSlot": " (posto libero / panchina)",
+  "matchLiveMinuteSquad": "Formazione",
   "matchLivePeriodFallback": "Modifica del periodo o dello stato",
   "matchLiveGoalBy": "Gol di",
   "matchLiveAssistOpening": "(assist",
@@ -486,8 +492,9 @@
   "matchScoreAgainstLabel": "Contro",
   "matchStatsScoreFinal": "Punteggio finale",
   "matchStatsScoreLive": "Punto",
+  "matchStatsTeamNamePlaceholder": "Squadra",
   "matchStatsLoadingSummary": "Caricamento riepilogo partita…",
-  "matchStatsSectionField": "Tiro finale",
+  "matchStatsSectionField": "Formazione",
   "matchStatsFormationChip": "Formazione: {formation}",
   "@matchStatsFormationChip": {
     "placeholders": {
@@ -496,7 +503,7 @@
       }
     }
   },
-  "matchStatsFieldDispositionHint": "Layout basato sulle posizioni salvate al termine della partita.",
+  "matchStatsFieldDispositionHint": "Schema dei titolari in base alle posizioni salvate in formazione.",
   "matchStatsSectionTimeline": "Cronologia",
   "matchStatsTimelineEmpty": "Nessun evento registrato",
   "matchStatsTimelineEmptyHint": "Gol, abbonamenti e cartellini appariranno qui una volta effettuato l'accesso alla partita.",
@@ -533,5 +540,70 @@
   "matchFieldMaxPlayersExpulsionRule": "Non si possono avere più giocatori in campo. Ogni giocatore espulso deve lasciare uno spazio libero.",
   "matchConvocationTableEmpty": "Nessun giocatore convocato per questa partita",
   "matchDeletedSuccess": "Corrispondenza eliminata correttamente",
-  "matchEventLegacyActionRegistered": "Azione registrata"
+  "matchEventLegacyActionRegistered": "Azione registrata",
+  "matchNotifTimeFirst": "Primo tempo",
+  "matchNotifTimeHalf": "Intervallo",
+  "matchNotifTimeSecond": "Secondo tempo",
+  "matchNotifTimeEnd": "Fine partita",
+  "matchNotifPlayerUnknown": "Giocatore",
+  "matchNotifGoalByPlayer": "Gol di {player} ({team})",
+  "@matchNotifGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifGoalRivalOnly": "Gol di {opponent}",
+  "@matchNotifGoalRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifOwnGoalByPlayer": "Autogol di {player} ({team})",
+  "@matchNotifOwnGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowForTeam": "Cartellino giallo {player} ({team})",
+  "@matchNotifCardYellowForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedForTeam": "Cartellino rosso {player} ({team})",
+  "@matchNotifCardRedForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalWithPlayer": "Cartellino giallo {player} ({opponent})",
+  "@matchNotifCardYellowRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalWithPlayer": "Cartellino rosso {player} ({opponent})",
+  "@matchNotifCardRedRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalOnly": "Cartellino giallo ({opponent})",
+  "@matchNotifCardYellowRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalOnly": "Cartellino rosso ({opponent})",
+  "@matchNotifCardRedRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  }
 }

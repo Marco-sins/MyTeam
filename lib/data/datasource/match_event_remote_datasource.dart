@@ -117,11 +117,15 @@ class MatchEventRemoteDatasource {
     int foulsRival,
     int cornersOur,
     int cornersRival,
+    int yellowOur,
+    int yellowRival,
+    int redOur,
+    int redRival,
   })> getEventAggregates(int matchId) async {
     try {
       final result = await _supabase
           .from('match_events')
-          .select('type')
+          .select('type, player_id1')
           .eq('match_id', matchId);
 
       int scored = 0;
@@ -132,17 +136,25 @@ class MatchEventRemoteDatasource {
       int foulsRival = 0;
       int cornersOur = 0;
       int cornersRival = 0;
+      int yellowOur = 0;
+      int yellowRival = 0;
+      int redOur = 0;
+      int redRival = 0;
+      final Map<int, int> yellowsByOurPlayer = {};
+      final Map<int, int> yellowsByRivalPlayer = {};
 
       for (final row in supabaseResponseAsList(result)) {
         final raw = row['type'];
         if (raw == null) continue;
         final typeString = raw.toString().split('.').last;
+        final p1 = supabaseInt(row['player_id1']);
 
         if (typeString == 'scoreGoal') {
           scored++;
-          shotsOur++;
+          shotsOur++; // Gol a favor = tiro a puerta propio
         } else if (typeString == 'concedeGoal' || typeString == 'ownGoal') {
           conceded++;
+          shotsRival++; // Gol encajado / propia = tiro a puerta del rival
         } else if (typeString == 'shot') {
           shotsOur++;
         } else if (typeString == 'rivalShot') {
@@ -155,6 +167,31 @@ class MatchEventRemoteDatasource {
           cornersOur++;
         } else if (typeString == 'rivalCorner') {
           cornersRival++;
+        } else if (typeString == 'yellowCard') {
+          yellowOur++;
+          if (p1 != null) {
+            yellowsByOurPlayer[p1] = (yellowsByOurPlayer[p1] ?? 0) + 1;
+          }
+        } else if (typeString == 'rivalYellowCard') {
+          yellowRival++;
+          if (p1 != null) {
+            yellowsByRivalPlayer[p1] = (yellowsByRivalPlayer[p1] ?? 0) + 1;
+          }
+        } else if (typeString == 'redCard') {
+          redOur++;
+        } else if (typeString == 'rivalRedCard') {
+          redRival++;
+        }
+      }
+
+      for (final c in yellowsByOurPlayer.values) {
+        if (c >= 2) {
+          redOur++;
+        }
+      }
+      for (final c in yellowsByRivalPlayer.values) {
+        if (c >= 2) {
+          redRival++;
         }
       }
 
@@ -167,6 +204,10 @@ class MatchEventRemoteDatasource {
         foulsRival: foulsRival,
         cornersOur: cornersOur,
         cornersRival: cornersRival,
+        yellowOur: yellowOur,
+        yellowRival: yellowRival,
+        redOur: redOur,
+        redRival: redRival,
       );
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);

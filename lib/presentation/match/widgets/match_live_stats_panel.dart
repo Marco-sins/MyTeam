@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
+import 'package:football_manager/presentation/match/utils/match_foul_icon.dart'
+    show kMatchFoulListAvatarForeground, MatchWhistleIcon;
 
-/// Panel de estadísticas en vivo del partido (tiros, faltas, córners).
+/// Misma tarjeta visual que en la cronología de eventos (amarillo M3 / rojo del tema).
+const Color _kAmberCard = Color(0xFFFFC107);
+
+/// Panel de estadísticas en vivo del partido (tiros, faltas, córners, tarjetas).
 ///
 /// Estilo alineado con las tarjetas del gestor: superficie contenida, tipografía
 /// clara y bloques duales “nosotros / rival”.
@@ -16,6 +21,10 @@ class MatchLiveStatsPanel extends StatelessWidget {
     required this.foulsRival,
     required this.cornersOur,
     required this.cornersRival,
+    required this.yellowOur,
+    required this.yellowRival,
+    required this.redOur,
+    required this.redRival,
     required this.l10n,
     this.onRemoveRivalShot,
     this.onAddRivalShot,
@@ -25,6 +34,10 @@ class MatchLiveStatsPanel extends StatelessWidget {
     this.onAddCorner,
     this.onRemoveRivalCorner,
     this.onAddRivalCorner,
+    this.onRemoveRivalYellowCard,
+    this.onAddRivalYellowCard,
+    this.onRemoveRivalRedCard,
+    this.onAddRivalRedCard,
   });
 
   final double layoutScale;
@@ -35,6 +48,10 @@ class MatchLiveStatsPanel extends StatelessWidget {
   final int foulsRival;
   final int cornersOur;
   final int cornersRival;
+  final int yellowOur;
+  final int yellowRival;
+  final int redOur;
+  final int redRival;
   final AppLocalizations l10n;
 
   final VoidCallback? onRemoveRivalShot;
@@ -45,6 +62,10 @@ class MatchLiveStatsPanel extends StatelessWidget {
   final VoidCallback? onAddCorner;
   final VoidCallback? onRemoveRivalCorner;
   final VoidCallback? onAddRivalCorner;
+  final VoidCallback? onRemoveRivalYellowCard;
+  final VoidCallback? onAddRivalYellowCard;
+  final VoidCallback? onRemoveRivalRedCard;
+  final VoidCallback? onAddRivalRedCard;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +130,11 @@ class MatchLiveStatsPanel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _SectionLabel(
-                    icon: Icons.sports_soccer_outlined,
+                    leading: Icon(
+                      Icons.sports_soccer_outlined,
+                      size: 18 * s,
+                      color: scheme.primary.withValues(alpha: 0.9),
+                    ),
                     label: l10n.matchShotsOnGoalSection,
                     scheme: scheme,
                     s: s,
@@ -155,7 +180,11 @@ class MatchLiveStatsPanel extends StatelessWidget {
                     ),
                   ),
                   _SectionLabel(
-                    icon: Icons.front_hand_outlined,
+                    leading: MatchWhistleIcon(
+                      size: 18 * s,
+                      color: kMatchFoulListAvatarForeground
+                          .withValues(alpha: 0.95),
+                    ),
                     label: l10n.matchFoulsShort,
                     scheme: scheme,
                     s: s,
@@ -201,7 +230,11 @@ class MatchLiveStatsPanel extends StatelessWidget {
                     ),
                   ),
                   _SectionLabel(
-                    icon: Icons.flag_outlined,
+                    leading: Icon(
+                      Icons.flag_outlined,
+                      size: 18 * s,
+                      color: scheme.primary.withValues(alpha: 0.9),
+                    ),
                     label: l10n.matchCornersShort,
                     scheme: scheme,
                     s: s,
@@ -242,6 +275,98 @@ class MatchLiveStatsPanel extends StatelessWidget {
                       ),
                     ],
                   ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14 * s),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  _ColoredCardSectionLabel(
+                    isRed: false,
+                    label: l10n.matchYellowCardsShort,
+                    scheme: scheme,
+                    s: s,
+                    theme: theme,
+                  ),
+                  SizedBox(height: 12 * s),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _CornerBlock(
+                          value: yellowOur,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.primary,
+                          readOnly: true,
+                        ),
+                      ),
+                      SizedBox(width: 10 * s),
+                      Expanded(
+                        child: _CornerBlock(
+                          value: yellowRival,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.tertiary,
+                          readOnly: readOnly,
+                          onMinus: onRemoveRivalYellowCard,
+                          onPlus: onAddRivalYellowCard,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14 * s),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  _ColoredCardSectionLabel(
+                    isRed: true,
+                    label: l10n.matchRedCardsShort,
+                    scheme: scheme,
+                    s: s,
+                    theme: theme,
+                  ),
+                  SizedBox(height: 12 * s),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _CornerBlock(
+                          value: redOur,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.primary,
+                          readOnly: true,
+                        ),
+                      ),
+                      SizedBox(width: 10 * s),
+                      Expanded(
+                        child: _CornerBlock(
+                          value: redRival,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.tertiary,
+                          readOnly: readOnly,
+                          onMinus: onRemoveRivalRedCard,
+                          onPlus: onAddRivalRedCard,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -254,14 +379,14 @@ class MatchLiveStatsPanel extends StatelessWidget {
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({
-    required this.icon,
+    required this.leading,
     required this.label,
     required this.scheme,
     required this.s,
     required this.theme,
   });
 
-  final IconData icon;
+  final Widget leading;
   final String label;
   final ColorScheme scheme;
   final double s;
@@ -271,8 +396,76 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18 * s, color: scheme.primary.withValues(alpha: 0.9)),
+        leading,
         SizedBox(width: 8 * s),
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.1,
+              color: scheme.onSurface,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Misma [Icons.style] y cromas que en la fila de eventos / modal de partido.
+class _ColoredCardSectionLabel extends StatelessWidget {
+  const _ColoredCardSectionLabel({
+    required this.isRed,
+    required this.label,
+    required this.scheme,
+    required this.s,
+    required this.theme,
+  });
+
+  final bool isRed;
+  final String label;
+  final ColorScheme scheme;
+  final double s;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color chip = isRed ? scheme.error : _kAmberCard;
+    final Color onChip = isRed ? scheme.onError : Colors.black87;
+    return Row(
+      children: [
+        Container(
+          width: 30 * s,
+          height: 30 * s,
+          decoration: BoxDecoration(
+            color: chip,
+            borderRadius: BorderRadius.circular(8 * s),
+            border: Border.all(
+              color: isRed
+                  ? scheme.onError.withValues(alpha: 0.35)
+                  : Colors.black26,
+              width: 0.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: chip.withValues(alpha: 0.22),
+                blurRadius: 4 * s,
+                offset: Offset(0, 1 * s),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Icon(
+              Icons.style,
+              size: 17 * s,
+              color: onChip,
+            ),
+          ),
+        ),
+        SizedBox(width: 10 * s),
         Expanded(
           child: Text(
             label,

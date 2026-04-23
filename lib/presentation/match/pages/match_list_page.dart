@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:football_manager/core/utils/match_category_duration.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
@@ -122,7 +123,7 @@ class _MatchListPageState extends State<MatchListPage>
     });
   }
 
-  String _elapsedText(Match match) {
+  String _elapsedText(Match match, String teamCategory) {
     // Solo mostramos el timer en 1ª y 2ª parte; en descanso no.
     if (match.status != MatchStatus.firstHalf &&
         match.status != MatchStatus.secondHalf) {
@@ -130,8 +131,13 @@ class _MatchListPageState extends State<MatchListPage>
     }
 
     final now = DateTime.now();
-    final diff = now.difference(match.date).inSeconds;
-    if (diff <= 0) return '0:00';
+    var diff = now.difference(match.date).inSeconds;
+    if (diff < 0) return '0:00';
+    if (match.status == MatchStatus.secondHalf) {
+      // [Match.date] es el inicio de la 2ª parte: el reloj sigue desde el minuto
+      // de fin de la 1ª (categoría: p. ej. 25' prebenjamines, 45' seniors).
+      diff += matchHalfDurationMinutesForCategory(teamCategory) * 60;
+    }
 
     final minutes = (diff ~/ 60).toString();
     final seconds = (diff % 60).toString().padLeft(2, '0');
@@ -489,7 +495,7 @@ class _MatchListPageState extends State<MatchListPage>
                   final liveConceded = _liveGoalsConceded[match.id];
                   final us = liveScored ?? match.goalsScored;
                   final them = liveConceded ?? match.goalsConceded;
-                  final elapsed = _elapsedText(match);
+                  final elapsed = _elapsedText(match, team.category);
                   final statusText = _matchListStatusLabel(l10n, match.status);
                   final inPlay = match.status == MatchStatus.firstHalf ||
                       match.status == MatchStatus.secondHalf;
@@ -578,7 +584,17 @@ class _MatchListPageState extends State<MatchListPage>
                                         getLatestFormationNoteByMatchUseCase,
                                     loadErrorMessage: loadErrorMessage,
                                   )..load(),
-                                  child: MatchStatsPage(match: match),
+                                  child: MatchStatsPage(
+                                    match: match,
+                                    ourTeamName: context
+                                        .read<TeamContextCubit>()
+                                        .state
+                                        .name,
+                                    teamColorHex: context
+                                        .read<TeamContextCubit>()
+                                        .state
+                                        .color,
+                                  ),
                                 ),
                               ),
                             );

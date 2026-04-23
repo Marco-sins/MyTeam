@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:football_manager/domain/entities/match_event_realtime_snapshot.dart';
 import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
 
-/// Implementación Supabase Realtime para el modo espectador externo.
+/// Supabase Realtime: escucha inserciones/actualizaciones en eventos, alineación y partido.
 class MatchSpectatorRealtimeService implements IMatchSpectatorRealtime {
   MatchSpectatorRealtimeService(this._client);
 
@@ -11,7 +12,11 @@ class MatchSpectatorRealtimeService implements IMatchSpectatorRealtime {
   RealtimeChannel? _channel;
 
   @override
-  void subscribeToMatch(int matchId, void Function() onTablesChanged) {
+  void subscribeToMatch(
+    int matchId,
+    void Function() onTablesChanged, {
+    void Function(MatchEventRealtimeSnapshot snapshot)? onMatchEventChange,
+  }) {
     final previous = _channel;
     _channel = null;
     if (previous != null) {
@@ -29,7 +34,15 @@ class MatchSpectatorRealtimeService implements IMatchSpectatorRealtime {
             column: 'match_id',
             value: matchId,
           ),
-          callback: (_) => onTablesChanged(),
+          callback: (PostgresChangePayload payload) {
+            onMatchEventChange?.call(
+              MatchEventRealtimeSnapshot(
+                isInsert: payload.eventType == PostgresChangeEvent.insert,
+                row: Map<String, dynamic>.from(payload.newRecord),
+              ),
+            );
+            onTablesChanged();
+          },
         )
         .onPostgresChanges(
           event: PostgresChangeEvent.all,

@@ -9,7 +9,7 @@ class AuthRedirectUrls {
   AuthRedirectUrls._();
 
   static String get _scheme =>
-      dotenv.env['AUTH_DEEP_LINK_SCHEME'] ?? 'com.example.tfg1';
+      dotenv.env['AUTH_DEEP_LINK_SCHEME'] ?? 'com.marco.myteam';
 
   /// Tras confirmar el correo; `supabase_flutter` intercambia el `code` del enlace por sesión.
   static String get emailConfirmation =>

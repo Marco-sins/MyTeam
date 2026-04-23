@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 abstract final class TeamScreenTint {
   static const Color defaultAccent = Color(0xFF14532D);
 
+  /// Texto legible sobre acentos oscuros (evita blanco puro).
+  static const Color readableOnDarkAccent = Color(0xFFF2EDE4);
+
   /// Tonos habituales en equipaciones (clubs, selecciones). Hex en `teams.color`.
   static const List<({String label, String hex})> palette = [
     (label: 'Rojo clásico', hex: '#C8102E'),
@@ -47,7 +50,7 @@ abstract final class TeamScreenTint {
   static Color onAccent(Color accent) {
     return ThemeData.estimateBrightnessForColor(accent) == Brightness.light
         ? const Color(0xFF0D1F14)
-        : Colors.white;
+        : readableOnDarkAccent;
   }
 
   static LinearGradient bodyGradient(BuildContext context, String? stored) {
@@ -92,7 +95,7 @@ abstract final class TeamScreenTint {
   static Color teamOnPrimaryContainer(String? stored) {
     final bg = teamPrimaryContainer(stored);
     final l = bg.computeLuminance();
-    return l > 0.55 ? const Color(0xFF0D1F14) : Colors.white;
+    return l > 0.55 ? const Color(0xFF0D1F14) : readableOnDarkAccent;
   }
 
   static Color teamOutline(String? stored) =>
@@ -111,6 +114,6 @@ abstract final class TeamScreenTint {
   static Color teamOnSecondaryContainer(String? stored) {
     final bg = teamSecondaryContainer(stored);
     final l = bg.computeLuminance();
-    return l > 0.58 ? const Color(0xFF2A2100) : Colors.white;
+    return l > 0.58 ? const Color(0xFF2A2100) : readableOnDarkAccent;
   }
 }

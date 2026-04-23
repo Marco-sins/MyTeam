@@ -4,12 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 import 'package:football_manager/domain/entities/match.dart';
+import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/domain/entities/player.dart';
+import 'package:football_manager/domain/utils/match_minutes_utils.dart';
 import 'package:football_manager/domain/services/match_live_timeline_filter.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
 import 'package:football_manager/presentation/match/widgets/match_stats_events_widgets.dart';
@@ -72,6 +75,11 @@ String _matchStatusLabel(AppLocalizations l10n, MatchStatus status) {
   }
 }
 
+String _matchStatsNonEmptyName(String value, String placeholder) {
+  final t = value.trim();
+  return t.isNotEmpty ? t : placeholder;
+}
+
 String _localizedTimeStatusNote(AppLocalizations l10n, String raw) {
   final lower = raw.trim().toLowerCase();
   if (lower == 'inicio 1ª parte' || lower == 'inicio 1a parte') {
@@ -86,9 +94,20 @@ String _localizedTimeStatusNote(AppLocalizations l10n, String raw) {
 }
 
 class MatchStatsPage extends StatelessWidget {
-  const MatchStatsPage({super.key, required this.match});
+  const MatchStatsPage({
+    super.key,
+    required this.match,
+    required this.ourTeamName,
+    this.teamColorHex,
+  });
 
   final Match match;
+
+  /// Nombre del club del usuario (debe coincidir con [Match.teamId]) para mostrar local/visitante.
+  final String ourTeamName;
+
+  /// Color de [Team.color]; si se pasa y el partido está finalizado, la pantalla usa el tono de equipo.
+  final String? teamColorHex;
 
   Widget? _eventTile(
     BuildContext context,
@@ -98,7 +117,9 @@ class MatchStatsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final rawType = event['type'];
     final typeKey = canonicalMatchEventTypeKey(rawType);
-    final minute = supabaseInt(event['minute']) ?? 0;
+    final minute = resolveMatchEventMinute(
+      Map<String, dynamic>.from(event),
+    );
     final int? playerId1 = supabaseInt(event['player_id1']);
     final int? playerId2 = supabaseInt(event['player_id2']);
 
@@ -132,9 +153,9 @@ class MatchStatsPage extends StatelessWidget {
       final scheme = Theme.of(context).colorScheme;
       final accentColor = _accentForLegacyStatusActionNote(scheme, noteLabel);
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: accentColor,
-          );
+        fontWeight: FontWeight.w600,
+        color: accentColor,
+      );
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       if (player != null) {
         return MatchStatusChangeItem(
@@ -158,11 +179,11 @@ class MatchStatsPage extends StatelessWidget {
     if (typeKey == 'substitution') {
       final int? inId = playerId1;
       final int? outId = playerId2;
-      if (inId == null || outId == null) {
+      if (inId == null) {
         return null;
       }
       final inPlayer = state.playersById[inId];
-      final outPlayer = state.playersById[outId];
+      final outPlayer = outId != null ? state.playersById[outId] : null;
       return MatchSubstitutionItem(
         minute: minute,
         inPlayer: inPlayer,
@@ -177,8 +198,7 @@ class MatchStatsPage extends StatelessWidget {
         typeKey == 'owngoal') {
       final isOurGoal = typeKey == 'scoregoal';
       final isOwnGoal = typeKey == 'owngoal';
-      final isAgainstGoal =
-          typeKey == 'concedegoal' || typeKey == 'owngoal';
+      final isAgainstGoal = typeKey == 'concedegoal' || typeKey == 'owngoal';
 
       Player? scorerPlayer;
       Player? assistPlayer;
@@ -204,9 +224,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.tertiary,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.tertiary,
+      );
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -234,9 +254,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.tertiary,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.tertiary,
+      );
       final headline = l10n.matchActionLabelGoodPass;
       if (player != null) {
         return MatchStatusChangeItem(
@@ -261,9 +281,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.tertiary,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.tertiary,
+      );
       final headline = l10n.matchActionLabelGoodPlay;
       if (player != null) {
         return MatchStatusChangeItem(
@@ -288,9 +308,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.tertiary,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.tertiary,
+      );
       final headline = l10n.matchActionLabelBallRecovery;
       if (player != null) {
         return MatchStatusChangeItem(
@@ -315,9 +335,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.primary,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.primary,
+      );
       final headline = l10n.matchActionLabelShot;
       if (player != null) {
         return MatchStatusChangeItem(
@@ -349,9 +369,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.error,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.error,
+      );
       final headline = l10n.matchActionLabelBadPass;
       if (player != null) {
         return MatchStatusChangeItem(
@@ -376,9 +396,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.error,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.error,
+      );
       final headline = l10n.matchActionLabelBadPlay;
       if (player != null) {
         return MatchStatusChangeItem(
@@ -403,9 +423,9 @@ class MatchStatsPage extends StatelessWidget {
       final player = playerId1 != null ? state.playersById[playerId1] : null;
       final scheme = Theme.of(context).colorScheme;
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: scheme.tertiary,
-          );
+        fontWeight: FontWeight.w600,
+        color: scheme.tertiary,
+      );
       final notePass = (event['note'] as String?)?.trim();
       final headline = (notePass != null && notePass.isNotEmpty)
           ? notePass
@@ -446,14 +466,15 @@ class MatchStatsPage extends StatelessWidget {
         noteFallback != null &&
         noteFallback.isNotEmpty) {
       final scheme = Theme.of(context).colorScheme;
-      final accentColor =
-          _accentForLegacyStatusActionNote(scheme, noteFallback);
+      final accentColor = _accentForLegacyStatusActionNote(
+        scheme,
+        noteFallback,
+      );
       final accentStyle = Theme.of(context).textTheme.bodyMedium!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: accentColor,
-          );
-      final player =
-          playerId1 != null ? state.playersById[playerId1] : null;
+        fontWeight: FontWeight.w600,
+        color: accentColor,
+      );
+      final player = playerId1 != null ? state.playersById[playerId1] : null;
       if (player != null) {
         return MatchStatusChangeItem(
           minute: minute,
@@ -478,9 +499,6 @@ class MatchStatsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
     final dateText =
@@ -493,507 +511,543 @@ class MatchStatsPage extends StatelessWidget {
       isExternal = authState.user.teamRoles[match.teamId] == UserRole.external;
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.screenMatchDetail),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        top: false,
-        child: BlocBuilder<MatchStatsCubit, MatchStatsState>(
-          builder: (context, state) {
-            if (state.isLoading) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 28,
-                          vertical: 36,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(color: scheme.primary),
-                            const SizedBox(height: 20),
-                            Text(
-                              l10n.matchStatsLoadingSummary,
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            if (state.error != null) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(22),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.error_outline_rounded,
-                              color: scheme.error,
-                              size: 40,
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Text(
-                                state.error!,
-                                style: textTheme.bodyLarge,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            final bool showLineupSection =
-                match.status == MatchStatus.finished &&
-                (state.startingPlayers.isNotEmpty ||
-                    state.substitutePlayers.isNotEmpty);
-
-            final eventTiles = <Widget>[];
-            for (final e in state.events) {
-              if (!MatchLiveTimelineFilter.shouldIncludeChronologyMap(e)) {
-                continue;
-              }
-              final tile = _eventTile(context, state, e);
-              if (tile != null) {
-                eventTiles.add(tile);
-              }
-            }
-
-            final scoreSubtitle = match.status == MatchStatus.finished
-                ? l10n.matchStatsScoreFinal
-                : l10n.matchStatsScoreLive;
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              children: [
-                _MatchSummaryCard(
-                  match: match,
-                  dateText: dateText,
-                  statusLabel: _matchStatusLabel(l10n, match.status),
-                  scoreSubtitle: scoreSubtitle,
-                  scheme: scheme,
-                  textTheme: textTheme,
-                  vsTitle: l10n.matchSummaryVs(match.opponent),
-                  homeVenueLabel: l10n.matchVenueHome,
-                  awayVenueLabel: l10n.matchVenueAway,
-                  goalsForLabel: l10n.matchScoreForLabel,
-                  goalsAgainstLabel: l10n.matchScoreAgainstLabel,
-                ),
-                if (match.status == MatchStatus.finished &&
-                    state.formationLines.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  _MatchSectionTitle(
-                    icon: Icons.grid_on_rounded,
-                    title: l10n.matchStatsSectionField,
-                    scheme: scheme,
-                    textTheme: textTheme,
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    clipBehavior: Clip.antiAlias,
+    final page = Builder(
+      builder: (context) {
+        final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+        final textTheme = theme.textTheme;
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context)!.screenMatchDetail),
+            centerTitle: true,
+          ),
+          body: SafeArea(
+            top: false,
+            child: BlocBuilder<MatchStatsCubit, MatchStatsState>(
+              builder: (context, state) {
+                if (state.isLoading) {
+                  return Center(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (state.formationLabel != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Chip(
-                                  avatar: Icon(
-                                    Icons.grid_view_rounded,
-                                    size: 18,
-                                    color: scheme.primary,
+                      padding: const EdgeInsets.all(24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 320),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 28,
+                              vertical: 36,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: scheme.primary,
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                  l10n.matchStatsLoadingSummary,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
                                   ),
-                                  label: Text(
-                                    l10n.matchStatsFormationChip(
-                                      state.formationLabel!,
-                                    ),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                if (state.error != null) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(22),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.error_outline_rounded,
+                                  color: scheme.error,
+                                  size: 40,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Text(
+                                    state.error!,
+                                    style: textTheme.bodyLarge,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                final bool showLineupSection =
+                    match.status == MatchStatus.finished &&
+                    (state.startingPlayers.isNotEmpty ||
+                        state.substitutePlayers.isNotEmpty);
+
+                final firstKick = MatchLiveTimelineFilter.resolveFirstHalfKickoffFromEventMaps(
+                  state.events,
+                );
+                final eventTiles = <Widget>[];
+                for (final e in state.events) {
+                  if (!MatchLiveTimelineFilter.shouldIncludeChronologyMap(
+                        e,
+                        firstHalfKickoff: firstKick,
+                      )) {
+                    continue;
+                  }
+                  final tile = _eventTile(context, state, e);
+                  if (tile != null) {
+                    eventTiles.add(tile);
+                  }
+                }
+
+                final scoreSubtitle = match.status == MatchStatus.finished
+                    ? l10n.matchStatsScoreFinal
+                    : l10n.matchStatsScoreLive;
+
+                final ph = l10n.matchStatsTeamNamePlaceholder;
+                final homeTeamName = _matchStatsNonEmptyName(
+                  match.isHome ? ourTeamName : match.opponent,
+                  ph,
+                );
+                final awayTeamName = _matchStatsNonEmptyName(
+                  match.isHome ? match.opponent : ourTeamName,
+                  ph,
+                );
+                final homeGoals = match.isHome
+                    ? match.goalsScored
+                    : match.goalsConceded;
+                final awayGoals = match.isHome
+                    ? match.goalsConceded
+                    : match.goalsScored;
+
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  children: [
+                    _MatchSummaryCard(
+                      dateText: dateText,
+                      statusLabel: _matchStatusLabel(l10n, match.status),
+                      scoreSubtitle: scoreSubtitle,
+                      scheme: scheme,
+                      textTheme: textTheme,
+                      homeTeamName: homeTeamName,
+                      awayTeamName: awayTeamName,
+                      homeGoals: homeGoals,
+                      awayGoals: awayGoals,
+                      homeVenueLabel: l10n.matchVenueHome,
+                      awayVenueLabel: l10n.matchVenueAway,
+                    ),
+                    if (match.status == MatchStatus.finished &&
+                        state.formationLines.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      _MatchSectionTitle(
+                        icon: Icons.grid_on_rounded,
+                        title: l10n.matchStatsSectionField,
+                        scheme: scheme,
+                        textTheme: textTheme,
+                      ),
+                      const SizedBox(height: 10),
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (state.formationLabel != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Chip(
+                                      avatar: Icon(
+                                        Icons.grid_view_rounded,
+                                        size: 18,
+                                        color: scheme.primary,
+                                      ),
+                                      label: Text(
+                                        l10n.matchStatsFormationChip(
+                                          state.formationLabel!,
+                                        ),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: scheme.onSurface,
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                      backgroundColor: scheme.secondaryContainer
+                                          .withValues(alpha: 0.55),
+                                      side: BorderSide.none,
                                     ),
                                   ),
-                                  padding: EdgeInsets.zero,
-                                  visualDensity: VisualDensity.compact,
-                                  backgroundColor: scheme.secondaryContainer
-                                      .withValues(alpha: 0.55),
-                                  side: BorderSide.none,
+                                )
+                              else
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Text(
+                                    l10n.matchStatsFieldDispositionHint,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              Center(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.sizeOf(context).width - 32,
+                                  ),
+                                  child: MatchFieldWithFormation(
+                                    formationLines: state.formationLines,
+                                    formationLayoutKey: state.formationLabel,
+                                    positionPlayers: state.fieldPositionPlayers,
+                                    selectedPlayer: null,
+                                    sentOffPlayerIds: state.sentOffPlayerIds,
+                                    currentPlayersOnField: () => state
+                                        .fieldPositionPlayers
+                                        .where((p) => p != null)
+                                        .length,
+                                    maxPlayersOnField: () =>
+                                        state.fieldPositionPlayers.length,
+                                    showSnack: (_, {bool error = false}) {},
+                                    onPositionsChanged: (_) {},
+                                    onSubstitutionRequested:
+                                        (playerIn, playerOut) {},
+                                    onPlayerActionRequested: (_) {},
+                                    readOnly: true,
+                                  ),
                                 ),
                               ),
-                            )
-                          else
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Text(
-                                l10n.matchStatsFieldDispositionHint,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    _MatchSectionTitle(
+                      icon: Icons.timeline_rounded,
+                      title: l10n.matchStatsSectionTimeline,
+                      scheme: scheme,
+                      textTheme: textTheme,
+                    ),
+                    const SizedBox(height: 10),
+                    if (eventTiles.isEmpty)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 32,
+                            horizontal: 20,
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.event_note_outlined,
+                                size: 48,
+                                color: scheme.outline.withValues(alpha: 0.85),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                l10n.matchStatsTimelineEmpty,
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                l10n.matchStatsTimelineEmptyHint,
                                 style: textTheme.bodySmall?.copyWith(
                                   color: scheme.onSurfaceVariant,
                                   height: 1.35,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          Center(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: MediaQuery.sizeOf(context).width - 32,
-                              ),
-                              child: MatchFieldWithFormation(
-                                formationLines: state.formationLines,
-                                formationLayoutKey: state.formationLabel,
-                                positionPlayers: state.fieldPositionPlayers,
-                                selectedPlayer: null,
-                                sentOffPlayerIds: state.sentOffPlayerIds,
-                                currentPlayersOnField: () => state
-                                    .fieldPositionPlayers
-                                    .where((p) => p != null)
-                                    .length,
-                                maxPlayersOnField: () =>
-                                    state.fieldPositionPlayers.length,
-                                showSnack: (_, {bool error = false}) {},
-                                onPositionsChanged: (_) {},
-                                onSubstitutionRequested:
-                                    (playerIn, playerOut) {},
-                                onPlayerActionRequested: (_) {},
-                                readOnly: true,
-                              ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                _MatchSectionTitle(
-                  icon: Icons.timeline_rounded,
-                  title: l10n.matchStatsSectionTimeline,
-                  scheme: scheme,
-                  textTheme: textTheme,
-                ),
-                const SizedBox(height: 10),
-                if (eventTiles.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 32,
-                        horizontal: 20,
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.event_note_outlined,
-                            size: 48,
-                            color: scheme.outline.withValues(alpha: 0.85),
+                        ),
+                      )
+                    else
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (var i = 0; i < eventTiles.length; i++) ...[
+                                if (i > 0)
+                                  Divider(
+                                    height: 20,
+                                    thickness: 1,
+                                    color: scheme.outlineVariant.withValues(
+                                      alpha: 0.35,
+                                    ),
+                                  ),
+                                eventTiles[i],
+                              ],
+                            ],
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            l10n.matchStatsTimelineEmpty,
-                            style: textTheme.bodyLarge?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            textAlign: TextAlign.center,
+                        ),
+                      ),
+                    if (showLineupSection) ...[
+                      const SizedBox(height: 20),
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+                          child: MatchLineupSection(
+                            startingPlayers: state.startingPlayers,
+                            substitutePlayers: state.substitutePlayers,
+                            playerRatings: state.playerRatings,
+                            showRatings: !isExternal,
+                            onPlayerTap: (player) {
+                              if (isExternal) return;
+                              _showPlayerMatchStats(context, state, player);
+                            },
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            l10n.matchStatsTimelineEmptyHint,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              height: 1.35,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  )
-                else
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (var i = 0; i < eventTiles.length; i++) ...[
-                            if (i > 0)
-                              Divider(
-                                height: 20,
-                                thickness: 1,
-                                color: scheme.outlineVariant.withValues(
-                                  alpha: 0.35,
-                                ),
-                              ),
-                            eventTiles[i],
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                if (showLineupSection) ...[
-                  const SizedBox(height: 20),
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
-                      child: MatchLineupSection(
-                        startingPlayers: state.startingPlayers,
-                        substitutePlayers: state.substitutePlayers,
-                        playerRatings: state.playerRatings,
-                        showRatings: !isExternal,
-                        onPlayerTap: (player) {
-                          if (isExternal) return;
-                          _showPlayerMatchStats(context, state, player);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            );
-          },
-        ),
-      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
+
+    if (match.status == MatchStatus.finished) {
+      final brandHex = teamColorHex;
+      if (brandHex != null && brandHex.isNotEmpty) {
+        return Theme(data: TeamBrandTheme.wrap(context, brandHex), child: page);
+      }
+    }
+    return page;
   }
 }
 
 class _MatchSummaryCard extends StatelessWidget {
   const _MatchSummaryCard({
-    required this.match,
     required this.dateText,
     required this.statusLabel,
     required this.scoreSubtitle,
     required this.scheme,
     required this.textTheme,
-    required this.vsTitle,
+    required this.homeTeamName,
+    required this.awayTeamName,
+    required this.homeGoals,
+    required this.awayGoals,
     required this.homeVenueLabel,
     required this.awayVenueLabel,
-    required this.goalsForLabel,
-    required this.goalsAgainstLabel,
   });
 
-  final Match match;
   final String dateText;
   final String statusLabel;
   final String scoreSubtitle;
   final ColorScheme scheme;
   final TextTheme textTheme;
-  final String vsTitle;
+  final String homeTeamName;
+  final String awayTeamName;
+  final int homeGoals;
+  final int awayGoals;
   final String homeVenueLabel;
   final String awayVenueLabel;
-  final String goalsForLabel;
-  final String goalsAgainstLabel;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-            color: scheme.primary.withValues(alpha: 0.12),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.sports_soccer_rounded,
-                  color: scheme.primary,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    vsTitle,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: scheme.onSurface,
-                      letterSpacing: -0.2,
+    final label = '$homeTeamName $homeGoals — $awayTeamName $awayGoals';
+    final w = MediaQuery.sizeOf(context).width;
+    final nameStyle = textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: scheme.onSurface,
+      height: 1.25,
+      letterSpacing: -0.35,
+    );
+    final roleStyle = textTheme.labelSmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.9,
+    );
+    final scoreStyle =
+        (w < 360 ? textTheme.displaySmall : textTheme.displayMedium)?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+          height: 1.02,
+          letterSpacing: -0.5,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        );
+    return Semantics(
+      label: label,
+      child: Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 3,
+                    height: 40,
+                    margin: const EdgeInsets.only(top: 2, right: 12),
+                    decoration: BoxDecoration(
+                      color: scheme.outlineVariant.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.schedule_rounded,
-                      size: 18,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        dateText,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dateText,
+                          style: textTheme.labelMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                            letterSpacing: 0.15,
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Chip(
-                      avatar: Icon(
-                        match.isHome
-                            ? Icons.home_rounded
-                            : Icons.flight_takeoff_rounded,
-                        size: 18,
-                        color: scheme.primary,
-                      ),
-                      label: Text(
-                        match.isHome ? homeVenueLabel : awayVenueLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: scheme.secondaryContainer.withValues(
-                        alpha: 0.55,
-                      ),
-                      side: BorderSide.none,
-                    ),
-                    Chip(
-                      label: Text(
-                        statusLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                      backgroundColor: scheme.primaryContainer.withValues(
-                        alpha: 0.45,
-                      ),
-                      side: BorderSide.none,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 20,
-                    horizontal: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        const SizedBox(height: 2),
+                        Text(
+                          statusLabel,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurface.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w500,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                  Icon(
+                    Icons.sports_soccer_rounded,
+                    size: 22,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.55),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Divider(
+                height: 1,
+                thickness: 0.5,
+                color: scheme.outlineVariant.withValues(alpha: 0.2),
+              ),
+              const SizedBox(height: 28),
+              Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '${match.goalsScored}',
-                              style: textTheme.headlineLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: scheme.primary,
-                                height: 1,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              goalsForLabel,
-                              style: textTheme.labelLarge?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      Text('$homeGoals', style: scoreStyle),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
                         child: Text(
-                          '—',
+                          '∶',
                           style: textTheme.headlineSmall?.copyWith(
-                            color: scheme.outline,
+                            color: scheme.outline.withValues(alpha: 0.65),
                             fontWeight: FontWeight.w200,
+                            height: 1.1,
                           ),
                         ),
                       ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '${match.goalsConceded}',
-                              style: textTheme.headlineLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: scheme.error,
-                                height: 1,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              goalsAgainstLabel,
-                              style: textTheme.labelLarge?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      Text('$awayGoals', style: scoreStyle),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    scoreSubtitle,
-                    style: textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  scoreSubtitle,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          homeTeamName,
+                          textAlign: TextAlign.end,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: nameStyle,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          homeVenueLabel.toUpperCase(),
+                          textAlign: TextAlign.end,
+                          style: roleStyle,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          awayTeamName,
+                          textAlign: TextAlign.start,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: nameStyle,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          awayVenueLabel.toUpperCase(),
+                          textAlign: TextAlign.start,
+                          style: roleStyle,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1204,9 +1258,7 @@ _PlayerMatchStats _calculatePlayerMatchStats(
 
     if (isGoodPass || note == 'Buen pase') {
       goodPasses++;
-    } else if (isBadPass ||
-        note == 'Mal pase' ||
-        note == 'Pase impreciso') {
+    } else if (isBadPass || note == 'Mal pase' || note == 'Pase impreciso') {
       badPasses++;
     } else if (note == 'Pase clave' || typeKey == 'keypass') {
       goodPlays++;
@@ -1285,45 +1337,17 @@ int _calculateMinutesPlayed(MatchStatsState state, Player player) {
     return 0;
   }
 
-  bool onField = isStarter;
-  int lastOnMinute = isStarter ? 0 : -1;
-  int totalMinutes = 0;
+  final asEvents = sortedEvents
+      .map((m) => MatchEvent.fromSupabaseMap(Map<String, dynamic>.from(m)))
+      .toList();
 
-  for (final event in sortedEvents) {
-    final rawType = event['type'];
-    final typeKey = canonicalMatchEventTypeKey(rawType);
-    if (typeKey != 'substitution') {
-      continue;
-    }
-
-    final minute = supabaseInt(event['minute']) ?? 0;
-    final int? inId = supabaseInt(event['player_id1']);
-    final int? outId = supabaseInt(event['player_id2']);
-
-    if (outId == playerId && onField) {
-      final start = lastOnMinute >= 0 ? lastOnMinute : minute;
-      if (minute > start) {
-        totalMinutes += minute - start;
-      }
-      onField = false;
-      lastOnMinute = -1;
-    } else if (inId == playerId && !onField) {
-      onField = true;
-      lastOnMinute = minute;
-    }
-  }
-
-  if (onField) {
-    final start = lastOnMinute >= 0 ? lastOnMinute : 0;
-    if (matchEndMinute > start) {
-      totalMinutes += matchEndMinute - start;
-    }
-  }
-
-  if (totalMinutes < 0) {
-    return 0;
-  }
-  return totalMinutes;
+  return minutesPlayedForPlayer(
+    events: asEvents,
+    playerId: playerId,
+    isStarter: isStarter,
+    overrideMatchEndMinute: matchEndMinute,
+    preSorted: true,
+  );
 }
 
 int _getMatchEndMinute(MatchStatsState state) {

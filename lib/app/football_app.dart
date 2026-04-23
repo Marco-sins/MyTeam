@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:football_manager/core/auth/supabase_auth_session_bridge.dart';
 import 'package:football_manager/core/constants/app_branding.dart';
+import 'package:football_manager/core/navigation/app_navigator_key.dart';
+import 'package:football_manager/core/notifications/match_event_app_notification_coordinator.dart';
+import 'package:football_manager/core/notifications/match_notif_app_lifecycle.dart';
+import 'package:football_manager/core/push/push_notification_service.dart';
 import 'package:football_manager/core/di/injection_container.dart';
 import 'package:football_manager/core/locale/locale_cubit.dart';
 import 'package:football_manager/core/theme/app_responsive.dart';
@@ -202,31 +208,64 @@ class FootballApp extends StatelessWidget {
                 ),
               ],
               child: SupabaseAuthSessionBridge(
-                child: MaterialApp(
-                  title: AppBranding.displayName,
-                  debugShowCheckedModeBanner: false,
-                  theme: AppTheme.light(),
-                  builder: AppResponsive.materialAppBuilder,
-                  locale: locale,
-                  localizationsDelegates: const [
-                    AppLocalizations.delegate,
-                    GlobalMaterialLocalizations.delegate,
-                    GlobalWidgetsLocalizations.delegate,
-                    GlobalCupertinoLocalizations.delegate,
-                  ],
-                  supportedLocales: AppLocalizations.supportedLocales,
-                  home: BlocBuilder<AuthCubit, AuthState>(
-                    builder: (context, state) {
-                      if (state is AuthLoading) {
-                        return const Scaffold(
-                          body: Center(child: CircularProgressIndicator()),
-                        );
-                      }
-                      if (state is Authenticated) {
-                        return const HomePage();
-                      }
-                      return const LoginPage();
+                child: BlocListener<AuthCubit, AuthState>(
+                  listenWhen: (previous, current) {
+                    if (current is Authenticated) return true;
+                    if (previous is Authenticated && current is AuthLoading) {
+                      return true;
+                    }
+                    return false;
+                  },
+                  listener: (context, state) {
+                    if (state is Authenticated) {
+                      unawaited(
+                        MatchEventAppNotificationCoordinator.instance.start(),
+                      );
+                      unawaited(
+                        PushNotificationService.instance
+                            .registerTokenForCurrentUser(),
+                      );
+                    } else {
+                      unawaited(
+                        MatchEventAppNotificationCoordinator.instance.stop(),
+                      );
+                      unawaited(
+                        PushNotificationService.instance
+                            .deleteTokenForCurrentUser(),
+                      );
+                    }
+                  },
+                  child: MaterialApp(
+                    navigatorKey: appNavigatorKey,
+                    title: AppBranding.displayName,
+                    debugShowCheckedModeBanner: false,
+                    theme: AppTheme.light(),
+                    builder: (context, child) {
+                      return MatchNotifAppLifecycle(
+                        child: AppResponsive.materialAppBuilder(context, child),
+                      );
                     },
+                    locale: locale,
+                    localizationsDelegates: const [
+                      AppLocalizations.delegate,
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                    ],
+                    supportedLocales: AppLocalizations.supportedLocales,
+                    home: BlocBuilder<AuthCubit, AuthState>(
+                      builder: (context, state) {
+                        if (state is AuthLoading) {
+                          return const Scaffold(
+                            body: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        if (state is Authenticated) {
+                          return const HomePage();
+                        }
+                        return const LoginPage();
+                      },
+                    ),
                   ),
                 ),
               ),

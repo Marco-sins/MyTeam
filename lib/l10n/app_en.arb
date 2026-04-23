@@ -324,6 +324,10 @@
   "matchFoulsAndCornersSection": "Fouls and corners",
   "matchFoulsShort": "Fouls",
   "matchCornersShort": "Corners",
+  "matchYellowCardsShort": "Yellow cards",
+  "matchRedCardsShort": "Red cards",
+  "matchRivalYellowCardNote": "Yellow card (opponent)",
+  "matchRivalRedCardNote": "Red card (opponent)",
   "matchCounterAddTooltip": "Add one",
   "matchCounterRemoveTooltip": "Remove last",
   "matchNoCounterToRemove": "Nothing to remove",
@@ -380,6 +384,8 @@
   },
   "matchLiveSubstitutionEnters": "Substitution · On ",
   "matchLiveSubstitutionLeaves": " · Off ",
+  "matchLiveSubstitutionToFreeSlot": " (open slot / bench)",
+  "matchLiveMinuteSquad": "Lineup",
   "matchLivePeriodFallback": "Period or status change",
   "matchLiveGoalBy": "Goal by ",
   "matchLiveAssistOpening": " (assist ",
@@ -486,8 +492,9 @@
   "matchScoreAgainstLabel": "Against",
   "matchStatsScoreFinal": "Final score",
   "matchStatsScoreLive": "Score",
+  "matchStatsTeamNamePlaceholder": "Team",
   "matchStatsLoadingSummary": "Loading match summary…",
-  "matchStatsSectionField": "Final pitch",
+  "matchStatsSectionField": "Lineup",
   "matchStatsFormationChip": "Formation: {formation}",
   "@matchStatsFormationChip": {
     "placeholders": {
@@ -496,7 +503,7 @@
       }
     }
   },
-  "matchStatsFieldDispositionHint": "Layout based on positions saved when the match ended.",
+  "matchStatsFieldDispositionHint": "Starting eleven layout from saved positions in the lineup.",
   "matchStatsSectionTimeline": "Timeline",
   "matchStatsTimelineEmpty": "No events recorded",
   "matchStatsTimelineEmptyHint": "Goals, subs and cards will appear here once logged in the match.",
@@ -533,5 +540,70 @@
   "matchFieldMaxPlayersExpulsionRule": "You cannot have more players on the pitch. Each sent-off player must leave a free slot.",
   "matchConvocationTableEmpty": "No players called up for this match",
   "matchDeletedSuccess": "Match deleted successfully",
-  "matchEventLegacyActionRegistered": "Logged action"
+  "matchEventLegacyActionRegistered": "Logged action",
+  "matchNotifTimeFirst": "First half",
+  "matchNotifTimeHalf": "Half-time",
+  "matchNotifTimeSecond": "Second half",
+  "matchNotifTimeEnd": "Full time",
+  "matchNotifPlayerUnknown": "Player",
+  "matchNotifGoalByPlayer": "Goal by {player} ({team})",
+  "@matchNotifGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifGoalRivalOnly": "Goal by {opponent}",
+  "@matchNotifGoalRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifOwnGoalByPlayer": "Own goal by {player} ({team})",
+  "@matchNotifOwnGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowForTeam": "Yellow card {player} ({team})",
+  "@matchNotifCardYellowForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedForTeam": "Red card {player} ({team})",
+  "@matchNotifCardRedForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalWithPlayer": "Yellow card {player} ({opponent})",
+  "@matchNotifCardYellowRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalWithPlayer": "Red card {player} ({opponent})",
+  "@matchNotifCardRedRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalOnly": "Yellow card ({opponent})",
+  "@matchNotifCardYellowRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalOnly": "Red card ({opponent})",
+  "@matchNotifCardRedRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  }
 }

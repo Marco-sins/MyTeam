@@ -36,19 +36,27 @@ int matchEndMinuteFromEvents(List<MatchEvent> events) {
 }
 
 /// Misma lógica que en la pantalla de estadísticas del partido: titulares,
-/// sustituciones y minuto de fin reconstruyen los minutos disputados.
+/// sustituciones, [yellowCard] (doble = expulsión) y [redCard] determinan
+/// presencia en campo. Tras la expulsión dejan de contarse minutos, como si
+/// no estuviera jugando.
 ///
 /// Si [overrideMatchEndMinute] no es null, se usa como minuto tope (p. ej. el
 /// minuto actual del cronómetro en el gestor en vivo). Si es null, se deduce
 /// del partido terminado o del último evento ([matchEndMinuteFromEvents]).
+///
+/// [preSorted] en true: no se reordena (el orden debe ser cronológico, p. ej.
+/// misma vinculación `minute`+`created_at` que en estadísticas en vivo).
 int minutesPlayedForPlayer({
   required List<MatchEvent> events,
   required int playerId,
   required bool isStarter,
   int? overrideMatchEndMinute,
+  bool preSorted = false,
 }) {
-  final sorted = List<MatchEvent>.from(events);
-  sortMatchEventsByTime(sorted);
+  final List<MatchEvent> sorted = List<MatchEvent>.from(events);
+  if (!preSorted) {
+    sortMatchEventsByTime(sorted);
+  }
 
   final int matchEndMinute =
       overrideMatchEndMinute ?? matchEndMinuteFromEvents(sorted);
@@ -59,31 +67,57 @@ int minutesPlayedForPlayer({
   bool onField = isStarter;
   int lastOnMinute = isStarter ? 0 : -1;
   int totalMinutes = 0;
+  int yellowsForPlayer = 0;
+  var sentOffPermanently = false;
+
+  void leaveFieldAtMinute(int minute) {
+    if (!onField) {
+      return;
+    }
+    final int start = lastOnMinute >= 0 ? lastOnMinute : minute;
+    if (minute > start) {
+      totalMinutes += minute - start;
+    }
+    onField = false;
+    lastOnMinute = -1;
+  }
 
   for (final event in sorted) {
-    if (event.type != MatchEventEnum.substitution) {
-      continue;
-    }
-
     final minute = event.minute;
     final int? inId = event.playerId1;
     final int? outId = event.playerId2;
 
-    if (outId == playerId && onField) {
-      final start = lastOnMinute >= 0 ? lastOnMinute : minute;
-      if (minute > start) {
-        totalMinutes += minute - start;
-      }
-      onField = false;
-      lastOnMinute = -1;
-    } else if (inId == playerId && !onField) {
-      onField = true;
-      lastOnMinute = minute;
+    switch (event.type) {
+      case MatchEventEnum.substitution:
+        if (outId == playerId && onField) {
+          leaveFieldAtMinute(minute);
+        } else if (inId == playerId && !onField && !sentOffPermanently) {
+          onField = true;
+          lastOnMinute = minute;
+        }
+        break;
+      case MatchEventEnum.yellowCard:
+        if (inId == playerId) {
+          yellowsForPlayer += 1;
+          if (yellowsForPlayer >= 2) {
+            leaveFieldAtMinute(minute);
+            sentOffPermanently = true;
+          }
+        }
+        break;
+      case MatchEventEnum.redCard:
+        if (inId == playerId) {
+          leaveFieldAtMinute(minute);
+          sentOffPermanently = true;
+        }
+        break;
+      default:
+        break;
     }
   }
 
   if (onField) {
-    final start = lastOnMinute >= 0 ? lastOnMinute : 0;
+    final int start = lastOnMinute >= 0 ? lastOnMinute : 0;
     if (matchEndMinute > start) {
       totalMinutes += matchEndMinute - start;
     }

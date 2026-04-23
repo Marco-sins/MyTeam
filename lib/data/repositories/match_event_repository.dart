@@ -76,6 +76,10 @@ class MatchEventRepository implements IMatchEventRepository {
         foulsRival: a.foulsRival,
         cornersOur: a.cornersOur,
         cornersRival: a.cornersRival,
+        yellowOur: a.yellowOur,
+        yellowRival: a.yellowRival,
+        redOur: a.redOur,
+        redRival: a.redRival,
       );
     });
   }

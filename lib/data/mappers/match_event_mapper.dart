@@ -11,6 +11,7 @@ class MatchEventMapper {
       minute: matchEvent.minute,
       type: matchEvent.type,
       note: matchEvent.note,
+      createdAt: matchEvent.createdAt,
     );
   }
 
@@ -23,6 +24,7 @@ class MatchEventMapper {
       minute: matchEventModel.minute,
       type: matchEventModel.type,
       note: matchEventModel.note,
+      createdAt: matchEventModel.createdAt,
     );
   }
 }

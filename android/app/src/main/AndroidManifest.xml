@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
@@ -9,6 +10,10 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="YOUR_GOOGLE_MAPS_API_KEY" />
+        <!-- Misma id que [kAndroidFcmDefaultNotificationChannelId] en Dart -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="fcm_default_channel" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -36,8 +41,8 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.example.tfg1" android:host="login" />
-                <data android:scheme="com.example.tfg1" android:host="reset-password" />
+                <data android:scheme="com.marco.myteam" android:host="login" />
+                <data android:scheme="com.marco.myteam" android:host="reset-password" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

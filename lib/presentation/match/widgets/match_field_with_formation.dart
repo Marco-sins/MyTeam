@@ -3,6 +3,7 @@ import 'package:football_manager/core/utils/player_name_parts.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/match/utils/match_formation_utils.dart';
+import 'package:football_manager/presentation/match/utils/match_player_discipline_highlight.dart';
 
 /// Píxeles de `media/campo.png`. Debe coincidir con el asset para que [_campoContainRect]
 /// reproduzca el mismo rectángulo que [BoxFit.contain] sobre la imagen.
@@ -71,8 +72,12 @@ class MatchFieldWithFormation extends StatelessWidget {
   onSubstitutionRequested;
   final void Function(Player player) onPlayerActionRequested;
   final bool readOnly;
+
   /// Clave guardada (`3-2-1`, …). Solo F7: activa posiciones del diagrama táctico.
   final String? formationLayoutKey;
+
+  /// Resalta tarjetas con borde (amarilla / roja) alrededor de cada ficha en campo.
+  final MatchPlayerDisciplineHighlight Function(int playerId)? playerDiscipline;
 
   const MatchFieldWithFormation({
     super.key,
@@ -88,6 +93,7 @@ class MatchFieldWithFormation extends StatelessWidget {
     required this.onPlayerActionRequested,
     this.readOnly = false,
     this.formationLayoutKey,
+    this.playerDiscipline,
   });
 
   @override
@@ -95,6 +101,7 @@ class MatchFieldWithFormation extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final scheme = Theme.of(context).colorScheme;
+        final brightness = Theme.of(context).brightness;
         final l10n = AppLocalizations.of(context)!;
         final maxW = constraints.maxWidth;
         final maxH = constraints.maxHeight;
@@ -121,15 +128,12 @@ class MatchFieldWithFormation extends StatelessWidget {
         final fieldPaint = _campoContainRect(boardW, boardH);
         final grass = _grassRectFromFieldPaint(fieldPaint);
         final rows = formationLines.length;
-        final totalSlots = formationLines.fold<int>(
-          0,
-          (a, b) => a + b,
-        );
+        final totalSlots = formationLines.fold<int>(0, (a, b) => a + b);
         final List<Offset>? tacticalCenters =
             MatchFormationUtils.tacticalSlotCentersOrNull(
-          formationLayoutKey,
-          totalSlots,
-        );
+              formationLayoutKey,
+              totalSlots,
+            );
 
         final List<Widget> children = [
           Positioned.fill(
@@ -168,6 +172,10 @@ class MatchFieldWithFormation extends StatelessWidget {
 
             const nameBlockWidth = 92.0;
             final hasName = assignedPlayer != null;
+            final discipline =
+                assignedPlayer != null && playerDiscipline != null
+                ? playerDiscipline!(assignedPlayer.id)
+                : MatchPlayerDisciplineHighlight.none;
 
             children.add(
               Positioned(
@@ -213,15 +221,19 @@ class MatchFieldWithFormation extends StatelessWidget {
                       return;
                     }
 
-                    final newPositions = List<Player?>.from(
-                      positionPlayers,
-                    );
+                    final newPositions = List<Player?>.from(positionPlayers);
 
-                    // Intercambio de posiciones entre dos jugadores en campo.
+                    // Intercambio de posiciones entre dos jugadores en campo
+                    // (muy usado al colocar el 11 antes de empezar: hay que
+                    // registrarlo como evento; antes solo se hacía onPositionsChanged).
                     if (existingIndex != -1 && assignedPlayer != null) {
                       newPositions[existingIndex] = assignedPlayer;
                       newPositions[index] = selectedPlayer;
                       onPositionsChanged(newPositions);
+                      onSubstitutionRequested(
+                        selectedPlayer!,
+                        assignedPlayer,
+                      );
                       return;
                     }
 
@@ -243,10 +255,7 @@ class MatchFieldWithFormation extends StatelessWidget {
 
                     newPositions[index] = selectedPlayer;
                     onPositionsChanged(newPositions);
-                    onSubstitutionRequested(
-                      selectedPlayer!,
-                      assignedPlayer,
-                    );
+                    onSubstitutionRequested(selectedPlayer!, assignedPlayer);
                   },
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -254,18 +263,23 @@ class MatchFieldWithFormation extends StatelessWidget {
                       Center(
                         child: CircleAvatar(
                           radius: 16,
-                          backgroundColor: assignedPlayer != null
-                              ? scheme.primaryContainer
-                              : scheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.92),
+                          backgroundColor: _fieldAvatarBackground(
+                            hasPlayer: assignedPlayer != null,
+                            discipline: discipline,
+                            scheme: scheme,
+                            brightness: brightness,
+                          ),
                           child: Text(
                             displayNumber,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: assignedPlayer != null
-                                  ? scheme.onPrimaryContainer
-                                  : scheme.onSurfaceVariant,
+                              color: _fieldAvatarForeground(
+                                hasPlayer: assignedPlayer != null,
+                                discipline: discipline,
+                                scheme: scheme,
+                                brightness: brightness,
+                              ),
                             ),
                           ),
                         ),
@@ -311,6 +325,54 @@ class MatchFieldWithFormation extends StatelessWidget {
   }
 }
 
+/// Fondo del dorsal en campo: gris neutro (sin color de equipo); amarillo/rojo solo por tarjeta.
+Color _fieldAvatarBackground({
+  required bool hasPlayer,
+  required MatchPlayerDisciplineHighlight discipline,
+  required ColorScheme scheme,
+  required Brightness brightness,
+}) {
+  if (!hasPlayer) {
+    return scheme.surfaceContainerHighest.withValues(alpha: 0.92);
+  }
+  switch (discipline) {
+    case MatchPlayerDisciplineHighlight.yellow:
+      return brightness == Brightness.dark
+          ? const Color(0xFFFF8F00).withValues(alpha: 0.88)
+          : const Color(0xFFFFD54F);
+    case MatchPlayerDisciplineHighlight.red:
+      return intenseDisciplineRed(scheme);
+    case MatchPlayerDisciplineHighlight.none:
+      return Color.alphaBlend(
+        scheme.onSurface.withValues(
+          alpha: brightness == Brightness.dark ? 0.2 : 0.11,
+        ),
+        scheme.surfaceContainerHigh,
+      );
+  }
+}
+
+Color _fieldAvatarForeground({
+  required bool hasPlayer,
+  required MatchPlayerDisciplineHighlight discipline,
+  required ColorScheme scheme,
+  required Brightness brightness,
+}) {
+  if (!hasPlayer) {
+    return scheme.onSurfaceVariant;
+  }
+  switch (discipline) {
+    case MatchPlayerDisciplineHighlight.yellow:
+      return brightness == Brightness.dark
+          ? const Color(0xFF1A0D00)
+          : const Color(0xFF3E2723);
+    case MatchPlayerDisciplineHighlight.red:
+      return const Color(0xFF1A0404);
+    case MatchPlayerDisciplineHighlight.none:
+      return scheme.onSurface.withValues(alpha: 0.92);
+  }
+}
+
 String _fieldDisplayFirstName(Player player) {
   final g = playerNamePartsMatchShort(player).given.trim();
   if (g.isNotEmpty) {
@@ -322,7 +384,10 @@ String _fieldDisplayFirstName(Player player) {
     return fnTok.first;
   }
   final full = player.fullName.trim();
-  final fullTok = full.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+  final fullTok = full
+      .split(RegExp(r'\s+'))
+      .where((s) => s.isNotEmpty)
+      .toList();
   if (fullTok.isEmpty) {
     return '—';
   }

@@ -1422,6 +1422,30 @@ abstract class AppLocalizations {
   /// **'Córners'**
   String get matchCornersShort;
 
+  /// No description provided for @matchYellowCardsShort.
+  ///
+  /// In es, this message translates to:
+  /// **'Amarillas'**
+  String get matchYellowCardsShort;
+
+  /// No description provided for @matchRedCardsShort.
+  ///
+  /// In es, this message translates to:
+  /// **'Rojas'**
+  String get matchRedCardsShort;
+
+  /// No description provided for @matchRivalYellowCardNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta amarilla (rival)'**
+  String get matchRivalYellowCardNote;
+
+  /// No description provided for @matchRivalRedCardNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta roja (rival)'**
+  String get matchRivalRedCardNote;
+
   /// No description provided for @matchCounterAddTooltip.
   ///
   /// In es, this message translates to:
@@ -1673,6 +1697,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **' · Sale '**
   String get matchLiveSubstitutionLeaves;
+
+  /// No description provided for @matchLiveSubstitutionToFreeSlot.
+  ///
+  /// In es, this message translates to:
+  /// **' (hueco libre / banquillo)'**
+  String get matchLiveSubstitutionToFreeSlot;
+
+  /// No description provided for @matchLiveMinuteSquad.
+  ///
+  /// In es, this message translates to:
+  /// **'Alineación'**
+  String get matchLiveMinuteSquad;
 
   /// No description provided for @matchLivePeriodFallback.
   ///
@@ -2124,6 +2160,12 @@ abstract class AppLocalizations {
   /// **'Marcador'**
   String get matchStatsScoreLive;
 
+  /// No description provided for @matchStatsTeamNamePlaceholder.
+  ///
+  /// In es, this message translates to:
+  /// **'Equipo'**
+  String get matchStatsTeamNamePlaceholder;
+
   /// No description provided for @matchStatsLoadingSummary.
   ///
   /// In es, this message translates to:
@@ -2133,7 +2175,7 @@ abstract class AppLocalizations {
   /// No description provided for @matchStatsSectionField.
   ///
   /// In es, this message translates to:
-  /// **'Campo final'**
+  /// **'Alineación'**
   String get matchStatsSectionField;
 
   /// No description provided for @matchStatsFormationChip.
@@ -2145,7 +2187,7 @@ abstract class AppLocalizations {
   /// No description provided for @matchStatsFieldDispositionHint.
   ///
   /// In es, this message translates to:
-  /// **'Disposición según las posiciones guardadas al terminar el partido.'**
+  /// **'Disposición de los once titulares según las posiciones guardadas.'**
   String get matchStatsFieldDispositionHint;
 
   /// No description provided for @matchStatsSectionTimeline.
@@ -2327,6 +2369,90 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Acción registrada'**
   String get matchEventLegacyActionRegistered;
+
+  /// No description provided for @matchNotifTimeFirst.
+  ///
+  /// In es, this message translates to:
+  /// **'Primera parte'**
+  String get matchNotifTimeFirst;
+
+  /// No description provided for @matchNotifTimeHalf.
+  ///
+  /// In es, this message translates to:
+  /// **'Descanso'**
+  String get matchNotifTimeHalf;
+
+  /// No description provided for @matchNotifTimeSecond.
+  ///
+  /// In es, this message translates to:
+  /// **'Segunda parte'**
+  String get matchNotifTimeSecond;
+
+  /// No description provided for @matchNotifTimeEnd.
+  ///
+  /// In es, this message translates to:
+  /// **'Fin del partido'**
+  String get matchNotifTimeEnd;
+
+  /// No description provided for @matchNotifPlayerUnknown.
+  ///
+  /// In es, this message translates to:
+  /// **'Jugador'**
+  String get matchNotifPlayerUnknown;
+
+  /// No description provided for @matchNotifGoalByPlayer.
+  ///
+  /// In es, this message translates to:
+  /// **'Gol de {player} ({team})'**
+  String matchNotifGoalByPlayer(String player, String team);
+
+  /// No description provided for @matchNotifGoalRivalOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'Gol de {opponent}'**
+  String matchNotifGoalRivalOnly(String opponent);
+
+  /// No description provided for @matchNotifOwnGoalByPlayer.
+  ///
+  /// In es, this message translates to:
+  /// **'Gol en propia de {player} ({team})'**
+  String matchNotifOwnGoalByPlayer(String player, String team);
+
+  /// No description provided for @matchNotifCardYellowForTeam.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta amarilla {player} ({team})'**
+  String matchNotifCardYellowForTeam(String player, String team);
+
+  /// No description provided for @matchNotifCardRedForTeam.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta roja {player} ({team})'**
+  String matchNotifCardRedForTeam(String player, String team);
+
+  /// No description provided for @matchNotifCardYellowRivalWithPlayer.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta amarilla {player} ({opponent})'**
+  String matchNotifCardYellowRivalWithPlayer(String player, String opponent);
+
+  /// No description provided for @matchNotifCardRedRivalWithPlayer.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta roja {player} ({opponent})'**
+  String matchNotifCardRedRivalWithPlayer(String player, String opponent);
+
+  /// No description provided for @matchNotifCardYellowRivalOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta amarilla ({opponent})'**
+  String matchNotifCardYellowRivalOnly(String opponent);
+
+  /// No description provided for @matchNotifCardRedRivalOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'Tarjeta roja ({opponent})'**
+  String matchNotifCardRedRivalOnly(String opponent);
 }
 
 class _AppLocalizationsDelegate

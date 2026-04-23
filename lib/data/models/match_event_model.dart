@@ -10,6 +10,7 @@ class MatchEventModel extends MatchEvent {
     required super.minute,
     required super.type,
     super.note,
+    super.createdAt,
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +23,7 @@ class MatchEventModel extends MatchEvent {
       minute: e.minute,
       type: e.type,
       note: e.note,
+      createdAt: e.createdAt,
     );
   }
 
@@ -45,6 +47,7 @@ class MatchEventModel extends MatchEvent {
     int? minute,
     MatchEventEnum? type,
     String? note,
+    DateTime? createdAt,
   }) {
     return MatchEventModel(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class MatchEventModel extends MatchEvent {
       minute: minute ?? this.minute,
       type: type ?? this.type,
       note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

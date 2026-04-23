@@ -29,6 +29,10 @@ enum MatchEventEnum {
   rivalCorner,
   /// Falta del rival (contador manual).
   rivalFoul,
+  /// Tarjeta amarilla del rival (contador manual +/−).
+  rivalYellowCard,
+  /// Tarjeta roja del rival (contador manual +/−).
+  rivalRedCard,
   /// Fallo grave del portero (cantada).
   cantada,
 }
