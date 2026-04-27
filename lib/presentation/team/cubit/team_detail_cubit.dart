@@ -7,13 +7,25 @@ class TeamDetailCubit extends Cubit<TeamDetailState> {
 
   TeamDetailCubit(this._getPlayersByTeamUseCase) : super(TeamDetailInitial());
 
+  /// Último equipo para el que ya tenemos respuesta correcta (éxito).
+  int? _lastFetchedTeamId;
+
+  /// Carga la plantilla. Si ya hay datos del mismo [teamId], no emite
+  /// [TeamDetailLoading] para no quitar la lista de la UI (recarga en segundo plano).
   Future<void> loadTeam(int teamId) async {
-    emit(TeamDetailLoading());
+    final silent =
+        state is TeamDetailLoaded && _lastFetchedTeamId == teamId;
+    if (!silent) {
+      emit(TeamDetailLoading());
+    }
     final result = await _getPlayersByTeamUseCase(teamId);
     if (isClosed) return;
     result.fold(
       (failure) => emit(TeamDetailError(failure.message)),
-      (players) => emit(TeamDetailLoaded(players)),
+      (players) {
+        _lastFetchedTeamId = teamId;
+        emit(TeamDetailLoaded(players));
+      },
     );
   }
 }

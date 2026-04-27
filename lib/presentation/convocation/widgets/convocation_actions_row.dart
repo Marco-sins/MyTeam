@@ -48,14 +48,21 @@ class ConvocationActionsRow extends StatelessWidget {
                           color: scheme.onPrimary,
                         ),
                       )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.save_outlined, size: 20),
-                          SizedBox(width: 8),
-                          Text('Guardar'),
-                        ],
+                    : SizedBox(
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.center,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.save_outlined, size: 20),
+                              SizedBox(width: 8),
+                              Text('Guardar'),
+                            ],
+                          ),
+                        ),
                       ),
               );
             },

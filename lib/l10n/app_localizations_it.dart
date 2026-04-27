@@ -141,6 +141,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get tableColumnPlayer => 'Giocatore';
 
   @override
+  String get tableColumnPhoto => 'Foto';
+
+  @override
   String get tableColumnAttends => 'Presente';
 
   @override
@@ -164,6 +167,10 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get commonNo => 'NO';
+
+  @override
+  String get accessInviteSpectatorOnlyHint =>
+      'Come amministratore puoi invitare solo spettatori.';
 
   @override
   String get accessInviteSend => 'Invia invito';
@@ -434,6 +441,123 @@ class AppLocalizationsIt extends AppLocalizations {
       'Invita amministratori o spettatori nella squadra';
 
   @override
+  String get teamMgmtScoringTitle => 'Pesi della valutazione';
+
+  @override
+  String get teamMgmtScoringSubtitle =>
+      'Modifica quanto ogni evento aggiunge al voto della partita';
+
+  @override
+  String get teamScoringScreenTitle => 'Pesi voto partita';
+
+  @override
+  String get teamScoringSave => 'Salva';
+
+  @override
+  String get teamScoringAddEvent => 'Aggiungi evento';
+
+  @override
+  String get teamScoringAddDialogTitle => 'Nuovo evento personalizzato';
+
+  @override
+  String get teamScoringEventName => 'Nome come nella nota';
+
+  @override
+  String get teamScoringPoints => 'Punti';
+
+  @override
+  String get teamScoringUnnamed => '(Senza nome)';
+
+  @override
+  String get teamScoringInvalidNumber => 'Controlla i numeri';
+
+  @override
+  String get teamScoringDuplicateName =>
+      'Due eventi non possono avere lo stesso nome';
+
+  @override
+  String get teamScoringCustomHint =>
+      'Deve coincidere con il testo della nota (senza distinzione maiuscole)';
+
+  @override
+  String get teamScoringDeleteTooltip => 'Rimuovi dall\'elenco';
+
+  @override
+  String get teamScoringGoalScorer => 'Gol';
+
+  @override
+  String get teamScoringGoalAssist => 'Assist';
+
+  @override
+  String get teamScoringEventOwnGoal => 'Autogol';
+
+  @override
+  String get teamScoringEventGoalConceded => 'Gol subito';
+
+  @override
+  String get teamScoringParadaIncreible => 'Parata incredibile';
+
+  @override
+  String get teamScoringPaseClaveNota => 'Passaggio chiave';
+
+  @override
+  String get teamScoringJugadaClaveNota => 'Azione chiave';
+
+  @override
+  String get teamScoringTiroNota => 'Tiro';
+
+  @override
+  String get teamScoringAmarillaNota => 'Cartellino giallo';
+
+  @override
+  String get teamScoringRojaNota => 'Cartellino rosso';
+
+  @override
+  String get teamScoringCantadaNota => 'Pasticcio';
+
+  @override
+  String get teamImportPlayerTitle => 'Importa da un\'altra squadra';
+
+  @override
+  String get teamImportPlayerSubtitle =>
+      'Scegli una squadra che gestisci e un giocatore. Si copiano nome, contatti, foto e ruoli; le statistiche in questa squadra ripartono da zero.';
+
+  @override
+  String get teamImportPlayerStatsHint =>
+      'Le statistiche della squadra precedente non si trasferiscono.';
+
+  @override
+  String get teamImportPlayerButton => 'Importa da un\'altra squadra';
+
+  @override
+  String get teamImportPlayerSelectTeam => 'Squadra di origine';
+
+  @override
+  String get teamImportPlayerNoSourceTeams =>
+      'Non hai altre squadre in cui sei admin o super admin.';
+
+  @override
+  String get teamImportPlayerPickTeamFirst =>
+      'Seleziona una squadra per vedere la rosa.';
+
+  @override
+  String get teamImportPlayerEmptyRoster => 'Questa rosa non ha giocatori.';
+
+  @override
+  String get teamImportPlayerConfirmTitle => 'Importa giocatore';
+
+  @override
+  String teamImportPlayerConfirmBody(String playerName, String sourceTeamName) {
+    return 'Importare $playerName da $sourceTeamName in questa rosa? Le statistiche qui ripartono da zero.';
+  }
+
+  @override
+  String get teamImportPlayerConfirmAction => 'Importa';
+
+  @override
+  String get teamImportPlayerSuccess => 'Giocatore importato';
+
+  @override
   String get teamMgmtSectionMaintenance => 'Manutenzione dei dati';
 
   @override
@@ -521,13 +645,7 @@ class AppLocalizationsIt extends AppLocalizations {
       'Devi essere loggato per terminare la partita';
 
   @override
-  String get matchOpponentGoal => 'Gol avversario';
-
-  @override
-  String get matchSubtractOur => '− Noi';
-
-  @override
-  String get matchSubtractRival => '− Loro';
+  String get matchOpponentGoal => 'Gol subito';
 
   @override
   String get matchDeleteEventQuestion =>
@@ -661,11 +779,79 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchQuickScore => 'Punteggio veloce';
 
   @override
-  String get matchGoalsFromFieldHint =>
-      'I gol vengono registrati dal campo (giocatore) o dalle azioni.';
+  String get matchLiveStatsCardTitle => 'Statistiche';
+
+  @override
+  String get matchShotsOnGoalSection => 'Tiri in porta';
+
+  @override
+  String get matchEventRivalShot => 'Tiro in porta (avversario)';
+
+  @override
+  String get matchRivalShotAddTooltip => 'Aggiungi un tiro in porta avversario';
+
+  @override
+  String get matchRivalShotRemoveTooltip =>
+      'Rimuovi l\'ultimo tiro in porta avversario';
+
+  @override
+  String get matchNoRivalShotsToRemove => 'Nessun tiro avversario da rimuovere';
+
+  @override
+  String get matchSpectatorCannotStart =>
+      'Solo allenatori e admin possono avviare la partita.';
+
+  @override
+  String get matchFoulsAndCornersSection => 'Falli e calci d\'angolo';
+
+  @override
+  String get matchFoulsShort => 'Falli';
+
+  @override
+  String get matchCornersShort => 'Calci d\'angolo';
+
+  @override
+  String get matchOffsidesShort => 'Fuorigioco';
+
+  @override
+  String get matchEventOffside => 'Fuorigioco';
+
+  @override
+  String get matchEventRivalOffside => 'Fuorigioco avversario';
+
+  @override
+  String get matchYellowCardsShort => 'Cartellini gialli';
+
+  @override
+  String get matchRedCardsShort => 'Cartellini rossi';
+
+  @override
+  String get matchRivalYellowCardNote => 'Cartellino giallo (avversario)';
+
+  @override
+  String get matchRivalRedCardNote => 'Cartellino rosso (avversario)';
+
+  @override
+  String get matchCounterAddTooltip => 'Aggiungi';
+
+  @override
+  String get matchCounterRemoveTooltip => 'Rimuovi l\'ultimo';
+
+  @override
+  String get matchNoCounterToRemove => 'Niente da rimuovere';
+
+  @override
+  String get matchActionLabelFoul => 'Fallo';
 
   @override
   String get matchFieldAndFormation => 'Passo e formazione';
+
+  @override
+  String get matchFieldBenchTitle => 'Panchina';
+
+  @override
+  String get matchFieldBenchHint =>
+      'Tieni premuto una riserva e rilasciala su una posizione (sostituzione o slot libero).';
 
   @override
   String get matchSquadTitle => 'Squadra';
@@ -719,8 +905,7 @@ class AppLocalizationsIt extends AppLocalizations {
       'Aggiungere un obiettivo per la tua squadra?';
 
   @override
-  String get matchConfirmAddGoalRival =>
-      'Aggiungere un goal per l\'avversario?';
+  String get matchConfirmAddGoalRival => 'Registrare un gol subito?';
 
   @override
   String get matchMustLoginRegisterGoals =>
@@ -731,36 +916,10 @@ class AppLocalizationsIt extends AppLocalizations {
       'I gol della tua squadra vengono registrati da un giocatore in campo';
 
   @override
-  String get matchOpponentGoalRegisteredOk => 'Gol avversario parato';
+  String get matchOpponentGoalRegisteredOk => 'Gol subito registrato';
 
   @override
   String get matchGoalSaveFail => 'Impossibile salvare il gol';
-
-  @override
-  String get matchRemoveGoalTitle => 'Rimuovi obiettivo';
-
-  @override
-  String get matchConfirmRemoveGoalOur =>
-      'Rimuovere un goal dalla tua squadra?';
-
-  @override
-  String get matchConfirmRemoveGoalRival => 'Togliere un gol all\'avversario?';
-
-  @override
-  String get matchMustLoginRemoveGoals =>
-      'Devi aver effettuato l\'accesso per rimuovere gli obiettivi';
-
-  @override
-  String get matchNoGoalsToRemove => 'Nessun obiettivo da rimuovere';
-
-  @override
-  String get matchGoalNotFoundInDb => 'Obiettivo non trovato nel database';
-
-  @override
-  String get matchGoalRemovedOk => 'Obiettivo rimosso';
-
-  @override
-  String get matchGoalRemoveFail => 'Impossibile rimuovere l\'obiettivo';
 
   @override
   String get matchConvocationLoadError =>
@@ -821,6 +980,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchLiveSubstitutionLeaves => '· Spento';
 
   @override
+  String get matchLiveSubstitutionToFreeSlot => ' (posto libero / panchina)';
+
+  @override
+  String get matchLiveMinuteSquad => 'Formazione';
+
+  @override
   String get matchLivePeriodFallback => 'Modifica del periodo o dello stato';
 
   @override
@@ -874,6 +1039,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchLiveBallRecovery => 'Palla vinta:';
 
   @override
+  String get matchLiveGoodSave => 'Grande parata:';
+
+  @override
+  String get matchLiveShot => 'Tiro:';
+
+  @override
+  String get matchLiveFoul => 'Fallo:';
+
+  @override
+  String get matchLiveCantada => 'Papera:';
+
+  @override
   String get matchLiveEvent => 'Evento';
 
   @override
@@ -903,6 +1080,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchActionLabelBallRecovery => 'Recupero palla';
 
   @override
+  String get matchActionLabelShot => 'Tiro';
+
+  @override
   String get matchActionLabelYellowCard => 'Cartellino giallo';
 
   @override
@@ -916,6 +1096,12 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchActionLabelKeyPass => 'Passaggio chiave';
+
+  @override
+  String get matchActionLabelGoodSave => 'Grande parata';
+
+  @override
+  String get matchActionLabelCantada => 'Papera';
 
   @override
   String get matchGoalRegisteredPrefix => 'Gol salvato per';
@@ -1091,10 +1277,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchStatsScoreLive => 'Punto';
 
   @override
+  String get matchStatsTeamNamePlaceholder => 'Squadra';
+
+  @override
   String get matchStatsLoadingSummary => 'Caricamento riepilogo partita…';
 
   @override
-  String get matchStatsSectionField => 'Tiro finale';
+  String get matchStatsSectionField => 'Formazione';
 
   @override
   String matchStatsFormationChip(String formation) {
@@ -1103,7 +1292,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchStatsFieldDispositionHint =>
-      'Layout basato sulle posizioni salvate al termine della partita.';
+      'Schema dei titolari in base alle posizioni salvate in formazione.';
 
   @override
   String get matchStatsSectionTimeline => 'Cronologia';
@@ -1135,6 +1324,36 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchStatsStatBadPlays => 'Commedie scadenti';
+
+  @override
+  String get matchStatsStatOwnGoals => 'Autogol';
+
+  @override
+  String get matchStatsStatGoalsConceded => 'Gol subiti';
+
+  @override
+  String get matchStatsStatShots => 'Tiri';
+
+  @override
+  String get matchStatsStatSaves => 'Parate';
+
+  @override
+  String get matchStatsStatKeyPasses => 'Passaggi chiave';
+
+  @override
+  String get matchStatsStatBallRecoveries => 'Recuperi palla';
+
+  @override
+  String get matchStatsStatFouls => 'Falli';
+
+  @override
+  String get matchStatsStatCantadas => 'Errori grossi';
+
+  @override
+  String get matchStatsStatYellowCards => 'Ammonizioni';
+
+  @override
+  String get matchStatsStatRedCards => 'Espulsioni';
 
   @override
   String get matchStatsOurGoalChip => 'Obiettivo per';
@@ -1202,4 +1421,64 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchEventLegacyActionRegistered => 'Azione registrata';
+
+  @override
+  String get matchNotifTimeFirst => 'Primo tempo';
+
+  @override
+  String get matchNotifTimeHalf => 'Intervallo';
+
+  @override
+  String get matchNotifTimeSecond => 'Secondo tempo';
+
+  @override
+  String get matchNotifTimeEnd => 'Fine partita';
+
+  @override
+  String get matchNotifPlayerUnknown => 'Giocatore';
+
+  @override
+  String matchNotifGoalByPlayer(String player, String team) {
+    return 'Gol di $player ($team)';
+  }
+
+  @override
+  String matchNotifGoalRivalOnly(String opponent) {
+    return 'Gol di $opponent';
+  }
+
+  @override
+  String matchNotifOwnGoalByPlayer(String player, String team) {
+    return 'Autogol di $player ($team)';
+  }
+
+  @override
+  String matchNotifCardYellowForTeam(String player, String team) {
+    return 'Cartellino giallo $player ($team)';
+  }
+
+  @override
+  String matchNotifCardRedForTeam(String player, String team) {
+    return 'Cartellino rosso $player ($team)';
+  }
+
+  @override
+  String matchNotifCardYellowRivalWithPlayer(String player, String opponent) {
+    return 'Cartellino giallo $player ($opponent)';
+  }
+
+  @override
+  String matchNotifCardRedRivalWithPlayer(String player, String opponent) {
+    return 'Cartellino rosso $player ($opponent)';
+  }
+
+  @override
+  String matchNotifCardYellowRivalOnly(String opponent) {
+    return 'Cartellino giallo ($opponent)';
+  }
+
+  @override
+  String matchNotifCardRedRivalOnly(String opponent) {
+    return 'Cartellino rosso ($opponent)';
+  }
 }

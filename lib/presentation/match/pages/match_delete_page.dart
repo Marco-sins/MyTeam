@@ -182,7 +182,7 @@ class _MatchDeletePageState extends State<MatchDeletePage> {
                                           .matchDeletedSuccess,
                                     ),
                                     backgroundColor: Colors.green,
-                                    duration: const Duration(seconds: 1),
+                                    duration: const Duration(seconds: 4),
                                   ),
                                 );
                                 setState(_loadMatches);

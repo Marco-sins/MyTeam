@@ -202,6 +202,10 @@ class FinishMatchUseCase {
       }
     }
 
+    if (yellowCards >= 2) {
+      redCards += 1;
+    }
+
     return PlayerStats(
       id: 0,
       playerId: idPlayer,

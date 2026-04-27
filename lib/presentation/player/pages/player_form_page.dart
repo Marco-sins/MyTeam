@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
@@ -85,8 +86,7 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
     final lastRaw = _lastNameController.text.trim();
     final last = lastRaw.isEmpty ? base?.lastName : lastRaw;
     final numberText = _numberController.text.trim();
-    final number =
-        numberText.isEmpty ? base?.number : int.tryParse(numberText);
+    final number = numberText.isEmpty ? base?.number : int.tryParse(numberText);
 
     return Player(
       id: base?.id ?? 0,
@@ -101,7 +101,7 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
   }
 
   Future<void> _pickPhoto() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.image,
       withData: true,
     );
@@ -166,10 +166,7 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
     }
   }
 
-  Player _playerFromForm({
-    required String? imgUrl,
-    int? idOverride,
-  }) {
+  Player _playerFromForm({required String? imgUrl, int? idOverride}) {
     final base = widget.initialPlayer;
     final numberText = _numberController.text.trim();
     final number = numberText.isEmpty ? null : int.tryParse(numberText);
@@ -255,10 +252,7 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
       final createResult = await useCase(playerNoPhoto, widget.currentUser);
 
       Player? created;
-      createResult.fold(
-        (f) => errorMessage = f.message,
-        (p) => created = p,
-      );
+      createResult.fold((f) => errorMessage = f.message, (p) => created = p);
 
       if (errorMessage == null &&
           created != null &&
@@ -270,14 +264,16 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
           playerId: created!.id,
         );
         String? url;
-        uploadResult.fold(
-          (f) => errorMessage = f.message,
-          (u) => url = u,
-        );
+        uploadResult.fold((f) => errorMessage = f.message, (u) => url = u);
         if (errorMessage == null && url != null) {
-          final withPhoto = _playerFromForm(imgUrl: url, idOverride: created!.id);
-          final updateResult =
-              await updatePlayerUseCase(withPhoto, widget.currentUser);
+          final withPhoto = _playerFromForm(
+            imgUrl: url,
+            idOverride: created!.id,
+          );
+          final updateResult = await updatePlayerUseCase(
+            withPhoto,
+            widget.currentUser,
+          );
           updateResult.fold((f) => errorMessage = f.message, (_) {});
         }
       }
@@ -289,11 +285,16 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
       _isLoading = false;
     });
 
+    final brandedScheme = TeamBrandTheme.wrap(
+      context,
+      widget.team.color,
+    ).colorScheme;
+
     if (errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage!),
-          backgroundColor: Colors.red,
+          backgroundColor: brandedScheme.error,
         ),
       );
       return;
@@ -303,9 +304,10 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
       SnackBar(
         content: Text(
           isEdit ? 'Jugador actualizado con éxito' : 'Jugador creado con éxito',
+          style: TextStyle(color: brandedScheme.onPrimary),
         ),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 1),
+        backgroundColor: brandedScheme.primary,
+        duration: const Duration(seconds: 4),
       ),
     );
     Navigator.of(context).pop();
@@ -314,228 +316,262 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.isEdit;
-    final hasPhoto = widget.initialPlayer?.imgUrl != null &&
+    final hasPhoto =
+        widget.initialPlayer?.imgUrl != null &&
         widget.initialPlayer!.imgUrl!.trim().isNotEmpty;
-    final showClear = _pickedImageBytes != null || (!_removeExistingPhoto && hasPhoto);
+    final showClear =
+        _pickedImageBytes != null || (!_removeExistingPhoto && hasPhoto);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          isEdit
-              ? AppLocalizations.of(context)!.screenEditPlayer
-              : AppLocalizations.of(context)!.screenAddPlayer,
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
+    return TeamBrandedScope(
+      team: widget.team,
+      child: Builder(
+        builder: (context) {
+          final scheme = Theme.of(context).colorScheme;
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(
+                isEdit
+                    ? AppLocalizations.of(context)!.screenEditPlayer
+                    : AppLocalizations.of(context)!.screenAddPlayer,
+              ),
+              centerTitle: true,
+            ),
+            body: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            isEdit ? Icons.edit : Icons.person_add_alt,
-                            color: Colors.blueAccent,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              isEdit
-                                  ? 'Editar jugador de ${widget.team.name}'
-                                  : 'Nuevo jugador en ${widget.team.name}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer.withValues(
+                                alpha: 0.65,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: scheme.primary.withValues(alpha: 0.22),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Center(
-                      child: Column(
-                        children: [
-                          PlayerAvatar(
-                            player: _previewPlayer(),
-                            radius: 48,
-                            previewBytes: _pickedImageBytes,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: _isLoading ? null : _pickPhoto,
-                                icon: const Icon(Icons.photo_camera_outlined),
-                                label: const Text('Elegir foto'),
-                              ),
-                              if (showClear) ...[
-                                const SizedBox(width: 8),
-                                TextButton(
-                                  onPressed: _isLoading ? null : _clearPhoto,
-                                  child: const Text('Quitar foto'),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isEdit ? Icons.edit : Icons.person_add_alt,
+                                  color: scheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    isEdit
+                                        ? 'Editar jugador de ${widget.team.name}'
+                                        : 'Nuevo jugador en ${widget.team.name}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: scheme.onSurface,
+                                        ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _firstNameController,
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Introduce el nombre'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _lastNameController,
-                      onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: 'Apellidos (opcional)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _numberController,
-                      onChanged: (_) => setState(() {}),
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Dorsal (opcional)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Teléfono (opcional)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email (opcional)',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        final text = value?.trim() ?? '';
-                        if (text.isNotEmpty && !text.contains('@')) {
-                          return 'Email inválido';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Posiciones',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<PlayerPosition>(
-                      decoration: const InputDecoration(
-                        labelText: 'Seleccionar posición',
-                        border: OutlineInputBorder(),
-                      ),
-                      initialValue: null,
-                      items: PlayerPosition.values
-                          .map(
-                            (p) => DropdownMenuItem<PlayerPosition>(
-                              value: p,
-                              child: Text(_positionLabel(p)),
                             ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        if (_selectedPositions.contains(value)) return;
-                        setState(() {
-                          _selectedPositions.add(value);
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final pos in _selectedPositions)
-                          Chip(
-                            label: Text(_positionLabel(pos)),
-                            deleteIcon: const Icon(Icons.close),
-                            onDeleted: () {
+                          ),
+                          const SizedBox(height: 20),
+                          Center(
+                            child: Column(
+                              children: [
+                                PlayerAvatar(
+                                  player: _previewPlayer(),
+                                  radius: 48,
+                                  previewBytes: _pickedImageBytes,
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    OutlinedButton.icon(
+                                      onPressed: _isLoading ? null : _pickPhoto,
+                                      icon: const Icon(
+                                        Icons.photo_camera_outlined,
+                                      ),
+                                      label: const Text('Elegir foto'),
+                                    ),
+                                    if (showClear) ...[
+                                      const SizedBox(width: 8),
+                                      TextButton(
+                                        onPressed: _isLoading
+                                            ? null
+                                            : _clearPhoto,
+                                        child: const Text('Quitar foto'),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            controller: _firstNameController,
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Introduce el nombre'
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _lastNameController,
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(
+                              labelText: 'Apellidos (opcional)',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _numberController,
+                            onChanged: (_) => setState(() {}),
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Dorsal (opcional)',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _phoneController,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              labelText: 'Teléfono (opcional)',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Email (opcional)',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              final text = value?.trim() ?? '';
+                              if (text.isNotEmpty && !text.contains('@')) {
+                                return 'Email inválido';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Posiciones',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<PlayerPosition>(
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Seleccionar posición',
+                              border: OutlineInputBorder(),
+                            ),
+                            initialValue: null,
+                            items: PlayerPosition.values
+                                .map(
+                                  (p) => DropdownMenuItem<PlayerPosition>(
+                                    value: p,
+                                    child: Text(
+                                      _positionLabel(p),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              if (value == null) return;
+                              if (_selectedPositions.contains(value)) return;
                               setState(() {
-                                _selectedPositions.remove(pos);
+                                _selectedPositions.add(value);
                               });
                             },
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(32),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final pos in _selectedPositions)
+                                Chip(
+                                  label: Text(_positionLabel(pos)),
+                                  deleteIcon: const Icon(Icons.close),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _selectedPositions.remove(pos);
+                                    });
+                                  },
+                                ),
+                            ],
                           ),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(
-                                isEdit ? 'GUARDAR CAMBIOS' : 'GUARDAR JUGADOR',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _submit,
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
+                              child: _isLoading
+                                  ? CircularProgressIndicator(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                    )
+                                  : Text(
+                                      isEdit
+                                          ? 'GUARDAR CAMBIOS'
+                                          : 'GUARDAR JUGADOR',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

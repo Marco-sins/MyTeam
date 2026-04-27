@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:football_manager/core/theme/team_screen_tint.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+
+Color _readableOnSolidFill(Color background) {
+  return ThemeData.estimateBrightnessForColor(background) == Brightness.light
+      ? const Color(0xFF1C1B1F)
+      : TeamScreenTint.readableOnDarkAccent;
+}
 
 /// Marca de minuto alineada con el tema de la app.
 class _MinuteBadge extends StatelessWidget {
@@ -139,7 +146,7 @@ class MatchSubstitutionItem extends StatelessWidget {
     super.key,
     required this.minute,
     required this.inPlayer,
-    required this.outPlayer,
+    this.outPlayer,
     this.inFallbackId,
     this.outFallbackId,
   });
@@ -221,12 +228,22 @@ class MatchSubstitutionItem extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: sideName(
-                      outPlayer,
-                      outFallbackId,
-                      align: TextAlign.right,
-                      color: scheme.error,
-                    ),
+                    child: outFallbackId == null
+                        ? Text(
+                            l10n.matchLiveSubstitutionToFreeSlot,
+                            textAlign: TextAlign.right,
+                            maxLines: 2,
+                            style: nameStyle?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          )
+                        : sideName(
+                            outPlayer,
+                            outFallbackId,
+                            align: TextAlign.right,
+                            color: scheme.error,
+                          ),
                   ),
                   const SizedBox(width: 6),
                   Padding(
@@ -262,13 +279,19 @@ class MatchCardItem extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
-    final Color cardColor =
-        isRed ? scheme.error : scheme.secondary;
+    const amberCard = Color(0xFFFFC107);
+    final Color cardChipColor = isRed ? scheme.error : amberCard;
+    final Color panelBg = isRed
+        ? scheme.errorContainer.withValues(alpha: 0.42)
+        : const Color(0xFFFFF8E1);
+    final Color panelBorder = isRed
+        ? scheme.error.withValues(alpha: 0.55)
+        : amberCard.withValues(alpha: 0.75);
     final String label = isRed
         ? l10n.matchActionLabelRedCard
         : l10n.matchActionLabelYellowCard;
     final Color textColor =
-        isRed ? scheme.error : scheme.onSecondaryContainer;
+        isRed ? scheme.error : const Color(0xFF5D4000);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -281,10 +304,10 @@ class MatchCardItem extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: scheme.surfaceContainerLow,
+                color: panelBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: scheme.outlineVariant.withValues(alpha: 0.45),
+                  color: panelBorder,
                 ),
               ),
               child: Row(
@@ -294,10 +317,12 @@ class MatchCardItem extends StatelessWidget {
                     width: 14,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: cardColor,
+                      color: cardChipColor,
                       borderRadius: BorderRadius.circular(3),
                       border: Border.all(
-                        color: scheme.outline.withValues(alpha: 0.35),
+                        color: isRed
+                            ? scheme.onError.withValues(alpha: 0.35)
+                            : Colors.black26,
                         width: 0.5,
                       ),
                     ),
@@ -430,7 +455,7 @@ class MatchGoalItem extends StatelessWidget {
     }
 
     final chipBg = isOurGoal ? scheme.primary : scheme.error;
-    final chipFg = isOurGoal ? scheme.onPrimary : scheme.onError;
+    final chipFg = _readableOnSolidFill(chipBg);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

@@ -17,4 +17,26 @@ enum MatchEventEnum {
   substitution,
   formation,
   statusChange,
+  /// Tiro a puerta registrado desde un jugador en campo.
+  shot,
+  /// Tiro a puerta del rival (solo contador manual +/−).
+  rivalShot,
+  /// Falta cometida por un jugador propio (nota negativa en valoración).
+  foul,
+  /// Córner a favor (contador manual).
+  corner,
+  /// Córner del rival (contador manual).
+  rivalCorner,
+  /// Fuera de juego a favor (contador manual +/−).
+  offside,
+  /// Fuera de juego del rival (contador manual +/−).
+  rivalOffside,
+  /// Falta del rival (contador manual).
+  rivalFoul,
+  /// Tarjeta amarilla del rival (contador manual +/−).
+  rivalYellowCard,
+  /// Tarjeta roja del rival (contador manual +/−).
+  rivalRedCard,
+  /// Fallo grave del portero (cantada).
+  cantada,
 }

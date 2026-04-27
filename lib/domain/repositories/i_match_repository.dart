@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
@@ -19,4 +20,33 @@ abstract class IMatchRepository {
     required int playerId,
     required int minutesPlayed,
   });
+
+  Future<Either<Failure, MatchStatus?>> getMatchStatus(int matchId);
+
+  Future<Either<Failure, Unit>> updateMatchStatusHalfTime(int matchId);
+
+  Future<Either<Failure, Unit>> updateMatchStatusSecondHalf({
+    required int matchId,
+    required DateTime secondHalfStart,
+  });
+
+  Future<Either<Failure, Set<int>>> getConvokedPlayerIdsForMatch(int matchId);
+
+  /// [onFieldPositionByPlayerId] solo incluye titulares en campo; el resto va con `null`.
+  Future<Either<Failure, Unit>> persistMatchLineupPositions({
+    required int matchId,
+    required List<int> convokedPlayerIds,
+    required Map<int, int> onFieldPositionByPlayerId,
+  });
+
+  /// Copia [position] → [initial_position] donde aún sea null (al inicio del partido).
+  Future<Either<Failure, Unit>> lockInitialLineupPositions(int matchId);
+
+  Future<Either<Failure, Unit>> updateMatchLineupStarters({
+    required int matchId,
+    required List<int> starterPlayerIds,
+  });
+
+  Future<Either<Failure, List<({int playerId, int positionIndex})>>>
+      getMatchLineupPositions(int matchId);
 }

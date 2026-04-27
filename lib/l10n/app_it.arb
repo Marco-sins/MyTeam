@@ -56,6 +56,7 @@
   "roleExternal": "Esterno",
   "roleSpectator": "Spettatore",
   "tableColumnPlayer": "Giocatore",
+  "tableColumnPhoto": "Foto",
   "tableColumnAttends": "Presente",
   "tableColumnAbsent": "Assente",
   "convocationCallAll": "Tutto",
@@ -64,6 +65,7 @@
   "convocationToggleHint": "Chiama tutti contemporaneamente o tocca ciascun giocatore per attivare Sì/No.",
   "commonYes": "SÌ",
   "commonNo": "NO",
+  "accessInviteSpectatorOnlyHint": "Come amministratore puoi invitare solo spettatori.",
   "accessInviteSend": "Invia invito",
   "accessInviteNeedAuth": "Devi aver effettuato l'accesso per inviare gli inviti",
   "accessAdminOnlyInvite": "Solo un amministratore del team può invitare o rimuovere l'accesso.",
@@ -209,6 +211,52 @@
   "teamMgmtEditRosterSubtitle": "Aggiungi, rimuovi e modifica giocatori",
   "teamMgmtAccessTitle": "Gestisci l'accesso",
   "teamMgmtAccessSubtitle": "Invita amministratori o spettatori nella squadra",
+  "teamMgmtScoringTitle": "Pesi della valutazione",
+  "teamMgmtScoringSubtitle": "Modifica quanto ogni evento aggiunge al voto della partita",
+  "teamScoringScreenTitle": "Pesi voto partita",
+  "teamScoringSave": "Salva",
+  "teamScoringAddEvent": "Aggiungi evento",
+  "teamScoringAddDialogTitle": "Nuovo evento personalizzato",
+  "teamScoringEventName": "Nome come nella nota",
+  "teamScoringPoints": "Punti",
+  "teamScoringUnnamed": "(Senza nome)",
+  "teamScoringInvalidNumber": "Controlla i numeri",
+  "teamScoringDuplicateName": "Due eventi non possono avere lo stesso nome",
+  "teamScoringCustomHint": "Deve coincidere con il testo della nota (senza distinzione maiuscole)",
+  "teamScoringDeleteTooltip": "Rimuovi dall'elenco",
+  "teamScoringGoalScorer": "Gol",
+  "teamScoringGoalAssist": "Assist",
+  "teamScoringEventOwnGoal": "Autogol",
+  "teamScoringEventGoalConceded": "Gol subito",
+  "teamScoringParadaIncreible": "Parata incredibile",
+  "teamScoringPaseClaveNota": "Passaggio chiave",
+  "teamScoringJugadaClaveNota": "Azione chiave",
+  "teamScoringTiroNota": "Tiro",
+  "teamScoringAmarillaNota": "Cartellino giallo",
+  "teamScoringRojaNota": "Cartellino rosso",
+  "teamScoringCantadaNota": "Pasticcio",
+  "teamImportPlayerTitle": "Importa da un'altra squadra",
+  "teamImportPlayerSubtitle": "Scegli una squadra che gestisci e un giocatore. Si copiano nome, contatti, foto e ruoli; le statistiche in questa squadra ripartono da zero.",
+  "teamImportPlayerStatsHint": "Le statistiche della squadra precedente non si trasferiscono.",
+  "teamImportPlayerButton": "Importa da un'altra squadra",
+  "teamImportPlayerSelectTeam": "Squadra di origine",
+  "teamImportPlayerNoSourceTeams": "Non hai altre squadre in cui sei admin o super admin.",
+  "teamImportPlayerPickTeamFirst": "Seleziona una squadra per vedere la rosa.",
+  "teamImportPlayerEmptyRoster": "Questa rosa non ha giocatori.",
+  "teamImportPlayerConfirmTitle": "Importa giocatore",
+  "teamImportPlayerConfirmBody": "Importare {playerName} da {sourceTeamName} in questa rosa? Le statistiche qui ripartono da zero.",
+  "@teamImportPlayerConfirmBody": {
+    "placeholders": {
+      "playerName": {
+        "type": "String"
+      },
+      "sourceTeamName": {
+        "type": "String"
+      }
+    }
+  },
+  "teamImportPlayerConfirmAction": "Importa",
+  "teamImportPlayerSuccess": "Giocatore importato",
   "teamMgmtSectionMaintenance": "Manutenzione dei dati",
   "teamMgmtDeleteMatchesTitle": "Elimina corrispondenze",
   "teamMgmtDeleteMatchesSubtitle": "Rimuovi partite specifiche dal programma",
@@ -235,9 +283,7 @@
   "matchStateUpdateFail": "Impossibile aggiornare lo stato della corrispondenza",
   "matchMustLoginResume": "Devi essere loggato per riprendere la partita",
   "matchMustLoginFinish": "Devi essere loggato per terminare la partita",
-  "matchOpponentGoal": "Gol avversario",
-  "matchSubtractOur": "− Noi",
-  "matchSubtractRival": "− Loro",
+  "matchOpponentGoal": "Gol subito",
   "matchDeleteEventQuestion": "Eliminare questo evento della partita? Punteggio, note e disciplina verranno ricalcolati.",
   "matchEventDeleted": "Evento eliminato",
   "matchEventDeleteFail": "Impossibile eliminare l'evento",
@@ -292,8 +338,30 @@
   "matchLastEvent": "Ultimo evento",
   "matchScoreAndTime": "Punteggio e tempo",
   "matchQuickScore": "Punteggio veloce",
-  "matchGoalsFromFieldHint": "I gol vengono registrati dal campo (giocatore) o dalle azioni.",
+  "matchLiveStatsCardTitle": "Statistiche",
+  "matchShotsOnGoalSection": "Tiri in porta",
+  "matchEventRivalShot": "Tiro in porta (avversario)",
+  "matchRivalShotAddTooltip": "Aggiungi un tiro in porta avversario",
+  "matchRivalShotRemoveTooltip": "Rimuovi l'ultimo tiro in porta avversario",
+  "matchNoRivalShotsToRemove": "Nessun tiro avversario da rimuovere",
+  "matchSpectatorCannotStart": "Solo allenatori e admin possono avviare la partita.",
+  "matchFoulsAndCornersSection": "Falli e calci d'angolo",
+  "matchFoulsShort": "Falli",
+  "matchCornersShort": "Calci d'angolo",
+  "matchOffsidesShort": "Fuorigioco",
+  "matchEventOffside": "Fuorigioco",
+  "matchEventRivalOffside": "Fuorigioco avversario",
+  "matchYellowCardsShort": "Cartellini gialli",
+  "matchRedCardsShort": "Cartellini rossi",
+  "matchRivalYellowCardNote": "Cartellino giallo (avversario)",
+  "matchRivalRedCardNote": "Cartellino rosso (avversario)",
+  "matchCounterAddTooltip": "Aggiungi",
+  "matchCounterRemoveTooltip": "Rimuovi l'ultimo",
+  "matchNoCounterToRemove": "Niente da rimuovere",
+  "matchActionLabelFoul": "Fallo",
   "matchFieldAndFormation": "Passo e formazione",
+  "matchFieldBenchTitle": "Panchina",
+  "matchFieldBenchHint": "Tieni premuto una riserva e rilasciala su una posizione (sostituzione o slot libero).",
   "matchSquadTitle": "Squadra",
   "matchSquadHintSpectator": "Modalità spettatore: elenco e presentazione sono di sola visualizzazione.",
   "matchSquadHintCoach": "Tocca un giocatore per selezionarlo; tocca il campo per allinearti o aprire azioni.",
@@ -309,19 +377,11 @@
   "matchSpectatorNoPlayerActions": "Modalità spettatore: non è possibile registrare le azioni dei giocatori",
   "matchConfirmGoalTitle": "Conferma obiettivo",
   "matchConfirmAddGoalOur": "Aggiungere un obiettivo per la tua squadra?",
-  "matchConfirmAddGoalRival": "Aggiungere un goal per l'avversario?",
+  "matchConfirmAddGoalRival": "Registrare un gol subito?",
   "matchMustLoginRegisterGoals": "Devi aver effettuato l'accesso per accedere agli obiettivi",
   "matchGoalsOurTeamFromField": "I gol della tua squadra vengono registrati da un giocatore in campo",
-  "matchOpponentGoalRegisteredOk": "Gol avversario parato",
+  "matchOpponentGoalRegisteredOk": "Gol subito registrato",
   "matchGoalSaveFail": "Impossibile salvare il gol",
-  "matchRemoveGoalTitle": "Rimuovi obiettivo",
-  "matchConfirmRemoveGoalOur": "Rimuovere un goal dalla tua squadra?",
-  "matchConfirmRemoveGoalRival": "Togliere un gol all'avversario?",
-  "matchMustLoginRemoveGoals": "Devi aver effettuato l'accesso per rimuovere gli obiettivi",
-  "matchNoGoalsToRemove": "Nessun obiettivo da rimuovere",
-  "matchGoalNotFoundInDb": "Obiettivo non trovato nel database",
-  "matchGoalRemovedOk": "Obiettivo rimosso",
-  "matchGoalRemoveFail": "Impossibile rimuovere l'obiettivo",
   "matchConvocationLoadError": "Impossibile caricare l'elenco delle squadre",
   "matchFillAllPositionsBeforeStart": "Posiziona tutti i giocatori prima di iniziare la partita",
   "matchConfirmStartTitle": "Inizia la partita",
@@ -353,6 +413,8 @@
   },
   "matchLiveSubstitutionEnters": "Sostituzione · On",
   "matchLiveSubstitutionLeaves": "· Spento",
+  "matchLiveSubstitutionToFreeSlot": " (posto libero / panchina)",
+  "matchLiveMinuteSquad": "Formazione",
   "matchLivePeriodFallback": "Modifica del periodo o dello stato",
   "matchLiveGoalBy": "Gol di",
   "matchLiveAssistOpening": "(assist",
@@ -377,6 +439,10 @@
   "matchLiveGoodPlay": "Bel gioco:",
   "matchLiveBadPlay": "Gioco scadente:",
   "matchLiveBallRecovery": "Palla vinta:",
+  "matchLiveGoodSave": "Grande parata:",
+  "matchLiveShot": "Tiro:",
+  "matchLiveFoul": "Fallo:",
+  "matchLiveCantada": "Papera:",
   "matchLiveEvent": "Evento",
   "matchLiveEventLine": "{label}: {note}",
   "@matchLiveEventLine": {
@@ -396,11 +462,14 @@
   "matchActionLabelGoodPass": "Buon passaggio",
   "matchActionLabelGoodPlay": "Buon gioco",
   "matchActionLabelBallRecovery": "Recupero palla",
+  "matchActionLabelShot": "Tiro",
   "matchActionLabelYellowCard": "Cartellino giallo",
   "matchActionLabelRedCard": "Cartellino rosso",
   "matchActionLabelBadPass": "Passaggio scadente",
   "matchActionLabelBadPlay": "Gioco scadente",
   "matchActionLabelKeyPass": "Passaggio chiave",
+  "matchActionLabelGoodSave": "Grande parata",
+  "matchActionLabelCantada": "Papera",
   "matchGoalRegisteredPrefix": "Gol salvato per",
   "attendanceSaveHint": "Tocca ✓ per presente o X per assente, quindi salva per il giorno selezionato.",
   "attendanceSaveButton": "Risparmia presenze",
@@ -467,8 +536,9 @@
   "matchScoreAgainstLabel": "Contro",
   "matchStatsScoreFinal": "Punteggio finale",
   "matchStatsScoreLive": "Punto",
+  "matchStatsTeamNamePlaceholder": "Squadra",
   "matchStatsLoadingSummary": "Caricamento riepilogo partita…",
-  "matchStatsSectionField": "Tiro finale",
+  "matchStatsSectionField": "Formazione",
   "matchStatsFormationChip": "Formazione: {formation}",
   "@matchStatsFormationChip": {
     "placeholders": {
@@ -477,7 +547,7 @@
       }
     }
   },
-  "matchStatsFieldDispositionHint": "Layout basato sulle posizioni salvate al termine della partita.",
+  "matchStatsFieldDispositionHint": "Schema dei titolari in base alle posizioni salvate in formazione.",
   "matchStatsSectionTimeline": "Cronologia",
   "matchStatsTimelineEmpty": "Nessun evento registrato",
   "matchStatsTimelineEmptyHint": "Gol, abbonamenti e cartellini appariranno qui una volta effettuato l'accesso alla partita.",
@@ -488,6 +558,16 @@
   "matchStatsStatBadPasses": "Passaggi scadenti",
   "matchStatsStatGoodPlays": "Buone giocate",
   "matchStatsStatBadPlays": "Commedie scadenti",
+  "matchStatsStatOwnGoals": "Autogol",
+  "matchStatsStatGoalsConceded": "Gol subiti",
+  "matchStatsStatShots": "Tiri",
+  "matchStatsStatSaves": "Parate",
+  "matchStatsStatKeyPasses": "Passaggi chiave",
+  "matchStatsStatBallRecoveries": "Recuperi palla",
+  "matchStatsStatFouls": "Falli",
+  "matchStatsStatCantadas": "Errori grossi",
+  "matchStatsStatYellowCards": "Ammonizioni",
+  "matchStatsStatRedCards": "Espulsioni",
   "matchStatsOurGoalChip": "Obiettivo per",
   "matchStatsOwnGoalChip": "Autogol",
   "matchListLoading": "Caricamento corrispondenze…",
@@ -514,5 +594,70 @@
   "matchFieldMaxPlayersExpulsionRule": "Non si possono avere più giocatori in campo. Ogni giocatore espulso deve lasciare uno spazio libero.",
   "matchConvocationTableEmpty": "Nessun giocatore convocato per questa partita",
   "matchDeletedSuccess": "Corrispondenza eliminata correttamente",
-  "matchEventLegacyActionRegistered": "Azione registrata"
+  "matchEventLegacyActionRegistered": "Azione registrata",
+  "matchNotifTimeFirst": "Primo tempo",
+  "matchNotifTimeHalf": "Intervallo",
+  "matchNotifTimeSecond": "Secondo tempo",
+  "matchNotifTimeEnd": "Fine partita",
+  "matchNotifPlayerUnknown": "Giocatore",
+  "matchNotifGoalByPlayer": "Gol di {player} ({team})",
+  "@matchNotifGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifGoalRivalOnly": "Gol di {opponent}",
+  "@matchNotifGoalRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifOwnGoalByPlayer": "Autogol di {player} ({team})",
+  "@matchNotifOwnGoalByPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowForTeam": "Cartellino giallo {player} ({team})",
+  "@matchNotifCardYellowForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedForTeam": "Cartellino rosso {player} ({team})",
+  "@matchNotifCardRedForTeam": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "team": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalWithPlayer": "Cartellino giallo {player} ({opponent})",
+  "@matchNotifCardYellowRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalWithPlayer": "Cartellino rosso {player} ({opponent})",
+  "@matchNotifCardRedRivalWithPlayer": {
+    "placeholders": {
+      "player": { "type": "String" },
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardYellowRivalOnly": "Cartellino giallo ({opponent})",
+  "@matchNotifCardYellowRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  },
+  "matchNotifCardRedRivalOnly": "Cartellino rosso ({opponent})",
+  "@matchNotifCardRedRivalOnly": {
+    "placeholders": {
+      "opponent": { "type": "String" }
+    }
+  }
 }

@@ -1,21 +1,41 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/auth_user.dart' as tfg_auth;
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
+import 'package:football_manager/domain/entities/match_event_aggregates.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
+import 'package:football_manager/core/utils/match_category_duration.dart';
+import 'package:football_manager/domain/utils/match_minutes_utils.dart';
+import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
+import 'package:football_manager/domain/entities/match_live_timeline_row.dart';
+import 'package:football_manager/domain/services/match_live_timeline_filter.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_half_time_status_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_lineup_starters_use_case.dart';
+import 'package:football_manager/domain/usecase/match/apply_match_second_half_started_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_convoked_player_ids_for_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/fetch_match_lineup_positions_use_case.dart';
+import 'package:football_manager/domain/usecase/match/get_match_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/lock_initial_lineup_positions_use_case.dart';
+import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_latest_match_event_by_db_type_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_live_timeline_maps_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_sent_off_player_ids_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_card_summary_for_match_player_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_player_rating_event_rows_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/save_match_event_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
@@ -23,13 +43,23 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/presentation/match/utils/match_foul_icon.dart'
+    show
+        isMatchFoulCanonicalKey,
+        kMatchFoulListAvatarBackground,
+        kMatchFoulListAvatarForeground,
+        MatchWhistleIcon;
+import 'package:football_manager/presentation/match/utils/match_player_discipline_highlight.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/widgets/match_convocation_table.dart';
+import 'package:football_manager/presentation/match/widgets/match_live_stats_panel.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
 import 'package:football_manager/presentation/match/widgets/match_player_action_modal.dart';
+import 'package:football_manager/presentation/match/utils/team_scoring_line_match_save.dart';
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
+import 'package:football_manager/core/theme/app_responsive.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
@@ -57,9 +87,8 @@ class MatchManagerPage extends StatefulWidget {
 }
 
 class _MatchManagerPageState extends State<MatchManagerPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static final Map<int, _SavedLineupState> _savedLineups = {};
-  static final Map<int, DateTime> _matchStartTimes = {};
   late Match _match;
   final List<Player> _convokedPlayers = [];
   bool _loadingPlayers = true;
@@ -70,6 +99,28 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   // Jugadores expulsados (roja o doble amarilla).
   final Set<int> _sentOffPlayerIds = {};
+
+  /// Tiros a puerta: eventos `shot` / `rivalShot`, más goles (`scoreGoal` → nuestro, `concedeGoal`/`ownGoal` → rival).
+  int _shotsOur = 0;
+  int _shotsRival = 0;
+
+  /// Faltas propias (eventos `falta` por jugador) y del rival (`rivalFoul` manual).
+  int _foulsOur = 0;
+  int _foulsRival = 0;
+
+  /// Córners (eventos `corner` / `rivalCorner`, manuales).
+  int _cornersOur = 0;
+  int _cornersRival = 0;
+
+  /// Fueras de juego (eventos `offside` / `rivalOffside`, manuales).
+  int _offsidesOur = 0;
+  int _offsidesRival = 0;
+
+  /// Tarjetas propias (`yellowCard` / `redCard` por jugador) y rival (manual).
+  int _yellowOur = 0;
+  int _yellowRival = 0;
+  int _redOur = 0;
+  int _redRival = 0;
 
   /// Cronología: 2ª arriba / 1ª abajo; en cada parte menos minuto abajo y más arriba.
   List<Map<String, dynamic>> _liveEvents = [];
@@ -87,12 +138,33 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   List<int?>? _pendingPositionPlayerIds;
 
   Timer? _timer;
-  int _elapsedSeconds = 0;
+  /// Ancla en tiempo real del inicio del tramo actual (1ª o 2ª parte). [Match.date]
+  /// en BD coincide: 1ª al arrancar el partido; 2ª al reanudar (el remoto la actualiza).
+  DateTime? _activeSegmentStartedAt;
+  /// Cuando el reloj no debe avanzar (descanso, diálogo de fin, etc.).
+  int? _clockFrozenSegmentSeconds;
   _MatchPhase _phase = _MatchPhase.notStarted;
   bool _isTimerRunning = false;
 
-  RealtimeChannel? _spectatorMatchRealtimeChannel;
+  /// Segundos transcurridos en la parte actual (o congelados en descanso / fin).
+  int get _elapsedSeconds {
+    if (_clockFrozenSegmentSeconds != null) {
+      return _clockFrozenSegmentSeconds!.clamp(0, 1 << 20);
+    }
+    if (_phase == _MatchPhase.halfTime) {
+      return 0;
+    }
+    final start = _activeSegmentStartedAt;
+    if (start == null) return 0;
+    return (DateTime.now().difference(start).inSeconds).clamp(0, 1 << 20);
+  }
+
+  IMatchSpectatorRealtime? _spectatorRealtime;
   Timer? _spectatorRealtimeDebounce;
+
+  /// Solo actualiza el reloj; evita [setState] a nivel de página cada segundo
+  /// (reconstruía campo, convocatoria, cronología, etc.).
+  final ValueNotifier<int> _clockTick = ValueNotifier<int>(0);
 
   late AnimationController _lastEventBlinkController;
 
@@ -102,9 +174,60 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return authState.user.teamRoles[widget.team.id] == UserRole.external;
   }
 
+  /// Minutos disputados en la convocatoria: solo admins / superadmins.
+  bool get _canSeeConvokedMinutesPlayed {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) return false;
+    final role = authState.user.teamRoles[widget.team.id];
+    return role?.hasAdminPrivileges ?? false;
+  }
+
+  Map<int, int> _computeMinutesPlayedForConvoked() {
+    final events = _liveEvents
+        .map(
+          (m) => MatchEvent.fromSupabaseMap(Map<String, dynamic>.from(m)),
+        )
+        .toList();
+
+    final int? endOverride = _match.status == MatchStatus.finished
+        ? null
+        : (_match.status == MatchStatus.notStarted
+            ? 0
+            : _currentMatchMinute());
+
+    // Titularidad: viene de [match_lineup] (is_start). No de [widget.match] —
+    // al hacer merge con getMatchById el array lineups de la fila [matches] suele ir vacío.
+    final starterById = <int, bool>{};
+    for (final l in _match.lineups) {
+      starterById[l.playerId] = l.isStarting;
+    }
+
+    final map = <int, int>{};
+    for (final p in _convokedPlayers) {
+      final isStarter = starterById[p.id] ??
+          // Reserva: aún no cargó lineups pero el jugador está claramente de titular en el campo
+          (starterById.isEmpty && _onFieldInCurrentLineup(p.id));
+      map[p.id] = minutesPlayedForPlayer(
+        events: events,
+        playerId: p.id,
+        isStarter: isStarter,
+        overrideMatchEndMinute: endOverride,
+      );
+    }
+    return map;
+  }
+
+  bool _onFieldInCurrentLineup(int playerId) {
+    for (final player in _positionPlayers) {
+      if (player?.id == playerId) return true;
+    }
+    return false;
+  }
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _match = widget.match;
     _initializeFormationOptions();
     final saved = _savedLineups[_match.id];
@@ -174,9 +297,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     final baseStyle = theme.textTheme.bodyMedium!.copyWith(
       fontWeight: FontWeight.w600,
     );
-    final minute = _dynToInt(row['minute']) ?? 0;
+    final minute = resolveMatchEventMinute(
+      Map<String, dynamic>.from(row),
+    );
     final half = _eventMatchHalf(row, _resolvedSecondHalfStart());
-    final minuteLine = _formatLiveEventMinuteLine(minute, half);
+    final minuteLine = _liveEventMinuteLabel(l10n, row, minute, half);
     const radius = 14.0;
 
     return AnimatedBuilder(
@@ -247,13 +372,20 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                       children: [
                         Transform.scale(
                           scale: 1.0 + 0.07 * pulse,
-                          child: Icon(
-                            _iconForLiveEventKey(
-                              _canonicalEventTypeKey(row['type']),
-                            ),
-                            color: scheme.primary,
-                            size: 22,
-                          ),
+                          child: () {
+                            final evK = _canonicalEventTypeKey(row['type']);
+                            if (isMatchFoulCanonicalKey(evK)) {
+                              return MatchWhistleIcon(
+                                size: 22,
+                                color: kMatchFoulListAvatarForeground,
+                              );
+                            }
+                            return Icon(
+                              _iconForLiveEventKey(evK),
+                              color: scheme.primary,
+                              size: 22,
+                            );
+                          }(),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -308,44 +440,183 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _lastEventBlinkController.dispose();
+    _clockTick.dispose();
     _timer?.cancel();
     _spectatorRealtimeDebounce?.cancel();
-    final ch = _spectatorMatchRealtimeChannel;
-    _spectatorMatchRealtimeChannel = null;
-    if (ch != null) {
-      unawaited(Supabase.instance.client.removeChannel(ch));
+    final rt = _spectatorRealtime;
+    _spectatorRealtime = null;
+    if (rt != null) {
+      unawaited(rt.unsubscribe());
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && mounted) {
+      if (_phase == _MatchPhase.firstHalf || _phase == _MatchPhase.secondHalf) {
+        if (_isTimerRunning) _clockTick.value++;
+      }
+    }
   }
 
   void _startTimer() {
     _isTimerRunning = true;
     _timer?.cancel();
+    // Reloj: actualiza [ValueListenableBuilder] del reloj, no toda la pantalla.
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!_isTimerRunning || !mounted) return;
-      setState(() {
-        _elapsedSeconds++;
-      });
+      _clockTick.value++;
     });
+  }
+
+  void _syncLocalPhaseWithMatch() {
+    switch (_match.status) {
+      case MatchStatus.notStarted:
+        _phase = _MatchPhase.notStarted;
+        break;
+      case MatchStatus.firstHalf:
+        _phase = _MatchPhase.firstHalf;
+        break;
+      case MatchStatus.halfTime:
+        _phase = _MatchPhase.halfTime;
+        break;
+      case MatchStatus.secondHalf:
+        _phase = _MatchPhase.secondHalf;
+        break;
+      case MatchStatus.finished:
+        break;
+    }
+  }
+
+  Future<void> _mergeMatchFromServer() async {
+    final uc = context.read<GetMatchByIdUseCase>();
+    final result = await uc(_match.id);
+    await result.fold<Future<void>>(
+      (_) async {},
+      (m) async {
+        if (!mounted) return;
+        final results = await Future.wait<dynamic>([
+          _queryEventAggregatesFromEvents(),
+          _queryLiveEventsFiltered(),
+        ]);
+        if (!mounted) return;
+        final MatchEventAggregates? agg = results[0] as MatchEventAggregates?;
+        final List<Map<String, dynamic>>? live =
+            results[1] as List<Map<String, dynamic>>?;
+        setState(() {
+          _match = m;
+          _syncLocalPhaseWithMatch();
+          if (agg != null) {
+            _applyEventAggregates(agg);
+          }
+          if (live != null) {
+            _liveEvents = live;
+          }
+          switch (_match.status) {
+            case MatchStatus.firstHalf:
+            case MatchStatus.secondHalf:
+              _activeSegmentStartedAt = _match.date;
+              _clockFrozenSegmentSeconds = null;
+              if (!_isTimerRunning) {
+                _startTimer();
+              }
+              break;
+            case MatchStatus.halfTime:
+              _isTimerRunning = false;
+              _timer?.cancel();
+              _activeSegmentStartedAt = null;
+              _clockFrozenSegmentSeconds = null;
+              break;
+            case MatchStatus.notStarted:
+            case MatchStatus.finished:
+              _isTimerRunning = false;
+              _timer?.cancel();
+              _activeSegmentStartedAt = null;
+              _clockFrozenSegmentSeconds = null;
+              break;
+          }
+          if (_match.status == MatchStatus.halfTime) {
+            _tryRestoreHalfTimeClockFromEvents();
+          }
+        });
+        if (mounted) await _loadMatchLineupsForMatchState();
+      },
+    );
+  }
+
+  /// Rellena [_match].lineups desde [match_lineup] (is_start, minutos, etc.):
+  /// necesario para minutos de titulares y no depender de un join inexistente en getMatchById.
+  Future<void> _loadMatchLineupsForMatchState() async {
+    final lineupsUc = context.read<GetMatchLineupsByMatchUseCase>();
+    final res = await lineupsUc(_match.id);
+    if (!mounted) return;
+    res.fold(
+      (failure) {
+        debugPrint('No se pudo cargar alineación del partido: ${failure.message}');
+      },
+      (lineups) {
+        if (!mounted) return;
+        setState(() {
+          _match = Match(
+            id: _match.id,
+            teamId: _match.teamId,
+            opponent: _match.opponent,
+            goalsScored: _match.goalsScored,
+            goalsConceded: _match.goalsConceded,
+            date: _match.date,
+            hour: _match.hour,
+            status: _match.status,
+            lineups: lineups,
+            isHome: _match.isHome,
+          );
+        });
+      },
+    );
+  }
+
+  void _tryRestoreHalfTimeClockFromEvents() {
+    if (_match.status != MatchStatus.halfTime) return;
+    if (_clockFrozenSegmentSeconds != null) return;
+    final firstStart = _match.date;
+    DateTime? bestEnd;
+    for (final m in _liveEvents) {
+      final note = m['note'] as String?;
+      if (note != 'Descanso') continue;
+      final row = MatchLiveTimelineRow.fromPostgresMap(
+        Map<String, dynamic>.from(m),
+      );
+      final end = row.createdAt;
+      if (bestEnd == null || end.isAfter(bestEnd)) {
+        bestEnd = end;
+      }
+    }
+    if (bestEnd != null) {
+      final sec = bestEnd.difference(firstStart).inSeconds;
+      if (sec >= 0) {
+        _clockFrozenSegmentSeconds = sec.clamp(0, 1 << 20);
+      }
+    }
   }
 
   Future<void> _bootstrapMatchInitialData() async {
     if (!mounted) return;
-    await Future.wait<void>([
-      _reloadScoreFromEvents(),
-      _loadLastFormationFromEvents(),
-    ]);
+    await _mergeMatchFromServer();
+    if (!mounted) return;
+    await _loadLastFormationFromEvents();
     if (!mounted) return;
     await _loadConvocationPlayers();
     if (!mounted) return;
     _subscribeSpectatorRealtime();
   }
 
-  /// Externo: cambios en BD (eventos, alineación, estado del partido) sin tirar del listado.
+  /// Supabase Realtime: cualquier cambio en [match_events], [match_lineup] o [matches]
+  /// (goles, estadísticas, alineación, estado) dispara un refresco en **todos** los dispositivos.
   void _subscribeSpectatorRealtime() {
-    if (!_isExternal) return;
-    if (_spectatorMatchRealtimeChannel != null) return;
+    if (_spectatorRealtime != null) return;
     if (_match.status == MatchStatus.finished) return;
 
     final mid = _match.id;
@@ -354,42 +625,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       _scheduleSpectatorRealtimeRefresh();
     }
 
-    _spectatorMatchRealtimeChannel = Supabase.instance.client
-        .channel('match_spectator_$mid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'match_events',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'match_id',
-            value: mid,
-          ),
-          callback: (_) => onRemoteChange(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'match_lineup',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'match_id',
-            value: mid,
-          ),
-          callback: (_) => onRemoteChange(),
-        )
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update,
-          schema: 'public',
-          table: 'matches',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'id',
-            value: mid,
-          ),
-          callback: (_) => onRemoteChange(),
-        )
-        .subscribe();
+    final port = context.read<IMatchSpectatorRealtime>();
+    _spectatorRealtime = port;
+    // Notificaciones locales: [MatchEventAppNotificationCoordinator] (toda la app).
+    port.subscribeToMatch(mid, onRemoteChange);
   }
 
   void _scheduleSpectatorRealtimeRefresh() {
@@ -399,75 +638,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       if (!mounted) return;
       unawaited(_onRefreshMatchScreen());
     });
-  }
-
-  MatchStatus? _parseMatchStatusColumn(dynamic raw) {
-    if (raw == null) return null;
-    final tail = raw.toString().split('.').last;
-    for (final v in MatchStatus.values) {
-      if (v.toString().split('.').last == tail) {
-        return v;
-      }
-    }
-    return null;
-  }
-
-  Future<void> _syncMatchMetaFromServer() async {
-    try {
-      final row = await Supabase.instance.client
-          .from('matches')
-          .select('status')
-          .eq('id', _match.id)
-          .maybeSingle();
-      if (!mounted || row == null) return;
-      final status = _parseMatchStatusColumn(row['status']);
-      if (status == null || status == _match.status) return;
-
-      setState(() {
-        _match = Match(
-          id: _match.id,
-          teamId: _match.teamId,
-          opponent: _match.opponent,
-          goalsScored: _match.goalsScored,
-          goalsConceded: _match.goalsConceded,
-          date: _match.date,
-          hour: _match.hour,
-          status: status,
-          lineups: _match.lineups,
-          isHome: _match.isHome,
-        );
-        switch (status) {
-          case MatchStatus.notStarted:
-            _phase = _MatchPhase.notStarted;
-            _isTimerRunning = false;
-            _timer?.cancel();
-            break;
-          case MatchStatus.firstHalf:
-            _phase = _MatchPhase.firstHalf;
-            break;
-          case MatchStatus.halfTime:
-            _phase = _MatchPhase.halfTime;
-            _isTimerRunning = false;
-            _timer?.cancel();
-            break;
-          case MatchStatus.secondHalf:
-            _phase = _MatchPhase.secondHalf;
-            break;
-          case MatchStatus.finished:
-            _isTimerRunning = false;
-            _timer?.cancel();
-            break;
-        }
-      });
-
-      if (status == MatchStatus.firstHalf || status == MatchStatus.secondHalf) {
-        if (mounted && !_isTimerRunning) {
-          _initializeTimer();
-        }
-      }
-    } catch (e) {
-      debugPrint('Error syncing match meta: $e');
-    }
   }
 
   bool _isSmallSideCategory() {
@@ -488,9 +658,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   void _initializeFormationOptions() {
     if (_isSmallSideCategory()) {
-      // Categorías pequeñas (fútbol 7): mantenemos las formaciones actuales.
+      // Categorías pequeñas (fútbol 7).
       _formationOptions = {
         '3-2-1': [3, 2, 1],
+        '3-3': [3, 3],
         '2-3-1': [2, 3, 1],
         '2-2-2': [2, 2, 2],
       };
@@ -508,10 +679,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }
 
   void _initializeTimer() {
-    final now = DateTime.now();
-    final startTime = _matchStartTimes[_match.id] ?? _match.date;
-    final diff = now.difference(startTime).inSeconds;
-    _elapsedSeconds = diff > 0 ? diff : 0;
+    _activeSegmentStartedAt = _match.date;
+    _clockFrozenSegmentSeconds = null;
     _startTimer();
   }
 
@@ -530,6 +699,33 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return maxAllowed < 0 ? 0 : maxAllowed;
   }
 
+  /// Convocados en banquillo: no están en el campo. Incluye reservas y **expulsados**
+  /// (misma franja; el estilo de tarjeta indica no jugables).
+  List<Player> get _benchPlayers {
+    final onField = <int>{};
+    for (final p in _positionPlayers) {
+      if (p != null) onField.add(p.id);
+    }
+    final out = <Player>[];
+    for (final p in _convokedPlayers) {
+      if (onField.contains(p.id)) continue;
+      out.add(p);
+    }
+    int byDorsalThenSentOffLast(Player a, Player b) {
+      final aOff = _sentOffPlayerIds.contains(a.id);
+      final bOff = _sentOffPlayerIds.contains(b.id);
+      if (aOff != bOff) {
+        return aOff ? 1 : -1; // reservas antes que expulsados
+      }
+      final na = a.number ?? 9999;
+      final nb = b.number ?? 9999;
+      return na.compareTo(nb);
+    }
+
+    out.sort(byDorsalThenSentOffLast);
+    return out;
+  }
+
   void _saveCurrentLineup() {
     final playerIds = _positionPlayers.map((p) => p?.id).toList();
     _savedLineups[_match.id] = _SavedLineupState(
@@ -540,8 +736,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _persistCurrentPositionsToMatchLineup() async {
     try {
-      final supabase = Supabase.instance.client;
-
       final Map<int, int> positionByPlayerId = {};
       for (int i = 0; i < _positionPlayers.length; i++) {
         final player = _positionPlayers[i];
@@ -550,14 +744,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         }
       }
 
-      for (final player in _convokedPlayers) {
-        final int? pos = positionByPlayerId[player.id];
-        await supabase
-            .from('match_lineup')
-            .update({'position': pos})
-            .eq('match_id', _match.id)
-            .eq('player_id', player.id);
-      }
+      final uc = context.read<PersistMatchLineupPositionsUseCase>();
+      final res = await uc(
+        matchId: _match.id,
+        convokedPlayerIds: _convokedPlayers.map((p) => p.id).toList(),
+        onFieldPositionByPlayerId: positionByPlayerId,
+      );
+      res.fold((f) => debugPrint(f.message), (_) {});
     } catch (e) {
       debugPrint('Error updating positions in match_lineup: $e');
     }
@@ -653,32 +846,16 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }
 
   int _firstHalfDurationMinutesForCategory() {
-    final cat = widget.team.category.toLowerCase();
+    return matchHalfDurationMinutesForCategory(widget.team.category);
+  }
 
-    if (cat.contains('prebenjamin') || cat.contains('prebenjamín')) {
-      return 25;
+  /// Reloj principal (MM:SS): en 2ª parte continúa desde el final de la 1ª
+  /// (p. ej. prebenjamines 25:00→50:00; seniors 45:00→90:00).
+  int _displayClockMainTotalSeconds() {
+    if (_phase == _MatchPhase.secondHalf) {
+      return _firstHalfDurationMinutesForCategory() * 60 + _mainClockSeconds();
     }
-
-    if (cat.contains('benjamin') || cat.contains('benjamín')) {
-      return 30;
-    }
-
-    if (cat.contains('alevin') || cat.contains('alevín')) {
-      return 35;
-    }
-
-    if (cat.contains('infantil')) {
-      return 40;
-    }
-
-    if (cat.contains('cadete') ||
-        cat.contains('juvenil') ||
-        cat.contains('senior')) {
-      return 45;
-    }
-
-    // Valor por defecto razonable si la categoría no coincide
-    return 35;
+    return _mainClockSeconds();
   }
 
   int _currentMatchMinute() {
@@ -692,6 +869,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   int _halfDurationSeconds() => _firstHalfDurationMinutesForCategory() * 60;
 
+  /// Cronómetro: tiempo transcurrido de la parte (sube desde 0:00), topeado al reglamentario.
   int _mainClockSeconds() {
     final limit = _halfDurationSeconds();
     final value = _elapsedSeconds <= limit ? _elapsedSeconds : limit;
@@ -748,69 +926,146 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
-  Future<({int scored, int conceded})?> _queryScoreCountsFromEvents() async {
+  Future<MatchEventAggregates?> _queryEventAggregatesFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type')
-          .eq('match_id', _match.id);
-
-      int scored = 0;
-      int conceded = 0;
-
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-
-        if (typeString == 'scoreGoal') {
-          scored++;
-        } else if (typeString == 'concedeGoal' || typeString == 'ownGoal') {
-          conceded++;
-        }
-      }
-
-      return (scored: scored, conceded: conceded);
+      final uc = context.read<GetMatchEventAggregatesFromEventsUseCase>();
+      final result = await uc(_match.id);
+      return result.fold((_) => null, (a) => a);
     } catch (_) {
       return null;
     }
   }
 
-  Future<void> _reloadScoreFromEvents() async {
-    final counts = await _queryScoreCountsFromEvents();
-    if (counts == null || !mounted) return;
+  void _applyEventAggregates(MatchEventAggregates agg) {
+    _match = Match(
+      id: _match.id,
+      teamId: _match.teamId,
+      opponent: _match.opponent,
+      goalsScored: agg.goalsScored,
+      goalsConceded: agg.goalsConceded,
+      date: _match.date,
+      hour: _match.hour,
+      status: _match.status,
+      lineups: _match.lineups,
+      isHome: _match.isHome,
+    );
+    _shotsOur = agg.shotsOur;
+    _shotsRival = agg.shotsRival;
+    _foulsOur = agg.foulsOur;
+    _foulsRival = agg.foulsRival;
+    _cornersOur = agg.cornersOur;
+    _cornersRival = agg.cornersRival;
+    _offsidesOur = agg.offsidesOur;
+    _offsidesRival = agg.offsidesRival;
+    _yellowOur = agg.yellowOur;
+    _yellowRival = agg.yellowRival;
+    _redOur = agg.redOur;
+    _redRival = agg.redRival;
+  }
+
+  /// Un solo [setState] para agregados + cronología (evita parpadeos 0 y doble repintado).
+  Future<void> _reloadScoreAndLiveEventsBatched() async {
+    final agg = await _queryEventAggregatesFromEvents();
+    final live = await _queryLiveEventsFiltered();
+    if (!mounted) return;
+    if (agg == null && live == null) return;
     setState(() {
-      _match = Match(
-        id: _match.id,
-        teamId: _match.teamId,
-        opponent: _match.opponent,
-        goalsScored: counts.scored,
-        goalsConceded: counts.conceded,
-        date: _match.date,
-        hour: _match.hour,
-        status: _match.status,
-        lineups: _match.lineups,
-        isHome: _match.isHome,
-      );
+      if (agg != null) {
+        _applyEventAggregates(agg);
+      }
+      if (live != null) {
+        _liveEvents = live;
+      }
     });
+  }
+
+  Future<void> _saveManualCounterEvent({
+    required MatchEventEnum type,
+    required String note,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_isExternal) return;
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) {
+      _showSnack(l10n.matchMustLoginRegisterGoals, error: true);
+      return;
+    }
+    final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
+    final minute = _currentMatchMinute();
+    final event = MatchEvent(
+      id: 0,
+      matchId: _match.id,
+      playerId1: null,
+      playerId2: null,
+      minute: minute,
+      type: type,
+      note: note,
+    );
+    final result = await saveMatchEventUseCase(
+      event,
+      authState.user,
+      widget.team.id,
+    );
+    await result.fold<Future<void>>(
+      (failure) async {
+        _showSnack(failure.message, error: true);
+      },
+      (_) async {
+        await _reloadScoreAndLiveEventsBatched();
+      },
+    );
+  }
+
+  Future<void> _removeLastOfType(MatchEventEnum type) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_isExternal) return;
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) {
+      _showSnack(l10n.matchMustLoginRegisterGoals, error: true);
+      return;
+    }
+    final typeDb = type.toString().split('.').last;
+    final uc = context.read<GetLatestMatchEventByDbTypeUseCase>();
+    final latest = await uc(matchId: _match.id, typeDbValue: typeDb);
+    final ev = latest.fold((_) => null, (e) => e);
+    if (ev == null) {
+      _showSnack(l10n.matchNoCounterToRemove, error: true);
+      return;
+    }
+    final deleteMatchEventUseCase = context.read<DeleteMatchEventUseCase>();
+    final result = await deleteMatchEventUseCase(
+      ev,
+      authState.user,
+      widget.team.id,
+    );
+    await result.fold<Future<void>>(
+      (failure) async {
+        _showSnack(failure.message, error: true);
+      },
+      (_) async {
+        await _reloadScoreAndLiveEventsBatched();
+      },
+    );
   }
 
   Future<Map<int, double>?> _queryPlayerRatingsMap() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1, player_id2, note')
-          .eq('match_id', _match.id);
-
-      final events = List<Map<String, dynamic>>.from(result as List);
-
-      final Map<int, double> newRatings = {};
-      for (final player in _convokedPlayers) {
-        newRatings[player.id] = calculatePlayerRating(player.id, events);
-      }
-      return newRatings;
+      final uc = context.read<GetPlayerRatingEventRowsUseCase>();
+      final result = await uc(_match.id);
+      return result.fold((_) => null, (events) {
+        final Map<int, double> newRatings = {};
+        final teamScoring = context
+            .read<TeamScoringConfigStorage>()
+            .load(_match.teamId);
+        for (final player in _convokedPlayers) {
+          newRatings[player.id] = calculatePlayerRating(
+            player.id,
+            events,
+            teamScoring: teamScoring,
+          );
+        }
+        return newRatings;
+      });
     } catch (e) {
       debugPrint('Error calculating player ratings: $e');
       return null;
@@ -826,10 +1081,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }
 
   Future<void> _refreshDerivedMatchData({bool reloadFormation = false}) async {
-    await _reloadScoreFromEvents();
+    await _reloadScoreAndLiveEventsBatched();
     await _recalculatePlayerRatings();
     await _loadDisciplineStateFromEvents();
-    await _loadLiveEvents();
     if (reloadFormation && mounted) {
       await _loadLastFormationFromEvents();
     }
@@ -838,11 +1092,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// Recarga datos desde Supabase (marcador, campo, eventos). Usado al
   /// deslizar para abajo; relevante para externos que no modifican el partido.
   Future<void> _onRefreshMatchScreen() async {
-    await _reloadScoreFromEvents();
+    await _mergeMatchFromServer();
     if (!mounted) return;
     await _recalculatePlayerRatings();
-    if (!mounted) return;
-    await _loadLiveEvents();
     if (!mounted) return;
     await _loadLastFormationFromEvents();
     if (!mounted) return;
@@ -850,9 +1102,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     if (!mounted) return;
     await _loadDisciplineStateFromEvents();
     if (!mounted) return;
-    if (_isExternal) {
-      await _syncMatchMetaFromServer();
-    }
   }
 
   Future<void> _loadLiveEvents() async {
@@ -875,76 +1124,37 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// Une variantes como scoreGoal, score_goal, enums en español, etc.
   String _canonicalEventTypeKey(dynamic raw) => canonicalMatchEventTypeKey(raw);
 
-  /// Notas de [statusChange] que marcan el reloj del partido (alineado con estadísticas).
-  bool _isMatchTimeStatusNote(String? note) {
-    if (note == null || note.isEmpty) return false;
-    final lower = note.trim().toLowerCase();
-    const allowed = [
-      'inicio 1ª parte',
-      'inicio 1a parte',
-      'descanso',
-      'inicio 2ª parte',
-      'inicio 2a parte',
-      'final del partido',
-    ];
-    return allowed.any((n) => lower == n.toLowerCase());
-  }
-
-  /// Lista de eventos en vivo: solo goles, cambios de tiempo y cambios de jugador.
-  /// Pases, jugadas, recuperaciones, tarjetas, etc. siguen guardados pero no se listan aquí.
-  bool _shouldIncludeInLiveEventsList(Map<String, dynamic> row) {
-    final key = _canonicalEventTypeKey(row['type']);
-    if (key == 'formation') {
-      return false;
-    }
-    if (key == 'substitution') {
-      return _dynToInt(row['player_id2']) != null;
-    }
-    if (key == 'scoregoal' || key == 'concedegoal' || key == 'owngoal') {
-      return true;
-    }
-    if (key == 'statuschange') {
-      return _isMatchTimeStatusNote(_dynToStr(row['note']));
-    }
-    return false;
-  }
-
-  DateTime _parseEventCreatedAt(dynamic v) {
-    if (v == null) return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    try {
-      return DateTime.parse(v.toString());
-    } catch (_) {
-      return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-    }
-  }
-
-  /// Nota del evento [statusChange] al pasar a la 2ª parte (ver [_saveStatusChangeEvent]).
-  bool _noteIndicatesSecondHalfKickoff(String? note) {
-    if (note == null || note.isEmpty) return false;
-    final n = note.toLowerCase();
-    return n.contains('inicio') && n.contains('2') && n.contains('parte');
-  }
-
-  /// Momento del último "Inicio 2ª parte" en la lista ya filtrada (por si hubiera duplicados).
-  DateTime? _resolveSecondHalfStartFromRows(List<Map<String, dynamic>> rows) {
-    DateTime? best;
-    for (final r in rows) {
-      if (_canonicalEventTypeKey(r['type']) != 'statuschange') continue;
-      final note = _dynToStr(r['note']);
-      if (!_noteIndicatesSecondHalfKickoff(note)) continue;
-      final t = _parseEventCreatedAt(r['created_at']);
-      if (best == null || t.isAfter(best)) {
-        best = t;
+  /// Amarilla: contorno / fila amarilla. Roja o doble amarilla (expulsado): rojo.
+  MatchPlayerDisciplineHighlight _playerDisciplineHighlight(int playerId) {
+    var yellows = 0;
+    var hasRed = false;
+    for (final row in _liveEvents) {
+      final p1 = supabaseInt(row['player_id1']);
+      if (p1 != playerId) {
+        continue;
+      }
+      final key = _canonicalEventTypeKey(row['type']);
+      if (key == 'yellowcard') {
+        yellows++;
+      } else if (key == 'redcard') {
+        hasRed = true;
       }
     }
-    return best;
+    if (_sentOffPlayerIds.contains(playerId) || hasRed || yellows >= 2) {
+      return MatchPlayerDisciplineHighlight.red;
+    }
+    if (yellows >= 1) {
+      return MatchPlayerDisciplineHighlight.yellow;
+    }
+    return MatchPlayerDisciplineHighlight.none;
   }
 
   /// 1 = primera parte, 2 = segunda. Sin ancla de inicio 2ª: todo se trata como 1ª.
   int _eventMatchHalf(Map<String, dynamic> row, DateTime? secondHalfStart) {
-    if (secondHalfStart == null) return 1;
-    final t = _parseEventCreatedAt(row['created_at']);
-    return !t.isBefore(secondHalfStart) ? 2 : 1;
+    final r = MatchLiveTimelineRow.fromPostgresMap(
+      Map<String, dynamic>.from(row),
+    );
+    return MatchLiveTimelineFilter.eventHalf(r, secondHalfStart);
   }
 
   /// Etiqueta de minuto: en descuento, [reglamentario]+[added] (p. ej. 45+2, 90+1).
@@ -963,65 +1173,35 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return "$minute'";
   }
 
-  DateTime? _resolvedSecondHalfStart() =>
-      _resolveSecondHalfStartFromRows(_liveEvents);
-
-  /// 2ª parte arriba, 1ª abajo. En cada parte: de abajo a arriba de menos a más
-  /// minuto (en la columna, más minutos arriba; mismo minuto, más reciente arriba).
-  int _compareLiveEventsDisplayOrder(
-    Map<String, dynamic> a,
-    Map<String, dynamic> b,
-    DateTime? secondHalfStart,
+  String _liveEventMinuteLabel(
+    AppLocalizations l10n,
+    Map<String, dynamic> row,
+    int minute,
+    int half,
   ) {
-    final ha = _eventMatchHalf(a, secondHalfStart);
-    final hb = _eventMatchHalf(b, secondHalfStart);
-    if (ha != hb) {
-      return hb.compareTo(ha);
+    final n = _dynToStr(row['note']);
+    if (n != null && n.contains('prematch')) {
+      return l10n.matchLiveMinuteSquad;
     }
-    final ma = _dynToInt(a['minute']) ?? 0;
-    final mb = _dynToInt(b['minute']) ?? 0;
-    if (ma != mb) {
-      return mb.compareTo(ma);
-    }
-    final ca = _parseEventCreatedAt(a['created_at']);
-    final cb = _parseEventCreatedAt(b['created_at']);
-    final byTime = cb.compareTo(ca);
-    if (byTime != 0) {
-      return byTime;
-    }
-    final ida = _dynToInt(a['id']) ?? 0;
-    final idb = _dynToInt(b['id']) ?? 0;
-    return idb.compareTo(ida);
+    return _formatLiveEventMinuteLine(minute, half);
+  }
+
+  DateTime? _resolvedSecondHalfStart() {
+    final rows = _liveEvents
+        .map(
+          (m) => MatchLiveTimelineRow.fromPostgresMap(
+                Map<String, dynamic>.from(m),
+              ),
+        )
+        .toList();
+    return MatchLiveTimelineFilter.resolveSecondHalfStart(rows);
   }
 
   Future<List<Map<String, dynamic>>?> _queryLiveEventsFiltered() async {
     try {
-      final supabase = Supabase.instance.client;
-      final raw = await supabase
-          .from('match_events')
-          .select(
-            'id, match_id, type, minute, player_id1, player_id2, note, created_at',
-          )
-          .eq('match_id', _match.id)
-          .order('minute', ascending: true)
-          .order('created_at', ascending: true);
-
-      final list = raw as List;
-      final out = list
-          .map((e) {
-            final m = Map<String, dynamic>.from(e as Map);
-            m['minute'] = resolveMatchEventMinute(m);
-            final id1 = supabaseInt(m['player_id1']);
-            final id2 = supabaseInt(m['player_id2']);
-            if (id1 != null) m['player_id1'] = id1;
-            if (id2 != null) m['player_id2'] = id2;
-            return m;
-          })
-          .where(_shouldIncludeInLiveEventsList)
-          .toList();
-      final t2h = _resolveSecondHalfStartFromRows(out);
-      out.sort((a, b) => _compareLiveEventsDisplayOrder(a, b, t2h));
-      return out;
+      final uc = context.read<GetMatchLiveTimelineMapsUseCase>();
+      final result = await uc(matchId: _match.id);
+      return result.fold((_) => null, (rows) => rows);
     } catch (e) {
       debugPrint('Error loading live events: $e');
       return null;
@@ -1030,34 +1210,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<Set<int>?> _querySentOffIdsFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1')
-          .eq('match_id', _match.id);
-
-      final Map<int, int> yellowCounts = {};
-      final Set<int> sentOff = {};
-
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-        final p1 = _dynToInt(row['player_id1']);
-        if (p1 == null) continue;
-
-        if (typeString == 'redCard') {
-          sentOff.add(p1);
-        } else if (typeString == 'yellowCard') {
-          final current = yellowCounts[p1] ?? 0;
-          final next = current + 1;
-          yellowCounts[p1] = next;
-          if (next >= 2) {
-            sentOff.add(p1);
-          }
-        }
-      }
-      return sentOff;
+      final uc = context.read<GetMatchSentOffPlayerIdsUseCase>();
+      final result = await uc(_match.id);
+      return result.fold((_) => null, (s) => s);
     } catch (e) {
       debugPrint('Error querying discipline: $e');
       return null;
@@ -1073,23 +1228,29 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         type == MatchEventEnum.scoreGoal ||
         type == MatchEventEnum.concedeGoal ||
         type == MatchEventEnum.ownGoal;
+    final needsShots =
+        type == MatchEventEnum.shot || type == MatchEventEnum.rivalShot;
     final needsDiscipline =
         type == MatchEventEnum.yellowCard || type == MatchEventEnum.redCard;
+    final needsStatsAgg = needsScore ||
+        needsShots ||
+        type == MatchEventEnum.foul ||
+        type == MatchEventEnum.yellowCard ||
+        type == MatchEventEnum.redCard;
 
     final prevSentOff = Set<int>.from(_sentOffPlayerIds);
 
     final fRatings = _queryPlayerRatingsMap();
     final fLive = _queryLiveEventsFiltered();
-    final Future<({int scored, int conceded})?>? fScore = needsScore
-        ? _queryScoreCountsFromEvents()
-        : null;
+    final Future<MatchEventAggregates?>? fAgg =
+        needsStatsAgg ? _queryEventAggregatesFromEvents() : null;
     final Future<Set<int>?>? fDisc = needsDiscipline
         ? _querySentOffIdsFromEvents()
         : null;
 
     final ratings = await fRatings;
     final live = await fLive;
-    final score = fScore != null ? await fScore : null;
+    final agg = fAgg != null ? await fAgg : null;
     final sentOff = fDisc != null ? await fDisc : null;
 
     if (!mounted) return;
@@ -1097,7 +1258,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       await _refreshDerivedMatchData();
       return;
     }
-    if (needsScore && score == null) {
+    if (needsStatsAgg && agg == null) {
       await _refreshDerivedMatchData();
       return;
     }
@@ -1107,19 +1268,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
 
     setState(() {
-      if (score != null) {
-        _match = Match(
-          id: _match.id,
-          teamId: _match.teamId,
-          opponent: _match.opponent,
-          goalsScored: score.scored,
-          goalsConceded: score.conceded,
-          date: _match.date,
-          hour: _match.hour,
-          status: _match.status,
-          lineups: _match.lineups,
-          isHome: _match.isHome,
-        );
+      if (agg != null) {
+        _applyEventAggregates(agg);
       }
       _playerRatings = ratings;
       _liveEvents = live;
@@ -1142,6 +1292,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       }
     });
 
+    if (sentOff != null &&
+        needsDiscipline &&
+        sentOff.difference(prevSentOff).isNotEmpty) {
+      unawaited(_persistCurrentPositionsToMatchLineup());
+    }
     if (needsDiscipline &&
         mounted &&
         !prevSentOff.contains(player.id) &&
@@ -1152,26 +1307,18 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _showCardExpulsionSnack(Player player) async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('type, player_id1')
-          .eq('match_id', _match.id)
-          .eq('player_id1', player.id);
+      final uc = context.read<GetPlayerCardSummaryForMatchPlayerUseCase>();
+      final summaryResult = await uc(
+        matchId: _match.id,
+        playerId: player.id,
+      );
 
       int yellowCount = 0;
       bool hasRed = false;
-
-      for (final row in result) {
-        final raw = row['type'];
-        if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-        if (typeString == 'yellowCard') {
-          yellowCount++;
-        } else if (typeString == 'redCard') {
-          hasRed = true;
-        }
-      }
+      summaryResult.fold((_) {}, (s) {
+        yellowCount = s.yellowCount;
+        hasRed = s.hasRed;
+      });
 
       if (!mounted) return;
 
@@ -1262,6 +1409,16 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           ),
         ];
       case 'substitution':
+        if (p1 == null) {
+          return [TextSpan(text: rawLabel)];
+        }
+        if (p2 == null) {
+          return [
+            TextSpan(text: l10n.matchLiveSubstitutionEnters),
+            ...dorsalSpans(p1),
+            TextSpan(text: l10n.matchLiveSubstitutionToFreeSlot),
+          ];
+        }
         return [
           TextSpan(text: l10n.matchLiveSubstitutionEnters),
           ...dorsalSpans(p1),
@@ -1307,23 +1464,25 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           ...dorsalSpans(p1),
         ];
       case 'goodsave':
-        if (note != null && note.isNotEmpty) {
-          if (p1 != null) {
-            return [
-              TextSpan(text: l10n.matchLiveSaveBy),
-              ...dorsalSpans(p1),
-              TextSpan(text: ' · $note'),
-            ];
-          }
-          return [TextSpan(text: l10n.matchLiveSaveWithNote(note))];
-        }
-        if (p1 != null) {
-          return [
-            TextSpan(text: l10n.matchLiveSaveBy),
-            ...dorsalSpans(p1),
-          ];
-        }
-        return [TextSpan(text: l10n.matchLiveSaveOnly)];
+        return [
+          TextSpan(text: l10n.matchLiveGoodSave),
+          ...dorsalSpans(p1),
+        ];
+      case 'shot':
+        return [
+          TextSpan(text: l10n.matchLiveShot),
+          ...dorsalSpans(p1),
+        ];
+      case 'foul':
+        return [
+          TextSpan(text: l10n.matchLiveFoul),
+          ...dorsalSpans(p1),
+        ];
+      case 'cantada':
+        return [
+          TextSpan(text: l10n.matchLiveCantada),
+          ...dorsalSpans(p1),
+        ];
       case 'keypass':
         return [
           TextSpan(text: l10n.matchLiveKeyPass),
@@ -1371,6 +1530,24 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
+  /// Avatar de la fila de eventos: tarjetas con fondo amarillo/rojo acorde.
+  (Color background, Color iconColor) _liveEventListAvatarColors(
+    ColorScheme scheme,
+    String canonicalKey,
+  ) {
+    switch (canonicalKey) {
+      case 'yellowcard':
+        return (const Color(0xFFFFC107), Colors.black87);
+      case 'redcard':
+        return (scheme.error, scheme.onError);
+      case 'foul':
+      case 'rivalfoul':
+        return (kMatchFoulListAvatarBackground, kMatchFoulListAvatarForeground);
+      default:
+        return (scheme.surfaceContainerHigh, scheme.primary);
+    }
+  }
+
   IconData _iconForLiveEventKey(String canonicalKey) {
     switch (canonicalKey) {
       case 'scoregoal':
@@ -1389,6 +1566,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         return Icons.schedule;
       case 'goodsave':
         return Icons.sports_handball;
+      case 'shot':
+        return Icons.adjust;
+      case 'cantada':
+        return Icons.sentiment_dissatisfied;
       case 'keypass':
         return Icons.alt_route;
       case 'goodpass':
@@ -1416,10 +1597,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       return;
     }
 
-    final minute = _dynToInt(row['minute']) ?? 0;
+    final minute = resolveMatchEventMinute(
+      Map<String, dynamic>.from(row),
+    );
     final half = _eventMatchHalf(row, _resolvedSecondHalfStart());
-    final minutePrefix = minute != 0
-        ? '${_formatLiveEventMinuteLine(minute, half)} · '
+    final l10nDialogMin = AppLocalizations.of(context)!;
+    final minuteLine = _liveEventMinuteLabel(l10nDialogMin, row, minute, half);
+    final minutePrefix = minute != 0 ||
+            (_dynToStr(row['note'])?.contains('prematch') ?? false)
+        ? '$minuteLine · '
         : '';
     final baseStyle = Theme.of(context).textTheme.bodyMedium!;
     final confirmed = await showDialog<bool>(
@@ -1493,41 +1679,33 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _loadLastFormationFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-      final result = await supabase
-          .from('match_events')
-          .select('id, type, note, minute')
-          .eq('match_id', _match.id)
-          .eq('type', 'formation')
-          // Usamos el id descendente para asegurar que obtenemos
-          // siempre la última formación guardada, incluso si varias
-          // tienen el mismo minuto (0 antes de empezar el partido).
-          .order('id', ascending: false)
-          .limit(1);
+      final uc = context.read<GetLatestFormationNoteByMatchUseCase>();
+      final result = await uc(_match.id);
+      await result.fold<Future<void>>(
+        (_) async {},
+        (formationNote) async {
+          final formation = formationNote?.trim();
+          if (formation == null || !_formationOptions.containsKey(formation)) {
+            return;
+          }
 
-      if (result.isEmpty) return;
+          if (!mounted) return;
+          final outfieldLines = _formationOptions[formation]!;
+          final newFormationLines = [1, ...outfieldLines];
+          final totalPositions = newFormationLines.fold<int>(
+            0,
+            (sum, value) => sum + value,
+          );
 
-      final row = result.first;
-      final formation = (row['note'] as String?)?.trim();
-      if (formation == null || !_formationOptions.containsKey(formation)) {
-        return;
-      }
-
-      if (!mounted) return;
-      final outfieldLines = _formationOptions[formation]!;
-      final newFormationLines = [1, ...outfieldLines];
-      final totalPositions = newFormationLines.fold<int>(
-        0,
-        (sum, value) => sum + value,
+          setState(() {
+            _selectedFormation = formation;
+            _formationLines = newFormationLines;
+            if (_positionPlayers.length != totalPositions) {
+              _positionPlayers = List<Player?>.filled(totalPositions, null);
+            }
+          });
+        },
       );
-
-      setState(() {
-        _selectedFormation = formation;
-        _formationLines = newFormationLines;
-        if (_positionPlayers.length != totalPositions) {
-          _positionPlayers = List<Player?>.filled(totalPositions, null);
-        }
-      });
     } catch (_) {
       // Si falla, mantenemos la formación actual
     }
@@ -1562,9 +1740,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       SnackBar(
         content: Text(message),
         backgroundColor: error ? Colors.red : Colors.green,
-        duration: error
-            ? const Duration(seconds: 4)
-            : const Duration(seconds: 1),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -1582,25 +1758,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           ),
         ),
         backgroundColor: error ? Colors.red : Colors.green,
-        duration: error
-            ? const Duration(seconds: 4)
-            : const Duration(seconds: 1),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
 
   Future<void> _updateStartersInMatchLineup() async {
     try {
-      final supabase = Supabase.instance.client;
-
-      // Primero marcamos a todos los convocados de este partido como no titulares.
-      await supabase
-          .from('match_lineup')
-          .update({'is_start': false})
-          .eq('match_id', _match.id);
-
-      // Luego marcamos como titulares a los jugadores que están en el campo
-      // cuando se inicia el partido.
       final starterIds = _positionPlayers
           .where((p) => p != null)
           .map((p) => p!.id)
@@ -1608,15 +1772,17 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           .toList();
 
       if (starterIds.isEmpty) return;
-      // En esta versión del cliente Postgrest no está disponible in_,
-      // así que actualizamos uno a uno.
-      for (final playerId in starterIds) {
-        await supabase
-            .from('match_lineup')
-            .update({'is_start': true})
-            .eq('match_id', _match.id)
-            .eq('player_id', playerId);
-      }
+
+      final uc = context.read<ApplyMatchLineupStartersUseCase>();
+      final res = await uc(matchId: _match.id, starterPlayerIds: starterIds);
+      await res.fold<Future<void>>(
+        (f) async {
+          debugPrint('Error al marcar titulares: ${f.message}');
+        },
+        (_) async {
+          if (mounted) await _loadMatchLineupsForMatchState();
+        },
+      );
     } catch (e) {
       // No rompemos la UI si falla; solo registramos el error.
       debugPrint('Error updating starters in match_lineup: $e');
@@ -1662,15 +1828,22 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       }
 
       final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
-      final minute = _currentMatchMinute();
 
       final inNumber = playerIn.number?.toString() ?? '-';
       final outNumber = playerOut?.number?.toString() ?? '-';
+
+      final int minute;
       final String note;
-      if (_phase == _MatchPhase.halfTime) {
-        // En el descanso, marcamos la sustitución como "halftime" en la nota.
-        note = 'In:$inNumber,out:$outNumber,halftime';
+      if (_phase == _MatchPhase.notStarted) {
+        // Antes del inicio: minuto 0; [resolveMatchEventMinute] lee min: de la nota.
+        minute = 0;
+        note = 'In:$inNumber,out:$outNumber,prematch,min:0';
+      } else if (_phase == _MatchPhase.halfTime) {
+        // Fin reglamentario 1.ª parte (p. ej. 25' / 45'), no 0' ni solo "halftime".
+        minute = _firstHalfDurationMinutesForCategory();
+        note = 'In:$inNumber,out:$outNumber,halftime,min:$minute';
       } else {
+        minute = _currentMatchMinute();
         note = 'In:$inNumber,out:$outNumber,min:$minute';
       }
 
@@ -1684,8 +1857,21 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         note: note,
       );
 
-      await saveMatchEventUseCase(event, authState.user, widget.team.id);
-      if (mounted) await _loadLiveEvents();
+      final result = await saveMatchEventUseCase(
+        event,
+        authState.user,
+        widget.team.id,
+      );
+      await result.fold<Future<void>>(
+        (failure) async {
+          if (!mounted) return;
+          _showSnack(failure.message, error: true);
+          debugPrint('Sustitución no guardada: ${failure.message}');
+        },
+        (_) async {
+          if (mounted) await _loadLiveEvents();
+        },
+      );
     } catch (e) {
       debugPrint('Error saving substitution event: $e');
     }
@@ -1708,7 +1894,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     if (!confirmed) return;
 
     try {
-      // Solo permitimos registrar goles del rival desde este botón.
       if (ourTeam) {
         _showSnack(
           l10n.matchGoalsOurTeamFromField,
@@ -1753,92 +1938,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
-  Future<void> _onRemoveGoal({required bool ourTeam}) async {
-    final l10n = AppLocalizations.of(context)!;
-    final currentGoals = ourTeam ? _match.goalsScored : _match.goalsConceded;
-    if (currentGoals <= 0) {
-      _showSnack(l10n.matchNoGoalsToRemove, error: true);
-      return;
-    }
-
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! Authenticated) {
-      _showSnack(l10n.matchMustLoginRemoveGoals, error: true);
-      return;
-    }
-
-    final confirmed = await _confirmAction(
-      l10n.matchRemoveGoalTitle,
-      ourTeam
-          ? l10n.matchConfirmRemoveGoalOur
-          : l10n.matchConfirmRemoveGoalRival,
-    );
-    if (!confirmed) return;
-
-    try {
-      final supabase = Supabase.instance.client;
-
-      final String eventTypeFilter = ourTeam ? 'scoreGoal' : 'concedeGoal';
-
-      final result = await supabase
-          .from('match_events')
-          .select()
-          .eq('match_id', _match.id)
-          .eq('type', eventTypeFilter)
-          .order('minute', ascending: false)
-          .limit(1);
-
-      if (result.isEmpty) {
-        _showSnack(
-          l10n.matchGoalNotFoundInDb,
-          error: true,
-        );
-        return;
-      }
-
-      final row = result.first;
-
-      final String? eventTypeString = row['type'] as String?;
-      final MatchEventEnum eventType = eventTypeString != null
-          ? MatchEventEnum.values.firstWhere(
-              (e) => e.toString() == 'MatchEventEnum.$eventTypeString',
-              orElse: () => MatchEventEnum.scoreGoal,
-            )
-          : MatchEventEnum.scoreGoal;
-
-      final event = MatchEvent(
-        id: row['id'] as int,
-        matchId: _match.id,
-        playerId1: row['player_id1'] as int?,
-        playerId2: row['player_id2'] as int?,
-        minute: supabaseInt(row['minute']) ?? 0,
-        type: eventType,
-        note: row['note'] as String?,
-      );
-
-      final deleteMatchEventUseCase = context.read<DeleteMatchEventUseCase>();
-      final deleteResult = await deleteMatchEventUseCase(
-        event,
-        authState.user,
-        widget.team.id,
-      );
-
-      await deleteResult.fold<Future<void>>(
-        (failure) async {
-          _showSnack(failure.message, error: true);
-        },
-        (_) async {
-          await _refreshDerivedMatchData();
-          if (mounted) {
-            _showSnack(l10n.matchGoalRemovedOk);
-          }
-        },
-      );
-    } catch (e) {
-      _showSnack(l10n.matchGoalRemoveFail, error: true);
-    }
-  }
-
   Future<void> _loadConvocationPlayers() async {
     setState(() {
       _loadingPlayers = true;
@@ -1851,19 +1950,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     // todos los jugadores del equipo como fallback.
     Set<int> playerIds = {};
     try {
-      final supabase = Supabase.instance.client;
-      final lineupResult = await supabase
-          .from('match_lineup')
-          .select('player_id')
-          .eq('match_id', _match.id);
-
-      playerIds = lineupResult
-          .map<int>((row) => row['player_id'] as int)
-          .toSet();
+      final idsUc = context.read<FetchConvokedPlayerIdsForMatchUseCase>();
+      final idsRes = await idsUc(_match.id);
+      playerIds = idsRes.fold((_) => <int>{}, (s) => s);
     } catch (e) {
       debugPrint('Error loading match_lineup for convocation: $e');
-      // playerIds se queda vacío y más abajo mostraremos
-      // todos los jugadores del equipo como fallback.
     }
 
     // 2) Cargamos los jugadores del equipo y filtramos por los
@@ -1922,39 +2013,40 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _loadPositionsFromEvents() async {
     try {
-      final supabase = Supabase.instance.client;
-
-      final lineupRows = await supabase
-          .from('match_lineup')
-          .select('player_id, position')
-          .eq('match_id', _match.id);
+      final uc = context.read<FetchMatchLineupPositionsUseCase>();
+      final res = await uc(_match.id);
 
       if (!mounted) return;
 
-      final List<Player?> newPositions = List<Player?>.filled(
-        _positionPlayers.length,
-        null,
+      await res.fold<Future<void>>(
+        (_) async {},
+        (assignments) async {
+          final List<Player?> newPositions = List<Player?>.filled(
+            _positionPlayers.length,
+            null,
+          );
+
+          for (final a in assignments) {
+            final playerId = a.playerId;
+            final pos = a.positionIndex;
+            if (pos < 0 || pos >= newPositions.length) continue;
+
+            final player = _convokedPlayers.firstWhere(
+              (p) => p.id == playerId,
+              orElse: () => const Player(teamId: 0, firstName: ''),
+            );
+
+            if (player.id != 0) {
+              newPositions[pos] = player;
+            }
+          }
+
+          if (!mounted) return;
+          setState(() {
+            _positionPlayers = newPositions;
+          });
+        },
       );
-
-      for (final row in lineupRows as List) {
-        final int? playerId = row['player_id'] as int?;
-        final int? pos = row['position'] as int?;
-        if (playerId == null || pos == null) continue;
-        if (pos < 0 || pos >= newPositions.length) continue;
-
-        final player = _convokedPlayers.firstWhere(
-          (p) => p.id == playerId,
-          orElse: () => const Player(teamId: 0, firstName: ''),
-        );
-
-        if (player.id != 0) {
-          newPositions[pos] = player;
-        }
-      }
-
-      setState(() {
-        _positionPlayers = newPositions;
-      });
     } catch (e) {
       debugPrint('Error loading positions from match_lineup: $e');
     }
@@ -1983,6 +2075,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         _selectedPlayer = null;
       }
     });
+    unawaited(_persistCurrentPositionsToMatchLineup());
   }
 
   String _bottomButtonLabel(AppLocalizations l10n) {
@@ -2014,6 +2107,59 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
+  Widget _buildMatchClockDisplay(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final s = context.layoutScale;
+    final mainSeconds = _displayClockMainTotalSeconds();
+    final extraSeconds = _extraClockSeconds();
+    if (extraSeconds <= 0) {
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          _formatTime(mainSeconds),
+          style: theme.textTheme.headlineLarge?.copyWith(
+            fontSize: 44 * s,
+            fontWeight: FontWeight.w800,
+            color: scheme.onSurface,
+            letterSpacing: -0.5,
+          ),
+        ),
+      );
+    }
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _formatTime(mainSeconds),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+            ),
+          ),
+          SizedBox(width: 8 * s),
+          Text(
+            '+',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.outline,
+            ),
+          ),
+          SizedBox(width: 8 * s),
+          Text(
+            _formatTime(extraSeconds),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.tertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onPlayerActionRequested(Player player) async {
     final l10n = AppLocalizations.of(context)!;
     if (_isExternal) {
@@ -2023,11 +2169,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       );
       return;
     }
-    final action = await showMatchPlayerActionModal(context, player);
+    final selection = await showMatchPlayerActionModal(
+      context,
+      player,
+      teamId: widget.team.id,
+    );
 
-    if (action == null) return;
+    if (selection == null) return;
 
-    final label = _playerActionLabel(action, l10n);
+    final label = selection.confirmLabel;
     final baseStyle = Theme.of(context).textTheme.bodyMedium!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2064,36 +2214,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     );
     if (confirmed != true) return;
 
-    await _savePlayerActionEvent(player, action);
+    await _savePlayerScoringSelection(player, selection);
   }
 
-  String _playerActionLabel(
-    MatchPlayerActionType action,
-    AppLocalizations l10n,
-  ) {
-    switch (action) {
-      case MatchPlayerActionType.goal:
-        return l10n.matchActionLabelGoal;
-      case MatchPlayerActionType.goodPass:
-        return l10n.matchActionLabelGoodPass;
-      case MatchPlayerActionType.goodPlay:
-        return l10n.matchActionLabelGoodPlay;
-      case MatchPlayerActionType.ballRecovery:
-        return l10n.matchActionLabelBallRecovery;
-      case MatchPlayerActionType.yellowCard:
-        return l10n.matchActionLabelYellowCard;
-      case MatchPlayerActionType.redCard:
-        return l10n.matchActionLabelRedCard;
-      case MatchPlayerActionType.badPass:
-        return l10n.matchActionLabelBadPass;
-      case MatchPlayerActionType.badPlay:
-        return l10n.matchActionLabelBadPlay;
-    }
-  }
-
-  Future<void> _savePlayerActionEvent(
+  Future<void> _savePlayerScoringSelection(
     Player player,
-    MatchPlayerActionType action,
+    MatchPlayerScoringSelection selection,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -2105,9 +2231,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
       final minute = _currentMatchMinute();
+      final kind = selection.kind;
 
-      // Caso especial: gol con posible asistente y gol de equipo
-      if (action == MatchPlayerActionType.goal) {
+      if (kind is MatchPlayerScoringSaveGoal) {
         await _savePlayerGoalWithAssist(
           player: player,
           minute: minute,
@@ -2116,44 +2242,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         );
         return;
       }
-
-      late MatchEventEnum type;
-      late String note;
-
-      switch (action) {
-        case MatchPlayerActionType.goal:
-          // El caso de gol se maneja antes con _savePlayerGoalWithAssist.
-          return;
-        case MatchPlayerActionType.goodPass:
-          type = MatchEventEnum.goodPass;
-          note = 'Buen pase';
-          break;
-        case MatchPlayerActionType.goodPlay:
-          type = MatchEventEnum.goodPlay;
-          note = 'Buena jugada';
-          break;
-        case MatchPlayerActionType.ballRecovery:
-          type = MatchEventEnum.ballRecovery;
-          note = 'Balón recuperado';
-          break;
-        case MatchPlayerActionType.badPass:
-          type = MatchEventEnum.badPass;
-          note = 'Pase impreciso';
-          break;
-        case MatchPlayerActionType.badPlay:
-          type = MatchEventEnum.badPlay;
-          note = 'Jugada imprecisa';
-          break;
-        case MatchPlayerActionType.yellowCard:
-          type = MatchEventEnum.yellowCard;
-          note = 'Tarjeta amarilla';
-          break;
-        case MatchPlayerActionType.redCard:
-          type = MatchEventEnum.redCard;
-          note = 'Tarjeta roja';
-          break;
+      if (kind is! MatchPlayerScoringSaveEvent) {
+        return;
       }
 
+      final type = kind.type;
+      final note = kind.note;
       final event = MatchEvent(
         id: 0,
         matchId: _match.id,
@@ -2343,8 +2437,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       final result = await startMatchUseCase(_match, authState.user);
       loadingCubit.stop();
 
-      result.fold(
-        (failure) {
+      await result.fold<Future<void>>(
+        (failure) async {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(failure.message),
@@ -2352,22 +2447,33 @@ class _MatchManagerPageState extends State<MatchManagerPage>
             ),
           );
         },
-        (_) {
+        (_) async {
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.matchStartedOk),
               backgroundColor: Colors.green,
-              duration: const Duration(seconds: 1),
             ),
           );
-          _matchStartTimes[_match.id] = startTime;
           _saveCurrentLineup();
           // Persistimos la posición actual de cada jugador en match_lineup.position
-          _persistCurrentPositionsToMatchLineup();
+          await _persistCurrentPositionsToMatchLineup();
           // Actualizamos en BD qué jugadores empiezan como titulares.
-          _updateStartersInMatchLineup();
+          await _updateStartersInMatchLineup();
+          if (!mounted) return;
+          final lockInitialRes = await context
+              .read<LockInitialLineupPositionsUseCase>()(_match.id);
+          lockInitialRes.fold(
+            (f) => debugPrint('Lock initial lineup: ${f.message}'),
+            (_) {},
+          );
+          if (!mounted) return;
+          // Formación al inicio: si nunca se abrió el selector, aún hace falta
+          // un evento "formation" en match_events para estadísticas y detalle.
+          await _saveFormationEvent();
           // Guardamos evento de inicio de partido / 1ª parte
-          _saveStatusChangeEvent(MatchStatus.firstHalf, 0);
+          await _saveStatusChangeEvent(MatchStatus.firstHalf, 0);
+          if (!mounted) return;
           setState(() {
             _match = Match(
               id: _match.id,
@@ -2383,7 +2489,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               isHome: _match.isHome,
             );
             _phase = _MatchPhase.firstHalf;
-            _elapsedSeconds = 0;
+            _activeSegmentStartedAt = startTime;
+            _clockFrozenSegmentSeconds = null;
           });
           _startTimer();
         },
@@ -2394,7 +2501,17 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         l10n.matchConfirmHalfTimeBody,
       );
       if (!confirmed) return;
-      // Pasar a descanso: paramos el cronómetro y cambiamos de fase
+      // Pasar a descanso: congelar el tiempo de la 1ª parte (ancla real, no un contador)
+      {
+        final start = _activeSegmentStartedAt;
+        if (start != null) {
+          _clockFrozenSegmentSeconds =
+              (DateTime.now().difference(start).inSeconds).clamp(0, 1 << 20);
+        } else {
+          _clockFrozenSegmentSeconds = 0;
+        }
+        _activeSegmentStartedAt = null;
+      }
       _isTimerRunning = false;
       _timer?.cancel();
       final minute = _currentMatchMinute();
@@ -2429,11 +2546,19 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       if (!loadingCubit.state) {
         loadingCubit.start();
         try {
-          final supabase = Supabase.instance.client;
-          await supabase
-              .from('matches')
-              .update({'status': 'halfTime'})
-              .eq('id', _match.id);
+          final applyHt = context.read<ApplyMatchHalfTimeStatusUseCase>();
+          final htRes = await applyHt(_match.id);
+          htRes.fold(
+            (failure) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(failure.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            (_) {},
+          );
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2454,7 +2579,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       // Reanudar segunda parte
       final secondHalfStart = DateTime.now();
       setState(() {
-        _elapsedSeconds = 0;
+        _clockFrozenSegmentSeconds = null;
+        _activeSegmentStartedAt = secondHalfStart;
         _phase = _MatchPhase.secondHalf;
         _match = Match(
           id: _match.id,
@@ -2490,15 +2616,22 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       if (!loadingCubit.state) {
         loadingCubit.start();
         try {
-          final supabase = Supabase.instance.client;
-          await supabase
-              .from('matches')
-              .update({
-                'status': 'secondHalf',
-                'date': secondHalfStart.toIso8601String(),
-                'hour': secondHalfStart.toIso8601String(),
-              })
-              .eq('id', _match.id);
+          final apply2 = context.read<ApplyMatchSecondHalfStartedUseCase>();
+          final shRes = await apply2(
+            matchId: _match.id,
+            secondHalfStart: secondHalfStart,
+          );
+          shRes.fold(
+            (failure) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(failure.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            (_) {},
+          );
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2511,10 +2644,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         }
       }
     } else if (_phase == _MatchPhase.secondHalf) {
-      // Terminar partido
-      _isTimerRunning = false;
-      _timer?.cancel();
-
+      // Terminar partido (el cronómetro sigue en tiempo real hasta confirmar).
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2552,8 +2682,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       if (confirm != true) return;
 
+      _isTimerRunning = false;
+      _timer?.cancel();
+
       // Asegura en BD la disposición actual del campo para el detalle del partido.
       await _persistCurrentPositionsToMatchLineup();
+      // Última formación (por si el usuario no usó nunca _changeFormation).
+      await _saveFormationEvent();
 
       // Guardamos evento de final de partido (await: el cierre usa el evento
       // para calcular minutos y fin del partido en estadísticas acumuladas).
@@ -2579,13 +2714,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         },
         (_) async {
           if (!mounted) return;
-          final counts = await _queryScoreCountsFromEvents();
+          final counts = await _queryEventAggregatesFromEvents();
           final finishedMatch = Match(
             id: _match.id,
             teamId: _match.teamId,
             opponent: _match.opponent,
-            goalsScored: counts?.scored ?? _match.goalsScored,
-            goalsConceded: counts?.conceded ?? _match.goalsConceded,
+            goalsScored: counts?.goalsScored ?? _match.goalsScored,
+            goalsConceded: counts?.goalsConceded ?? _match.goalsConceded,
             date: _match.date,
             hour: _match.hour,
             status: MatchStatus.finished,
@@ -2600,8 +2735,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               .read<GetMatchEventsByMatchUseCase>();
           final getMatchLineupsByMatchUseCase = context
               .read<GetMatchLineupsByMatchUseCase>();
+          final getFirstFormationNoteByMatchUseCase = context
+              .read<GetFirstFormationNoteByMatchUseCase>();
           final getLatestFormationNoteByMatchUseCase = context
               .read<GetLatestFormationNoteByMatchUseCase>();
+          final getMatchEventAggregatesFromEventsUseCase = context
+              .read<GetMatchEventAggregatesFromEventsUseCase>();
+          final teamScoringConfigStorage =
+              context.read<TeamScoringConfigStorage>();
           final loadErrorMessage =
               AppLocalizations.of(context)!.matchStatsLoadError;
           await Navigator.of(context).pushReplacement(
@@ -2612,11 +2753,20 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                   getPlayersByTeamUseCase: getPlayersByTeamUseCase,
                   getMatchEventsByMatchUseCase: getMatchEventsByMatchUseCase,
                   getMatchLineupsByMatchUseCase: getMatchLineupsByMatchUseCase,
+                  getFirstFormationNoteByMatchUseCase:
+                      getFirstFormationNoteByMatchUseCase,
                   getLatestFormationNoteByMatchUseCase:
                       getLatestFormationNoteByMatchUseCase,
+                  getMatchEventAggregatesFromEventsUseCase:
+                      getMatchEventAggregatesFromEventsUseCase,
+                  teamScoringConfigStorage: teamScoringConfigStorage,
                   loadErrorMessage: loadErrorMessage,
                 )..load(),
-                child: MatchStatsPage(match: finishedMatch),
+                child: MatchStatsPage(
+                  match: finishedMatch,
+                  ourTeamName: widget.team.name,
+                  teamColorHex: widget.team.color,
+                ),
               ),
             ),
           );
@@ -2631,58 +2781,19 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     final bool isExternal = _isExternal;
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
-
-    Widget clockWidget() {
-      final mainSeconds = _mainClockSeconds();
-      final extraSeconds = _extraClockSeconds();
-
-      if (extraSeconds <= 0) {
-        return Text(
-          _formatTime(mainSeconds),
-          style: theme.textTheme.headlineLarge?.copyWith(
-            fontSize: 44,
-            fontWeight: FontWeight.w800,
-            color: scheme.onSurface,
-            letterSpacing: -0.5,
-          ),
-        );
-      }
-
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            _formatTime(mainSeconds),
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: scheme.onSurface,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '+',
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: scheme.outline,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _formatTime(extraSeconds),
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: scheme.tertiary,
-            ),
-          ),
-        ],
-      );
-    }
+    final s = context.layoutScale;
+    final pagePad = AppResponsive.pageHorizontalPadding(context);
+    final screenW = MediaQuery.sizeOf(context).width;
 
     return TeamBrandedScope(
       team: widget.team,
       child: Scaffold(
       appBar: AppBar(
-        title: Text(l10n.screenMatchLive),
+        title: Text(
+          l10n.screenMatchLive,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         centerTitle: true,
         actions: const [TeamQuickNavAppBarButton()],
       ),
@@ -2690,121 +2801,168 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         child: RefreshIndicator(
           onRefresh: _onRefreshMatchScreen,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: EdgeInsets.fromLTRB(pagePad, 12 * s, pagePad, 24 * s),
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16 * s),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         children: [
                           Icon(Icons.timer_outlined, color: scheme.primary),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8 * s),
                           Expanded(
                             child: Text(
                               l10n.matchScoreAndTime,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          Chip(
-                            label: Text(
-                              _phaseDisplayLabel(l10n),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor: scheme.primaryContainer.withValues(
-                              alpha: 0.65,
-                            ),
-                            side: BorderSide.none,
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      if (isExternal && _phase == _MatchPhase.notStarted)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            l10n.matchSpectatorCannotStart,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              height: 1.35,
+                            ),
+                          ),
+                        )
+                      else
+                        BlocBuilder<LoadingCubit, bool>(
+                          builder: (context, isLoading) {
+                            final schemeBtn = Theme.of(context).colorScheme;
+                            return FilledButton(
+                              onPressed: (isLoading || isExternal)
+                                  ? null
+                                  : _onBottomButtonPressed,
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: isLoading
+                                  ? SizedBox(
+                                      width: 26,
+                                      height: 26,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: schemeBtn.onPrimary,
+                                      ),
+                                    )
+                                  : FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        _bottomButtonLabel(l10n),
+                                        style: TextStyle(
+                                          fontSize: 16 * s,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                            );
+                          },
+                        ),
                       const SizedBox(height: 14),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 10,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 20 * s,
+                          horizontal: 12 * s,
                         ),
                         decoration: BoxDecoration(
                           color: scheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: scheme.outlineVariant.withValues(alpha: 0.5),
+                            color: scheme.outlineVariant.withValues(alpha: 0.55),
                           ),
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
-                              child: Text(
-                                widget.team.name,
-                                textAlign: TextAlign.end,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  widget.team.name,
+                                  textAlign: TextAlign.end,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  Text(
-                                    '${_match.goalsScored}',
-                                    style: theme.textTheme.headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                          color: scheme.primary,
+                            Expanded(
+                              child: Center(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Text(
+                                        '${_match.goalsScored}',
+                                        style: theme.textTheme.displaySmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                              height: 1,
+                                              color: scheme.primary,
+                                            ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8 * s,
                                         ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                    ),
-                                    child: Text(
-                                      '—',
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                            color: scheme.outline,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${_match.goalsConceded}',
-                                    style: theme.textTheme.headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                          color: scheme.onSurface,
+                                        child: Text(
+                                          '—',
+                                          style: theme.textTheme.headlineSmall
+                                              ?.copyWith(
+                                                color: scheme.outline,
+                                                fontWeight: FontWeight.w700,
+                                                height: 1,
+                                              ),
                                         ),
+                                      ),
+                                      Text(
+                                        '${_match.goalsConceded}',
+                                        style: theme.textTheme.displaySmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                              height: 1,
+                                              color: scheme.onSurface,
+                                            ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                             Expanded(
-                              child: Text(
-                                _match.opponent,
-                                textAlign: TextAlign.start,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  _match.opponent,
+                                  textAlign: TextAlign.start,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                             ),
@@ -2812,7 +2970,38 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                         ),
                       ),
                       const SizedBox(height: 14),
-                      Center(child: clockWidget()),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _phaseDisplayLabel(l10n),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontSize: 30 * s,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                  letterSpacing: -0.4,
+                                  color: scheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10 * s),
+                          Center(
+                            child: ListenableBuilder(
+                              listenable: _clockTick,
+                              builder: (context, _) =>
+                                  _buildMatchClockDisplay(context),
+                            ),
+                          ),
+                        ],
+                      ),
                       if (!isExternal) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -2829,33 +3018,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                             foregroundColor: scheme.onError,
                           ),
                           onPressed: () => _onAddGoal(ourTeam: false),
-                          icon: const Icon(Icons.sports_soccer, size: 20),
-                          label: Text(l10n.matchOpponentGoal),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _onRemoveGoal(ourTeam: true),
-                                child: Text(l10n.matchSubtractOur),
-                              ),
+                          icon: Icon(Icons.sports_soccer, size: 20 * s),
+                          label: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              l10n.matchOpponentGoal,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _onRemoveGoal(ourTeam: false),
-                                child: Text(l10n.matchSubtractRival),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.matchGoalsFromFieldHint,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            height: 1.3,
                           ),
                         ),
                       ],
@@ -2866,87 +3037,206 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               const SizedBox(height: 12),
               Card(
                 clipBehavior: Clip.antiAlias,
+                child: MatchLiveStatsPanel(
+                  layoutScale: s,
+                  readOnly: isExternal,
+                  shotsOur: _shotsOur,
+                  shotsRival: _shotsRival,
+                  foulsOur: _foulsOur,
+                  foulsRival: _foulsRival,
+                  cornersOur: _cornersOur,
+                  cornersRival: _cornersRival,
+                  offsidesOur: _offsidesOur,
+                  offsidesRival: _offsidesRival,
+                  yellowOur: _yellowOur,
+                  yellowRival: _yellowRival,
+                  redOur: _redOur,
+                  redRival: _redRival,
+                  l10n: l10n,
+                  onRemoveRivalShot: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.rivalShot),
+                  onAddRivalShot: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.rivalShot,
+                            note: l10n.matchEventRivalShot,
+                          ),
+                  onRemoveRivalFoul: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.rivalFoul),
+                  onAddRivalFoul: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.rivalFoul,
+                            note: 'Falta rival',
+                          ),
+                  onRemoveCorner: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.corner),
+                  onAddCorner: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.corner,
+                            note: 'Córner',
+                          ),
+                  onRemoveRivalCorner: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.rivalCorner),
+                  onAddRivalCorner: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.rivalCorner,
+                            note: 'Córner rival',
+                          ),
+                  onRemoveOffside: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.offside),
+                  onAddOffside: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.offside,
+                            note: l10n.matchEventOffside,
+                          ),
+                  onRemoveRivalOffside: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.rivalOffside),
+                  onAddRivalOffside: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.rivalOffside,
+                            note: l10n.matchEventRivalOffside,
+                          ),
+                  onRemoveRivalYellowCard: isExternal
+                      ? null
+                      : () => _removeLastOfType(
+                            MatchEventEnum.rivalYellowCard,
+                          ),
+                  onAddRivalYellowCard: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.rivalYellowCard,
+                            note: l10n.matchRivalYellowCardNote,
+                          ),
+                  onRemoveRivalRedCard: isExternal
+                      ? null
+                      : () => _removeLastOfType(
+                            MatchEventEnum.rivalRedCard,
+                          ),
+                  onAddRivalRedCard: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.rivalRedCard,
+                            note: l10n.matchRivalRedCardNote,
+                          ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Card(
+                clipBehavior: Clip.antiAlias,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                  padding: EdgeInsets.fromLTRB(12 * s, 12 * s, 12 * s, 14 * s),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         children: [
                           Icon(Icons.stadium_outlined, color: scheme.primary),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8 * s),
                           Expanded(
                             child: Text(
                               l10n.matchFieldAndFormation,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (isExternal)
-                            Chip(
-                              label: Text(
-                                _selectedFormation,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Chip(
+                                  label: Text(
+                                    _selectedFormation,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12 * s,
+                                    ),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  backgroundColor: scheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.65),
+                                  side: BorderSide.none,
                                 ),
                               ),
-                              padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              backgroundColor: scheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.65),
-                              side: BorderSide.none,
                             )
                           else
-                            FilledButton.tonalIcon(
-                              onPressed: _showFormationPicker,
-                              icon: const Icon(
-                                Icons.grid_view_rounded,
-                                size: 18,
-                              ),
-                              label: Text(_selectedFormation),
-                              style: FilledButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
+                            Flexible(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: FilledButton.tonalIcon(
+                                    onPressed: _showFormationPicker,
+                                    icon: Icon(
+                                      Icons.grid_view_rounded,
+                                      size: 18 * s,
+                                    ),
+                                    label: Text(
+                                      _selectedFormation,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    style: FilledButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10 * s),
                       ExcludeSemantics(
                         child: Center(
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 420,
-                              maxHeight: 320,
+                            constraints: BoxConstraints(
+                              maxWidth: screenW - 2 * pagePad,
                             ),
-                            child: AspectRatio(
-                              aspectRatio: 4 / 3,
+                            child: RepaintBoundary(
                               child: MatchFieldWithFormation(
-                                formationLines: _formationLines,
-                                positionPlayers: _positionPlayers,
-                                selectedPlayer: _selectedPlayer,
-                                sentOffPlayerIds: _sentOffPlayerIds,
-                                currentPlayersOnField: _currentPlayersOnField,
-                                maxPlayersOnField: _maxPlayersOnField,
-                                showSnack: _showSnack,
-                                onPositionsChanged: (newPositions) {
-                                  setState(() {
-                                    _positionPlayers = newPositions;
-                                    _selectedPlayer = null;
-                                  });
-                                  _persistCurrentPositionsToMatchLineup();
-                                },
-                                onSubstitutionRequested: (playerIn, playerOut) {
-                                  _saveSubstitutionEvent(
-                                    playerIn: playerIn,
-                                    playerOut: playerOut,
-                                  );
-                                },
-                                onPlayerActionRequested:
-                                    _onPlayerActionRequested,
-                                readOnly: isExternal,
-                              ),
+                              formationLines: _formationLines,
+                              formationLayoutKey: _selectedFormation,
+                              positionPlayers: _positionPlayers,
+                              benchPlayers: _benchPlayers,
+                              selectedPlayer: _selectedPlayer,
+                              sentOffPlayerIds: _sentOffPlayerIds,
+                              currentPlayersOnField: _currentPlayersOnField,
+                              maxPlayersOnField: _maxPlayersOnField,
+                              showSnack: _showSnack,
+                              onPositionsChanged: (newPositions) {
+                                setState(() {
+                                  _positionPlayers = newPositions;
+                                  _selectedPlayer = null;
+                                });
+                                _persistCurrentPositionsToMatchLineup();
+                              },
+                              onSubstitutionRequested: (playerIn, playerOut) {
+                                _saveSubstitutionEvent(
+                                  playerIn: playerIn,
+                                  playerOut: playerOut,
+                                );
+                              },
+                              onPlayerActionRequested:
+                                  _onPlayerActionRequested,
+                              readOnly: isExternal,
+                              playerDiscipline: _playerDisciplineHighlight,
+                            ),
                             ),
                           ),
                         ),
@@ -2971,16 +3261,16 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+                  padding: EdgeInsets.fromLTRB(4 * s, 8 * s, 4 * s, 12 * s),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: EdgeInsets.symmetric(horizontal: 12 * s),
                         child: Row(
                           children: [
                             Icon(Icons.groups, color: scheme.primary),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8 * s),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -3014,8 +3304,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                         selectedPlayer: _selectedPlayer,
                         sentOffPlayerIds: _sentOffPlayerIds,
                         playerRatings: _playerRatings,
+                        minutesPlayedByPlayerId: _canSeeConvokedMinutesPlayed
+                            ? _computeMinutesPlayedForConvoked()
+                            : null,
                         scrollingChild: true,
                         readOnly: isExternal,
+                        playerDiscipline: _playerDisciplineHighlight,
                         onPlayerTap: (player, isSentOff) {
                           if (isExternal) return;
                           if (isSentOff) {
@@ -3039,17 +3333,18 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                 ),
               ),
               const SizedBox(height: 12),
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+              RepaintBoundary(
+                child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                  padding: EdgeInsets.fromLTRB(12 * s, 12 * s, 12 * s, 10 * s),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         children: [
                           Icon(Icons.history, color: scheme.primary),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8 * s),
                           Expanded(
                             child: Text(
                               l10n.matchEventsTitle,
@@ -3091,129 +3386,144 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                 alpha: 0.35,
                               ),
                             ),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: isExternal
-                                  ? null
-                                  : () => _onLiveEventTapped(_liveEvents[i]),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                  horizontal: 4,
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 18,
-                                      backgroundColor:
-                                          scheme.surfaceContainerHigh,
-                                      child: Icon(
-                                        _iconForLiveEventKey(
-                                          _canonicalEventTypeKey(
-                                            _liveEvents[i]['type'],
+                          Builder(
+                            builder: (context) {
+                              final evKey = _canonicalEventTypeKey(
+                                _liveEvents[i]['type'],
+                              );
+                              final isFoulRow = isMatchFoulCanonicalKey(evKey);
+                              final avatar = _liveEventListAvatarColors(
+                                scheme,
+                                evKey,
+                              );
+                              return DecoratedBox(
+                                decoration: isFoulRow
+                                    ? BoxDecoration(
+                                        color: kMatchFoulListAvatarBackground
+                                            .withValues(alpha: 0.85),
+                                        border: Border(
+                                          left: BorderSide(
+                                            color: kMatchFoulListAvatarForeground
+                                                .withValues(alpha: 0.65),
+                                            width: 3,
                                           ),
                                         ),
-                                        size: 18,
-                                        color: scheme.primary,
+                                        borderRadius: BorderRadius.circular(8),
+                                      )
+                                    : const BoxDecoration(),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: isExternal
+                                        ? null
+                                        : () => _onLiveEventTapped(
+                                            _liveEvents[i],
+                                            ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                        horizontal: 4,
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
+                                      child: Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text.rich(
-                                            TextSpan(
-                                              style: theme.textTheme.bodyMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
+                                          CircleAvatar(
+                                            radius: 18,
+                                            backgroundColor: avatar.$1,
+                                            child: isFoulRow
+                                                ? MatchWhistleIcon(
+                                                    size: 18,
+                                                    color: avatar.$2,
+                                                  )
+                                                : Icon(
+                                                    _iconForLiveEventKey(
+                                                      evKey,
+                                                    ),
+                                                    size: 18,
+                                                    color: avatar.$2,
                                                   ),
-                                              children:
-                                                  _liveEventDescriptionSpans(
-                                                l10n,
-                                                _liveEvents[i],
-                                                theme.textTheme.bodyMedium!
-                                                    .copyWith(
-                                                  fontWeight: FontWeight.w600,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text.rich(
+                                                  TextSpan(
+                                                    style: theme
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                    children:
+                                                        _liveEventDescriptionSpans(
+                                                      l10n,
+                                                      _liveEvents[i],
+                                                      theme
+                                                          .textTheme
+                                                          .bodyMedium!
+                                                          .copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  softWrap: true,
                                                 ),
-                                              ),
+                                                Text(
+                                                  () {
+                                                    final rowMap =
+                                                        _liveEvents[i];
+                                                    final m =
+                                                        resolveMatchEventMinute(
+                                                      Map<String, dynamic>.from(
+                                                        rowMap,
+                                                      ),
+                                                    );
+                                                    final half = _eventMatchHalf(
+                                                      rowMap,
+                                                      _resolvedSecondHalfStart(),
+                                                    );
+                                                    return _liveEventMinuteLabel(
+                                                      l10n,
+                                                      rowMap,
+                                                      m,
+                                                      half,
+                                                    );
+                                                  }(),
+                                                  style: theme.textTheme.bodySmall
+                                                      ?.copyWith(
+                                                    color: scheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            softWrap: true,
                                           ),
-                                          Text(
-                                            () {
-                                              final m =
-                                                  _dynToInt(
-                                                    _liveEvents[i]['minute'],
-                                                  ) ??
-                                                  0;
-                                              final half = _eventMatchHalf(
-                                                _liveEvents[i],
-                                                _resolvedSecondHalfStart(),
-                                              );
-                                              return _formatLiveEventMinuteLine(
-                                                m,
-                                                half,
-                                              );
-                                            }(),
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color:
-                                                      scheme.onSurfaceVariant,
-                                                ),
-                                          ),
+                                          if (!isExternal)
+                                            Icon(
+                                              Icons.delete_outline,
+                                              size: 22,
+                                              color: scheme.onSurfaceVariant,
+                                            ),
                                         ],
                                       ),
                                     ),
-                                    if (!isExternal)
-                                      Icon(
-                                        Icons.delete_outline,
-                                        size: 22,
-                                        color: scheme.onSurfaceVariant,
-                                      ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ],
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              BlocBuilder<LoadingCubit, bool>(
-                builder: (context, isLoading) {
-                  final schemeBtn = Theme.of(context).colorScheme;
-                  return FilledButton(
-                    onPressed: (isLoading || isExternal)
-                        ? null
-                        : _onBottomButtonPressed,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: isLoading
-                        ? SizedBox(
-                            width: 26,
-                            height: 26,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: schemeBtn.onPrimary,
-                            ),
-                          )
-                        : Text(
-                            _bottomButtonLabel(l10n),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                  );
-                },
-              ),
+                ),
             ],
           ),
         ),

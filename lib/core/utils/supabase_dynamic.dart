@@ -1,5 +1,13 @@
 // Utilidades para valores que vienen de PostgREST / JSON en Supabase.
 
+/// Respuesta de `.select()` / `.insert()` / etc.: a veces es `null` en el cliente;
+/// nunca usar [Iterable.isEmpty] directamente sobre el valor crudo.
+List<dynamic> supabaseResponseAsList(dynamic response) {
+  if (response == null) return const [];
+  if (response is List) return response;
+  return const [];
+}
+
 /// Convierte enteros que a veces llegan como [num], [String] u otro tipo.
 int? supabaseInt(dynamic value) {
   if (value == null) return null;
@@ -55,6 +63,13 @@ String canonicalMatchEventTypeKey(dynamic rawType) {
     'golenpropia': 'owngoal',
     'golencajado': 'concedegoal',
     'golrival': 'concedegoal',
+    'tiro': 'shot',
+    'tirorival': 'rivalshot',
+    'falta': 'foul',
+    'corner': 'corner',
+    'cornerrival': 'rivalcorner',
+    'faltarival': 'rivalfoul',
+    'sustitucion': 'substitution',
   };
 
   return aliases[k] ?? k;

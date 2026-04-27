@@ -1,7 +1,22 @@
+import com.android.build.gradle.BaseExtension
+import org.gradle.api.JavaVersion
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+// Algunos plugins aún fijan Java 8; JDK reciente avisa. Unifica a 17 con el módulo :app.
+subprojects {
+    afterEvaluate {
+        extensions.findByType(BaseExtension::class.java)?.apply {
+            compileOptions {
+                sourceCompatibility = JavaVersion.VERSION_17
+                targetCompatibility = JavaVersion.VERSION_17
+            }
+        }
     }
 }
 

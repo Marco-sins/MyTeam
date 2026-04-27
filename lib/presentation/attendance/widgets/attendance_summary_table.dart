@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:football_manager/domain/entities/attendance.dart';
@@ -7,17 +8,45 @@ import 'package:football_manager/domain/entities/player_stats.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
+import 'package:football_manager/core/utils/attendance_date_format.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 
-class AttendanceSummaryTable extends StatelessWidget {
+class AttendanceSummaryTable extends StatefulWidget {
   final Team team;
   final List<Player> players;
+
+  /// Si es true (p. ej. admin del equipo), se muestra columna de foto a la izquierda.
+  final bool showPlayerPhotos;
 
   const AttendanceSummaryTable({
     super.key,
     required this.team,
     required this.players,
+    this.showPlayerPhotos = false,
   });
+
+  @override
+  State<AttendanceSummaryTable> createState() => _AttendanceSummaryTableState();
+}
+
+class _AttendanceSummaryTableState extends State<AttendanceSummaryTable> {
+  /// Un solo Future por montaje / equipo; si se recrea en cada [build], el
+  /// [FutureBuilder] vuelve a [waiting] en cada scroll/rebuild.
+  Future<_AttendanceMatrix>? _matrixFuture;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _matrixFuture ??= _loadMatrix(context.read<GetAttendancesUseCase>());
+  }
+
+  @override
+  void didUpdateWidget(AttendanceSummaryTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.team.id != widget.team.id) {
+      _matrixFuture = _loadMatrix(context.read<GetAttendancesUseCase>());
+    }
+  }
 
   Future<_AttendanceMatrix> _loadMatrix(
     GetAttendancesUseCase getAttendances,
@@ -28,7 +57,7 @@ class AttendanceSummaryTable extends StatelessWidget {
     ) {
       // Filtramos por equipo
       final teamAttendances = attendances
-          .where((a) => a.teamId == team.id)
+          .where((a) => a.teamId == widget.team.id)
           .toList();
 
       if (teamAttendances.isEmpty) {
@@ -71,9 +100,12 @@ class AttendanceSummaryTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final getAttendances = context.read<GetAttendancesUseCase>();
+    final fut = _matrixFuture;
+    if (fut == null) {
+      return const SizedBox.shrink();
+    }
     return FutureBuilder<_AttendanceMatrix>(
-      future: _loadMatrix(getAttendances),
+      future: fut,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -81,7 +113,7 @@ class AttendanceSummaryTable extends StatelessWidget {
         // Aunque no haya asistencias, siempre mostramos la plantilla.
         final matrix = snapshot.data ?? const _AttendanceMatrix.empty();
         // Ordenamos jugadores por dorsal para las filas
-        final sortedPlayers = List<Player>.from(players)
+        final sortedPlayers = List<Player>.from(widget.players)
           ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
 
         return LayoutBuilder(
@@ -91,113 +123,16 @@ class AttendanceSummaryTable extends StatelessWidget {
             // (más estrecha en móviles, más ancha en pantallas grandes).
             final double tableMinWidth = constraints.maxWidth.clamp(0.0, 700.0);
 
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                // Si la tabla es más estrecha que la pantalla,
-                // usamos el ancho disponible para poder centrarla.
-                constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                child: Center(
-                  child: ConstrainedBox(
-                    // Hacemos la tabla más ancha por defecto, pero
-                    // adaptando el mínimo al ancho disponible.
-                    constraints: BoxConstraints(minWidth: tableMinWidth),
-                    child: SingleChildScrollView(
-                      // Desplazamiento vertical suave de toda la plantilla
-                      scrollDirection: Axis.vertical,
-                      child: DataTable(
-                        columnSpacing: 16,
-                        headingRowHeight: 40,
-                        dataRowMinHeight: 44,
-                        columns: [
-                          const DataColumn(
-                            label: SizedBox(
-                              width: 40,
-                              child: Text(
-                                '#',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              l10n.tableColumnPlayer,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          for (final date in matrix.dates)
-                            DataColumn(
-                              label: SizedBox(
-                                width: 80,
-                                child: Text(
-                                  '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                        rows: [
-                          for (final player in sortedPlayers)
-                            DataRow(
-                              cells: [
-                                DataCell(
-                                  SizedBox(
-                                    width: 40,
-                                    child: Text(
-                                      player.number?.toString() ?? '-',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                DataCell(
-                                  InkWell(
-                                    onTap: () => _showPlayerStatsDialog(
-                                      context,
-                                      player,
-                                      matrix,
-                                    ),
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: PlayerNameText(
-                                        player: player,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                for (final date in matrix.dates)
-                                  DataCell(
-                                    SizedBox(
-                                      width: 80,
-                                      child: Center(
-                                        child: _buildCell(
-                                          matrix,
-                                          player.id,
-                                          date,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            return _AttendancePlantillaHorizontalScroll(
+              constraints: constraints,
+              tableMinWidth: tableMinWidth,
+              matrix: matrix,
+              sortedPlayers: sortedPlayers,
+              l10n: l10n,
+              showPlayerPhotos: widget.showPlayerPhotos,
+              buildCell: _buildCell,
+              onPlayerTap: (player) =>
+                  _showPlayerStatsDialog(context, player, matrix),
             );
           },
         );
@@ -205,18 +140,28 @@ class AttendanceSummaryTable extends StatelessWidget {
     );
   }
 
-  Widget _buildCell(_AttendanceMatrix matrix, int playerId, DateTime date) {
+  Widget _buildCell(
+    BuildContext context,
+    _AttendanceMatrix matrix,
+    int playerId,
+    DateTime date,
+  ) {
+    final scheme = Theme.of(context).colorScheme;
     final attForPlayer = matrix.data[playerId];
     if (attForPlayer == null || !attForPlayer.containsKey(date)) {
-      // Si hay asistencia registrada ese día para el equipo pero
-      // este jugador no tiene marca, lo consideramos ausente.
-      return const Icon(Icons.cancel, color: Colors.redAccent, size: 18);
+      return Icon(
+        Icons.remove_circle_outline_rounded,
+        size: 20,
+        color: scheme.error.withValues(alpha: 0.85),
+      );
     }
     final attendance = attForPlayer[date]!;
     return Icon(
-      attendance.attended ? Icons.check_circle : Icons.cancel,
-      color: attendance.attended ? Colors.green : Colors.redAccent,
-      size: 18,
+      attendance.attended ? Icons.check_circle_rounded : Icons.cancel_rounded,
+      size: 20,
+      color: attendance.attended
+          ? scheme.primary
+          : scheme.error.withValues(alpha: 0.85),
     );
   }
 
@@ -253,7 +198,10 @@ class AttendanceSummaryTable extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
           contentPadding: EdgeInsets.zero,
           content: SizedBox(
             width: 320,
@@ -320,8 +268,9 @@ class AttendanceSummaryTable extends StatelessWidget {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: scheme.secondaryContainer
-                                      .withValues(alpha: 0.85),
+                                  color: scheme.secondaryContainer.withValues(
+                                    alpha: 0.85,
+                                  ),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -440,8 +389,7 @@ class AttendanceSummaryTable extends StatelessWidget {
                                   ),
                                   _StatChip(
                                     label: 'Tarjetas (A/R)',
-                                    value:
-                                        '${s.yellowCards}/${s.redCards}',
+                                    value: '${s.yellowCards}/${s.redCards}',
                                   ),
                                 ],
                               ),
@@ -465,6 +413,489 @@ class AttendanceSummaryTable extends StatelessWidget {
       },
     );
   }
+}
+
+/// Tabla de plantilla: scroll horizontal con carril fijo bajo las filas (la barra
+/// no se dibuja encima de la tabla). El vertical lo aporta el padre (card).
+class _AttendancePlantillaHorizontalScroll extends StatefulWidget {
+  final BoxConstraints constraints;
+  final double tableMinWidth;
+  final _AttendanceMatrix matrix;
+  final List<Player> sortedPlayers;
+  final AppLocalizations l10n;
+  final bool showPlayerPhotos;
+  final Widget Function(
+    BuildContext context,
+    _AttendanceMatrix matrix,
+    int playerId,
+    DateTime date,
+  )
+  buildCell;
+  final void Function(Player player) onPlayerTap;
+
+  const _AttendancePlantillaHorizontalScroll({
+    required this.constraints,
+    required this.tableMinWidth,
+    required this.matrix,
+    required this.sortedPlayers,
+    required this.l10n,
+    required this.showPlayerPhotos,
+    required this.buildCell,
+    required this.onPlayerTap,
+  });
+
+  @override
+  State<_AttendancePlantillaHorizontalScroll> createState() =>
+      _AttendancePlantillaHorizontalScrollState();
+}
+
+/// Altura del carril horizontal (línea + pista fina; no solapa filas).
+const double _kHorizontalScrollLaneHeight = 24;
+
+class _AttendancePlantillaHorizontalScrollState
+    extends State<_AttendancePlantillaHorizontalScroll> {
+  final ScrollController _horizontalScroll = ScrollController();
+
+  @override
+  void dispose() {
+    _horizontalScroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final outline = scheme.outline.withValues(alpha: 0.5);
+    const photoColWidth = 56.0;
+    const avatarRadius = 18.0;
+
+    Widget tableContent() {
+      return Theme(
+        data: theme.copyWith(
+          dataTableTheme: DataTableThemeData(
+            headingRowColor: WidgetStateProperty.all(
+              scheme.surfaceContainerHigh.withValues(alpha: 0.55),
+            ),
+            headingTextStyle: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+              color: scheme.onSurface,
+            ),
+            dataTextStyle: theme.textTheme.bodyMedium,
+            dividerThickness: 0.5,
+            horizontalMargin: 14,
+            columnSpacing: 14,
+            dataRowMinHeight: widget.showPlayerPhotos ? 54 : 44,
+            dataRowMaxHeight: widget.showPlayerPhotos ? 68 : 52,
+            headingRowHeight: 46,
+          ),
+        ),
+        child: DataTable(
+          showCheckboxColumn: false,
+          columnSpacing: 14,
+          headingRowHeight: 46,
+          dataRowMinHeight: widget.showPlayerPhotos ? 54 : 44,
+          dataRowMaxHeight: widget.showPlayerPhotos ? 68 : 52,
+          horizontalMargin: 14,
+          columns: [
+            if (widget.showPlayerPhotos)
+              DataColumn(
+                label: SizedBox(
+                  width: photoColWidth,
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.portrait_rounded,
+                          size: 16,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            widget.l10n.tableColumnPhoto,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            DataColumn(
+              label: SizedBox(
+                width: 36,
+                child: Text(
+                  '#',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                widget.l10n.tableColumnPlayer,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            for (final date in widget.matrix.dates)
+              DataColumn(
+                label: SizedBox(
+                  width: 76,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        attendanceNarrowWeekdayLetter(context, date),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+          rows: [
+            for (var i = 0; i < widget.sortedPlayers.length; i++)
+              DataRow(
+                color: i.isOdd
+                    ? WidgetStateProperty.all(
+                        scheme.surfaceContainerLow.withValues(alpha: 0.65),
+                      )
+                    : null,
+                selected: false,
+                onSelectChanged: (_) =>
+                    widget.onPlayerTap(widget.sortedPlayers[i]),
+                cells: [
+                  if (widget.showPlayerPhotos)
+                    DataCell(
+                      SizedBox(
+                        width: photoColWidth,
+                        child: Center(
+                          child: PlayerAvatar(
+                            player: widget.sortedPlayers[i],
+                            radius: avatarRadius,
+                          ),
+                        ),
+                      ),
+                    ),
+                  DataCell(
+                    SizedBox(
+                      width: 36,
+                      child: Text(
+                        widget.sortedPlayers[i].number?.toString() ?? '-',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PlayerNameText(
+                        player: widget.sortedPlayers[i],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  for (final date in widget.matrix.dates)
+                    DataCell(
+                      SizedBox(
+                        width: 76,
+                        child: Center(
+                          child: widget.buildCell(
+                            context,
+                            widget.matrix,
+                            widget.sortedPlayers[i].id,
+                            date,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      );
+    }
+
+    // Column: tabla + carril fino siempre visible (estilo nativo; sin overflow el
+    // pulgar llena la pista, atenuado).
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: outline, width: 1),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8.5),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(2, 2, 2, 2),
+          child: ScrollConfiguration(
+            behavior: const _PlantillaHorizontalScrollBehavior(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SingleChildScrollView(
+                  controller: _horizontalScroll,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: widget.constraints.maxWidth,
+                      ),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: widget.tableMinWidth,
+                          ),
+                          child: tableContent(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                _MinimalHorizontalScrollTrack(
+                  controller: _horizontalScroll,
+                  scheme: scheme,
+                  outline: outline,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Carril horizontal tipo barra de sistema: pista fina neutra, siempre visible.
+class _MinimalHorizontalScrollTrack extends StatefulWidget {
+  final ScrollController controller;
+  final ColorScheme scheme;
+  final Color outline;
+
+  const _MinimalHorizontalScrollTrack({
+    required this.controller,
+    required this.scheme,
+    required this.outline,
+  });
+
+  @override
+  State<_MinimalHorizontalScrollTrack> createState() =>
+      _MinimalHorizontalScrollTrackState();
+}
+
+class _MinimalHorizontalScrollTrackState
+    extends State<_MinimalHorizontalScrollTrack> {
+  static const _padH = 12.0;
+  static const _trackH = 4.0;
+  static const _thumbMinW = 32.0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _MinimalHorizontalScrollTrack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onScroll);
+      widget.controller.addListener(_onScroll);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final innerW = (constraints.maxWidth - 2 * _padH).clamp(
+          0.0,
+          double.infinity,
+        );
+
+        double thumbW;
+        double thumbLeft;
+        var hasScroll = false;
+
+        if (!widget.controller.hasClients || innerW <= 0) {
+          thumbW = innerW;
+          thumbLeft = 0;
+        } else {
+          final pos = widget.controller.position;
+          final extent = pos.maxScrollExtent - pos.minScrollExtent;
+          final vp = pos.viewportDimension;
+          hasScroll = extent > 1e-6;
+          if (!hasScroll) {
+            thumbW = innerW;
+            thumbLeft = 0;
+          } else {
+            thumbW = (vp / (extent + vp) * innerW).clamp(_thumbMinW, innerW);
+            final maxLeft = innerW - thumbW;
+            thumbLeft = (pos.pixels - pos.minScrollExtent) / extent * maxLeft;
+          }
+        }
+
+        void scrollByPixels(double deltaScroll) {
+          if (!widget.controller.hasClients) return;
+          final pos = widget.controller.position;
+          final min = pos.minScrollExtent;
+          final max = pos.maxScrollExtent;
+          pos.jumpTo((pos.pixels + deltaScroll).clamp(min, max));
+        }
+
+        void jumpToLocalX(double localDx) {
+          if (!widget.controller.hasClients) return;
+          final pos = widget.controller.position;
+          final extent = pos.maxScrollExtent - pos.minScrollExtent;
+          if (extent <= 1e-6) return;
+          final t = (localDx / innerW).clamp(0.0, 1.0);
+          pos.jumpTo(pos.minScrollExtent + t * extent);
+        }
+
+        final scheme = widget.scheme;
+        final trackColor = scheme.outlineVariant.withValues(alpha: 0.42);
+        final thumbActive = scheme.onSurface.withValues(alpha: 0.38);
+        final thumbIdle = scheme.onSurface.withValues(alpha: 0.14);
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: widget.outline.withValues(alpha: 0.2),
+            ),
+            SizedBox(
+              height: _kHorizontalScrollLaneHeight - 1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _padH),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (d) => jumpToLocalX(d.localPosition.dx),
+                    onHorizontalDragUpdate: (d) {
+                      if (!widget.controller.hasClients) return;
+                      final pos = widget.controller.position;
+                      final extent = pos.maxScrollExtent - pos.minScrollExtent;
+                      if (extent <= 1e-6) return;
+                      scrollByPixels(d.delta.dx * extent / innerW);
+                    },
+                    child: Center(
+                      child: SizedBox(
+                        height: _trackH,
+                        width: double.infinity,
+                        child: Stack(
+                          clipBehavior: Clip.hardEdge,
+                          children: [
+                            Positioned.fill(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: trackColor,
+                                  borderRadius: BorderRadius.circular(
+                                    _trackH / 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: thumbLeft,
+                              top: 0,
+                              bottom: 0,
+                              width: thumbW,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: hasScroll ? thumbActive : thumbIdle,
+                                  borderRadius: BorderRadius.circular(
+                                    _trackH / 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Física y dispositivos para el scroll horizontal de la plantilla (dedo, ratón, trackpad).
+class _PlantillaHorizontalScrollBehavior extends MaterialScrollBehavior {
+  const _PlantillaHorizontalScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics();
+  }
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.trackpad,
+  };
 }
 
 class _AttendanceMatrix {

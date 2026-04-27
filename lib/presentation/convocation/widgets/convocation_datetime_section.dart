@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 
@@ -41,37 +43,55 @@ class ConvocationDateTimeSection extends StatelessWidget {
             color: scheme.outlineVariant.withValues(alpha: 0.5),
           ),
         ),
-        child: Row(
-          children: [
-            Icon(icon, size: 22, color: scheme.primary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const minW = 280.0;
+            final targetW = math.max(constraints.maxWidth, minW);
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: targetW,
+                child: Row(
+                  children: [
+                    Icon(icon, size: 22, color: scheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    IconButton.filledTonal(
+                      onPressed: onPick,
+                      icon: Icon(pickIcon, size: 20),
+                      tooltip: l10n.tooltipChange,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            IconButton.filledTonal(
-              onPressed: onPick,
-              icon: Icon(pickIcon, size: 20),
-              tooltip: l10n.tooltipChange,
-            ),
-          ],
+            );
+          },
         ),
       );
     }
@@ -87,10 +107,14 @@ class ConvocationDateTimeSection extends StatelessWidget {
               children: [
                 Icon(Icons.event, size: 22, color: scheme.primary),
                 const SizedBox(width: 8),
-                Text(
-                  l10n.convDatetimeSectionTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Text(
+                    l10n.convDatetimeSectionTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -105,25 +129,46 @@ class ConvocationDateTimeSection extends StatelessWidget {
                   color: scheme.outlineVariant.withValues(alpha: 0.5),
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.calendar_month_outlined,
-                      size: 22, color: scheme.primary),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      formattedDate,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  const minW = 280.0;
+                  final targetW = math.max(constraints.maxWidth, minW);
+                  return FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: targetW,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            size: 22,
+                            color: scheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              formattedDate,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          IconButton.filledTonal(
+                            onPressed: onPickDate,
+                            icon: const Icon(
+                              Icons.edit_calendar_outlined,
+                              size: 20,
+                            ),
+                            tooltip: l10n.convPickDateTooltip,
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    onPressed: onPickDate,
-                    icon: const Icon(Icons.edit_calendar_outlined, size: 20),
-                    tooltip: l10n.convPickDateTooltip,
-                  ),
-                ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 10),

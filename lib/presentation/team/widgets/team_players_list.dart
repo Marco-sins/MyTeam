@@ -44,25 +44,11 @@ class TeamPlayersList extends StatelessWidget {
               final player = players[index];
               return ListTile(
                 leading: PlayerAvatar(player: player, radius: 22),
-                title: Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      '${player.number?.toString() ?? '-'}  ',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    Expanded(
-                      child: PlayerNameText(
-                        player: player,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  ],
+                title: PlayerDorsalNameText(
+                  player: player,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 onTap: () {
                   showDialog(
@@ -186,7 +172,7 @@ class TeamPlayersList extends StatelessWidget {
                               const SnackBar(
                                 content: Text('Jugador borrado correctamente'),
                                 backgroundColor: Colors.green,
-                                duration: Duration(seconds: 1),
+                                duration: const Duration(seconds: 4),
                               ),
                             );
                             context.read<TeamDetailCubit>().loadTeam(team.id);

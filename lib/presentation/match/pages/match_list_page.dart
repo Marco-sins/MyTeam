@@ -2,12 +2,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:football_manager/core/utils/match_category_duration.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
@@ -44,7 +48,8 @@ class MatchListPage extends StatefulWidget {
   State<MatchListPage> createState() => _MatchListPageState();
 }
 
-class _MatchListPageState extends State<MatchListPage> {
+class _MatchListPageState extends State<MatchListPage>
+    with WidgetsBindingObserver {
   late Future<dynamic> _matchesFuture;
   Timer? _timer;
 
@@ -66,6 +71,7 @@ class _MatchListPageState extends State<MatchListPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMatches();
     // Actualizamos la UI cada segundo para que el tiempo transcurrido
     // de los partidos en juego se vea en tiempo real.
@@ -76,7 +82,16 @@ class _MatchListPageState extends State<MatchListPage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && mounted && _isThisRouteVisible()) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
@@ -111,7 +126,7 @@ class _MatchListPageState extends State<MatchListPage> {
     });
   }
 
-  String _elapsedText(Match match) {
+  String _elapsedText(Match match, String teamCategory) {
     // Solo mostramos el timer en 1ª y 2ª parte; en descanso no.
     if (match.status != MatchStatus.firstHalf &&
         match.status != MatchStatus.secondHalf) {
@@ -119,8 +134,13 @@ class _MatchListPageState extends State<MatchListPage> {
     }
 
     final now = DateTime.now();
-    final diff = now.difference(match.date).inSeconds;
-    if (diff <= 0) return '0:00';
+    var diff = now.difference(match.date).inSeconds;
+    if (diff < 0) return '0:00';
+    if (match.status == MatchStatus.secondHalf) {
+      // [Match.date] es el inicio de la 2ª parte: el reloj sigue desde el minuto
+      // de fin de la 1ª (categoría: p. ej. 25' prebenjamines, 45' seniors).
+      diff += matchHalfDurationMinutesForCategory(teamCategory) * 60;
+    }
 
     final minutes = (diff ~/ 60).toString();
     final seconds = (diff % 60).toString().padLeft(2, '0');
@@ -478,7 +498,7 @@ class _MatchListPageState extends State<MatchListPage> {
                   final liveConceded = _liveGoalsConceded[match.id];
                   final us = liveScored ?? match.goalsScored;
                   final them = liveConceded ?? match.goalsConceded;
-                  final elapsed = _elapsedText(match);
+                  final elapsed = _elapsedText(match, team.category);
                   final statusText = _matchListStatusLabel(l10n, match.status);
                   final inPlay = match.status == MatchStatus.firstHalf ||
                       match.status == MatchStatus.secondHalf;
@@ -547,8 +567,14 @@ class _MatchListPageState extends State<MatchListPage> {
                                 .read<GetMatchEventsByMatchUseCase>();
                             final getMatchLineupsByMatchUseCase = context
                                 .read<GetMatchLineupsByMatchUseCase>();
+                            final getFirstFormationNoteByMatchUseCase = context
+                                .read<GetFirstFormationNoteByMatchUseCase>();
                             final getLatestFormationNoteByMatchUseCase = context
                                 .read<GetLatestFormationNoteByMatchUseCase>();
+                            final getMatchEventAggregatesFromEventsUseCase = context
+                                .read<GetMatchEventAggregatesFromEventsUseCase>();
+                            final teamScoringConfigStorage = context
+                                .read<TeamScoringConfigStorage>();
                             final loadErrorMessage =
                                 AppLocalizations.of(context)!.matchStatsLoadError;
                             Navigator.push(
@@ -563,11 +589,27 @@ class _MatchListPageState extends State<MatchListPage> {
                                         getMatchEventsByMatchUseCase,
                                     getMatchLineupsByMatchUseCase:
                                         getMatchLineupsByMatchUseCase,
+                                    getFirstFormationNoteByMatchUseCase:
+                                        getFirstFormationNoteByMatchUseCase,
                                     getLatestFormationNoteByMatchUseCase:
                                         getLatestFormationNoteByMatchUseCase,
+                                    getMatchEventAggregatesFromEventsUseCase:
+                                        getMatchEventAggregatesFromEventsUseCase,
+                                    teamScoringConfigStorage:
+                                        teamScoringConfigStorage,
                                     loadErrorMessage: loadErrorMessage,
                                   )..load(),
-                                  child: MatchStatsPage(match: match),
+                                  child: MatchStatsPage(
+                                    match: match,
+                                    ourTeamName: context
+                                        .read<TeamContextCubit>()
+                                        .state
+                                        .name,
+                                    teamColorHex: context
+                                        .read<TeamContextCubit>()
+                                        .state
+                                        .color,
+                                  ),
                                 ),
                               ),
                             );
@@ -601,32 +643,32 @@ class _MatchListPageState extends State<MatchListPage> {
                                           ),
                                         ),
                                         const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: scheme
-                                                    .surfaceContainerHigh,
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                match.isHome
-                                                    ? l10n.matchVenueHome
-                                                    : l10n.matchVenueAway,
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: scheme.onSurfaceVariant,
-                                                ),
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.centerLeft,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: scheme.surfaceContainerHigh,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              match.isHome
+                                                  ? l10n.matchVenueHome
+                                                  : l10n.matchVenueAway,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: scheme.onSurfaceVariant,
                                               ),
                                             ),
-                                          ],
+                                          ),
                                         ),
                                       ],
                                     ),

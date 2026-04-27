@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:football_manager/core/config/auth_redirect_urls.dart';
 import 'package:football_manager/presentation/auth/widgets/auth_background.dart';
 import 'package:football_manager/presentation/auth/widgets/auth_header.dart';
 
@@ -54,7 +55,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         _emailController.text.trim(),
-        redirectTo: 'com.example.tfg1://reset-password',
+        redirectTo: AuthRedirectUrls.passwordReset,
       );
 
       if (!mounted) {
@@ -67,7 +68,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             'Te hemos enviado un correo para restablecer tu contraseña.',
           ),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 1),
+          duration: const Duration(seconds: 4),
         ),
       );
       Navigator.of(context).pop();

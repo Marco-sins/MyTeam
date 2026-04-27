@@ -183,8 +183,7 @@ abstract final class AppTheme {
         color: scheme.surfaceContainerLow,
         surfaceTintColor: scheme.primary.withValues(alpha: 0.08),
         shadowColor: Colors.transparent,
-        height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       ),
       listTileTheme: ListTileThemeData(
         iconColor: scheme.primary,

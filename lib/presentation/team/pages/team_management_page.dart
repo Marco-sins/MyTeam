@@ -25,6 +25,7 @@ import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_access_page.dart';
+import 'package:football_manager/presentation/team/pages/team_scoring_config_page.dart';
 
 class TeamManagementPage extends StatefulWidget {
   const TeamManagementPage({super.key});
@@ -176,7 +177,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
   }
 
   void _onLogoTap() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.image,
       withData: true,
     );
@@ -511,6 +512,26 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                             builder: (_) => BlocProvider.value(
                               value: teamContext,
                               child: TeamAccessPage(team: team),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: 0.5)),
+                    _navTile(
+                      context: context,
+                      icon: Icons.tune,
+                      title: l10n.teamMgmtScoringTitle,
+                      subtitle: l10n.teamMgmtScoringSubtitle,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TeamBrandedScope(
+                              team: team,
+                              child: TeamScoringConfigPage(
+                                teamId: team.id,
+                              ),
                             ),
                           ),
                         );
