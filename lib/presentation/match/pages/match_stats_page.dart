@@ -12,6 +12,8 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/presentation/common/widgets/player_stats_dialog_widgets.dart';
+import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
 import 'package:football_manager/core/theme/app_responsive_tokens.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
@@ -1124,8 +1126,8 @@ Future<void> _showPlayerMatchStats(
   final minutesPlayed = _calculateMinutesPlayed(state, player);
   final theme = Theme.of(context);
   final scheme = theme.colorScheme;
-  final textTheme = theme.textTheme;
   final l10n = AppLocalizations.of(context)!;
+  final mediaSize = MediaQuery.sizeOf(context);
 
   var lines = context.read<TeamScoringConfigStorage>().load(match.teamId)?.lines ??
       TeamScoringConfig.defaultBuiltInLines();
@@ -1141,39 +1143,6 @@ Future<void> _showPlayerMatchStats(
   final orderedLines = sortedScoringLinesForPlayerModal(
     List<TeamScoringLine>.from(teamScoring.lines),
   );
-
-  Widget statRow(
-    IconData icon,
-    String label,
-    String value, {
-    Color? iconColor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: iconColor ?? scheme.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: scheme.onSurface,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   String lineTitle(TeamScoringLine line) {
     if (line.isCustom) {
@@ -1206,63 +1175,429 @@ Future<void> _showPlayerMatchStats(
     return scheme.onSurfaceVariant;
   }
 
-  final eventStatRows = <Widget>[];
+  final actionLines = <_PlayerMatchStatLineData>[];
   for (final line in orderedLines) {
     final n = counts[line.id] ?? 0;
-    if (n <= 0) {
-      continue;
-    }
-    eventStatRows.add(
-      statRow(
-        iconForScoringLine(line),
-        lineTitle(line),
-        '$n',
+    if (n <= 0) continue;
+    actionLines.add(
+      _PlayerMatchStatLineData(
+        icon: iconForScoringLine(line),
+        label: lineTitle(line),
+        value: '$n',
         iconColor: colorForScoringLine(line),
       ),
     );
   }
 
-  final detailRows = <Widget>[
-    statRow(
-      Icons.timer_outlined,
-      l10n.matchStatsMinutesPlayed,
-      '$minutesPlayed',
-      iconColor: scheme.tertiary,
-    ),
-    if (eventStatRows.isNotEmpty) ...[
-      const Divider(height: 20),
-      ...eventStatRows,
-    ],
-  ];
+  final bool isStarter = state.isStarterById[player.id] ?? false;
+  final double? mediaRating = state.playerRatings[player.id];
+  final authState = context.read<AuthCubit>().state;
+  final showRatingChip = authState is Authenticated &&
+      authState.user.teamRoles[match.teamId] != UserRole.external &&
+      mediaRating != null;
 
   await showDialog<void>(
     context: context,
+    barrierColor: scheme.scrim.withValues(alpha: 0.5),
     builder: (ctx) {
-      return AlertDialog(
-        icon: Icon(Icons.person_rounded, size: 36, color: scheme.primary),
-        title: PlayerNameText(
-          player: player,
-          mode: PlayerNameTextMode.general,
-          maxLines: 4,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: detailRows,
-          ),
-        ),
-        actions: [
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.dialogClose),
-          ),
-        ],
+      return _PlayerMatchStatsDialog(
+        player: player,
+        minutesPlayed: minutesPlayed,
+        isStarter: isStarter,
+        mediaRating: showRatingChip ? mediaRating : null,
+        actionLines: actionLines,
+        l10n: l10n,
+        maxContentHeight: mediaSize.height * 0.52,
       );
     },
   );
+}
+
+class _PlayerMatchStatLineData {
+  const _PlayerMatchStatLineData({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.iconColor,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? iconColor;
+}
+
+class _PlayerMatchStatsDialog extends StatelessWidget {
+  const _PlayerMatchStatsDialog({
+    required this.player,
+    required this.minutesPlayed,
+    required this.isStarter,
+    this.mediaRating,
+    required this.actionLines,
+    required this.l10n,
+    required this.maxContentHeight,
+  });
+
+  final Player player;
+  final int minutesPlayed;
+  final bool isStarter;
+  final double? mediaRating;
+  final List<_PlayerMatchStatLineData> actionLines;
+  final AppLocalizations l10n;
+  final double maxContentHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final dorsal = player.number?.toString() ?? '—';
+    final minutesValue = '$minutesPlayed\u2032';
+    final double? matchRating = mediaRating;
+    final ratingText = matchRating != null
+        ? l10n.matchStatsPlayerDialogRatingChip(
+            matchRating.toStringAsFixed(1),
+          )
+        : null;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: scheme.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      backgroundColor: scheme.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      contentPadding: EdgeInsets.zero,
+      content: SizedBox(
+        width: 340,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.lerp(
+                      scheme.primaryContainer,
+                      scheme.surface,
+                      0.35,
+                    )!
+                        .withValues(alpha: 0.95),
+                    scheme.surface,
+                  ],
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: scheme.shadow.withValues(alpha: 0.12),
+                            blurRadius: 16,
+                            offset: const Offset(0, 5),
+                            spreadRadius: -2,
+                          ),
+                        ],
+                        border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: PlayerPhotoRect(
+                        player: player,
+                        width: 90,
+                        height: 120,
+                        borderRadius: 15,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          PlayerNameText(
+                            player: player,
+                            mode: PlayerNameTextMode.general,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.titleLarge?.copyWith(
+                              height: 1.2,
+                              letterSpacing: -0.3,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (ratingText != null) ...[
+                            const SizedBox(height: 8),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: scheme.tertiaryContainer.withValues(
+                                  alpha: 0.6,
+                                ),
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: scheme.tertiary.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                ),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.grade_rounded,
+                                      size: 16,
+                                      color: scheme.onTertiaryContainer,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        ratingText,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: true,
+                                        style: textTheme.labelLarge?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: scheme.onTertiaryContainer,
+                                          letterSpacing: 0.1,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: (isStarter
+                                          ? scheme.primaryContainer
+                                          : scheme.secondaryContainer)
+                                      .withValues(alpha: 0.95),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: (isStarter
+                                            ? scheme.onPrimaryContainer
+                                            : scheme.onSecondaryContainer)
+                                        .withValues(alpha: 0.12),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isStarter
+                                            ? Icons.shield_moon_outlined
+                                            : Icons.event_seat_outlined,
+                                        size: 16,
+                                        color: isStarter
+                                            ? scheme.onPrimaryContainer
+                                            : scheme.onSecondaryContainer,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        isStarter
+                                            ? l10n.matchLineupStarterTag
+                                            : l10n.matchLineupSubstituteTag,
+                                        style: textTheme.labelLarge?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: isStarter
+                                              ? scheme.onPrimaryContainer
+                                              : scheme.onSecondaryContainer,
+                                          letterSpacing: 0.1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: scheme.secondaryContainer
+                                      .withValues(alpha: 0.95),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: scheme.onSecondaryContainer
+                                        .withValues(alpha: 0.12),
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.tag_rounded,
+                                        size: 16,
+                                        color: scheme.onSecondaryContainer,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Dorsal $dorsal',
+                                        style: textTheme.labelLarge?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: scheme.onSecondaryContainer,
+                                          letterSpacing: 0.1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  PlayerStatsDialogStatCell(
+                    label: l10n.matchStatsMinutesPlayed,
+                    value: minutesValue,
+                  ),
+                  if (actionLines.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    PlayerStatsDialogSectionTitle(
+                      l10n.matchStatsPlayerDialogScoringSection,
+                    ),
+                    const SizedBox(height: 12),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: maxContentHeight,
+                      ),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.only(bottom: 4),
+                        itemCount: actionLines.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          final line = actionLines[i];
+                          return _PlayerStatsStatRow(
+                            data: line,
+                            scheme: scheme,
+                            textTheme: textTheme,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton.tonal(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.dialogClose),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlayerStatsStatRow extends StatelessWidget {
+  const _PlayerStatsStatRow({
+    required this.data,
+    required this.scheme,
+    required this.textTheme,
+  });
+  final _PlayerMatchStatLineData data;
+  final ColorScheme scheme;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = data.iconColor ?? scheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: c.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: Icon(data.icon, size: 20, color: c),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              data.label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyLarge?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            data.value,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 int _calculateMinutesPlayed(MatchStatsState state, Player player) {

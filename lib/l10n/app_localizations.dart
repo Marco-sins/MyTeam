@@ -2154,6 +2154,12 @@ abstract class AppLocalizations {
   /// **'Asistencia guardada correctamente'**
   String get attendanceSaveSuccess;
 
+  /// No description provided for @attendancePlayerDialogAverageMatchRating.
+  ///
+  /// In es, this message translates to:
+  /// **'Nota media (partidos): {rating}'**
+  String attendancePlayerDialogAverageMatchRating(String rating);
+
   /// No description provided for @convDatetimeSectionTitle.
   ///
   /// In es, this message translates to:
@@ -2663,6 +2669,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Suplente'**
   String get matchLineupSubstituteTag;
+
+  /// No description provided for @matchStatsPlayerDialogScoringSection.
+  ///
+  /// In es, this message translates to:
+  /// **'Acciones registradas'**
+  String get matchStatsPlayerDialogScoringSection;
+
+  /// No description provided for @matchStatsPlayerDialogRatingChip.
+  ///
+  /// In es, this message translates to:
+  /// **'Nota {rating}'**
+  String matchStatsPlayerDialogRatingChip(String rating);
 
   /// No description provided for @matchFieldSelectPlayerFirst.
   ///

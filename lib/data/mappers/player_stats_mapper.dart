@@ -13,6 +13,7 @@ class PlayerStatsMapper {
       matchesPlayed: playerStats.matchesPlayed,
       minutesPlayed: playerStats.minutesPlayed,
       timesStarted: playerStats.timesStarted,
+      averageMatchRating: playerStats.averageMatchRating,
     );
   }
 
@@ -27,6 +28,7 @@ class PlayerStatsMapper {
       matchesPlayed: playerStatsModel.matchesPlayed,
       minutesPlayed: playerStatsModel.minutesPlayed,
       timesStarted: playerStatsModel.timesStarted,
+      averageMatchRating: playerStatsModel.averageMatchRating,
     );
   }
 }

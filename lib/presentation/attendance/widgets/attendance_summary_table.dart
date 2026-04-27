@@ -7,6 +7,7 @@ import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
 import 'package:football_manager/domain/entities/team.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/presentation/common/widgets/player_stats_dialog_widgets.dart';
 import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
 import 'package:football_manager/core/utils/attendance_date_format.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
@@ -193,220 +194,348 @@ class _AttendanceSummaryTableState extends State<AttendanceSummaryTable> {
       builder: (ctx) {
         final scheme = Theme.of(ctx).colorScheme;
         final textTheme = Theme.of(ctx).textTheme;
+        final l10n = AppLocalizations.of(ctx)!;
+        final matchAvg = player.stats?.averageMatchRating;
 
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
+            side: BorderSide(
+              color: scheme.outlineVariant.withValues(alpha: 0.45),
+            ),
           ),
+          backgroundColor: scheme.surface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           insetPadding: const EdgeInsets.symmetric(
             horizontal: 24,
             vertical: 24,
           ),
           contentPadding: EdgeInsets.zero,
           content: SizedBox(
-            width: 320,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [
-                        scheme.primaryContainer.withValues(alpha: 0.75),
-                        scheme.surface,
-                      ],
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 18, 18, 18),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: scheme.shadow.withValues(alpha: 0.16),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: PlayerPhotoRect(
-                            player: player,
-                            width: 88,
-                            height: 118,
-                            borderRadius: 14,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              PlayerNameText(
-                                player: player,
-                                mode: PlayerNameTextMode.general,
-                                maxLines: 4,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.titleMedium?.copyWith(
-                                  height: 1.25,
-                                  letterSpacing: -0.2,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: scheme.secondaryContainer.withValues(
-                                    alpha: 0.85,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  'Dorsal ${player.number?.toString() ?? '—'}',
-                                  style: textTheme.labelLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: scheme.onSecondaryContainer,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (player.positions != null &&
-                          player.positions!.isNotEmpty) ...[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.sports_soccer_outlined,
-                              size: 20,
-                              color: scheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                player.positions!.map((p) => p.name).join(', '),
-                                style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      Text(
-                        'Entrenamientos (fechas de la tabla)',
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
+            width: 340,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color.lerp(
+                            scheme.primaryContainer,
+                            scheme.surface,
+                            0.35,
+                          )!.withValues(alpha: 0.95),
+                          scheme.surface,
+                        ],
+                      ),
+                      border: Border(
+                        bottom: BorderSide(
+                          color: scheme.outlineVariant.withValues(alpha: 0.4),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _StatChip(
-                            label: 'Entrenos',
-                            value: '$attendedCount/$totalCount',
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: scheme.shadow.withValues(alpha: 0.12),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 5),
+                                  spreadRadius: -2,
+                                ),
+                              ],
+                              border: Border.all(
+                                color: scheme.outlineVariant.withValues(
+                                  alpha: 0.5,
+                                ),
+                              ),
+                            ),
+                            child: PlayerPhotoRect(
+                              player: player,
+                              width: 90,
+                              height: 120,
+                              borderRadius: 15,
+                            ),
                           ),
-                          _StatChip(
-                            label: '% Asistencia',
-                            value: '$attendancePercent%',
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                PlayerNameText(
+                                  player: player,
+                                  mode: PlayerNameTextMode.general,
+                                  maxLines: 4,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textTheme.titleLarge?.copyWith(
+                                    height: 1.2,
+                                    letterSpacing: -0.3,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                if (matchAvg != null) ...[
+                                  const SizedBox(height: 8),
+                                  DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: scheme.tertiaryContainer
+                                          .withValues(alpha: 0.6),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: scheme.tertiary.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.grade_rounded,
+                                            size: 16,
+                                            color: scheme.onTertiaryContainer,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              l10n.attendancePlayerDialogAverageMatchRating(
+                                                matchAvg.toStringAsFixed(1),
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              softWrap: true,
+                                              style: textTheme.labelLarge
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                    color: scheme
+                                                        .onTertiaryContainer,
+                                                    letterSpacing: 0.1,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        color: scheme.secondaryContainer
+                                            .withValues(alpha: 0.95),
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                        border: Border.all(
+                                          color: scheme.onSecondaryContainer
+                                              .withValues(alpha: 0.12),
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.tag_rounded,
+                                              size: 16,
+                                              color:
+                                                  scheme.onSecondaryContainer,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Dorsal ${player.number?.toString() ?? '—'}',
+                                              style: textTheme.labelLarge
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w800,
+                                                    color: scheme
+                                                        .onSecondaryContainer,
+                                                    letterSpacing: 0.1,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'Partidos (datos guardados)',
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Builder(
-                        builder: (_) {
-                          final s = player.stats ?? const PlayerStats();
-                          return Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _StatChip(
-                                    label: 'Partidos jugados',
-                                    value: s.matchesPlayed.toString(),
-                                  ),
-                                  _StatChip(
-                                    label: 'Como titular',
-                                    value: s.timesStarted.toString(),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _StatChip(
-                                    label: 'Goles',
-                                    value: s.goals.toString(),
-                                  ),
-                                  _StatChip(
-                                    label: 'Asistencias',
-                                    value: s.assists.toString(),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _StatChip(
-                                    label: 'Minutos',
-                                    value: s.minutesPlayed.toString(),
-                                  ),
-                                  _StatChip(
-                                    label: 'Tarjetas (A/R)',
-                                    value: '${s.yellowCards}/${s.redCards}',
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (player.positions != null &&
+                            player.positions!.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.surfaceContainerLow.withValues(
+                                alpha: 0.85,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: scheme.outlineVariant.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(
+                                  Icons.sports_soccer_outlined,
+                                  size: 20,
+                                  color: scheme.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    player.positions!
+                                        .map((p) => p.name)
+                                        .join(', '),
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+                      const PlayerStatsDialogSectionTitle(
+                        'Entrenamientos (fechas de la tabla)',
+                      ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                            child: PlayerStatsDialogStatCell(
+                              label: 'Entrenos',
+                              value: '$attendedCount/$totalCount',
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: PlayerStatsDialogStatCell(
+                              label: '% Asistencia',
+                              value: '$attendancePercent%',
+                            ),
+                          ),
+                          ],
+                        ),
+                        const SizedBox(height: 22),
+                      const PlayerStatsDialogSectionTitle(
+                        'Partidos (datos guardados)',
+                      ),
+                        const SizedBox(height: 12),
+                        Builder(
+                          builder: (_) {
+                            final s = player.stats ?? const PlayerStats();
+                            return Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                    child: PlayerStatsDialogStatCell(
+                                      label: 'Partidos jugados',
+                                      value: s.matchesPlayed.toString(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: PlayerStatsDialogStatCell(
+                                      label: 'Como titular',
+                                      value: s.timesStarted.toString(),
+                                    ),
+                                  ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                    child: PlayerStatsDialogStatCell(
+                                      label: 'Goles',
+                                      value: s.goals.toString(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: PlayerStatsDialogStatCell(
+                                      label: 'Asistencias',
+                                      value: s.assists.toString(),
+                                    ),
+                                  ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                    child: PlayerStatsDialogStatCell(
+                                      label: 'Minutos',
+                                      value: s.minutesPlayed.toString(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: PlayerStatsDialogStatCell(
+                                      label: 'Tarjetas (A/R)',
+                                      value: '${s.yellowCards}/${s.redCards}',
+                                    ),
+                                  ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
-            TextButton(
+            FilledButton.tonal(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cerrar'),
+              child: Text(l10n.dialogClose),
             ),
           ],
         );
@@ -907,43 +1036,3 @@ class _AttendanceMatrix {
   const _AttendanceMatrix.empty() : dates = const [], data = const {};
 }
 
-class _StatChip extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _StatChip({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withAlpha((0.06 * 255).round()),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}

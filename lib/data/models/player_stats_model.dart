@@ -1,5 +1,7 @@
 import 'package:football_manager/domain/entities/player_stats.dart';
 
+const Object _kCopyWithKeepAverageMatchRating = Object();
+
 class PlayerStatsModel extends PlayerStats {
   const PlayerStatsModel({
     super.id,
@@ -11,6 +13,7 @@ class PlayerStatsModel extends PlayerStats {
     super.matchesPlayed,
     super.minutesPlayed,
     super.timesStarted,
+    super.averageMatchRating,
   });
 
   factory PlayerStatsModel.fromJson(Map<String, dynamic> json) {
@@ -53,6 +56,7 @@ class PlayerStatsModel extends PlayerStats {
     int? matchesPlayed,
     int? minutesPlayed,
     int? timesStarted,
+    Object? averageMatchRating = _kCopyWithKeepAverageMatchRating,
   }) {
     return PlayerStatsModel(
       id: id ?? this.id,
@@ -64,6 +68,12 @@ class PlayerStatsModel extends PlayerStats {
       matchesPlayed: matchesPlayed ?? this.matchesPlayed,
       minutesPlayed: minutesPlayed ?? this.minutesPlayed,
       timesStarted: timesStarted ?? this.timesStarted,
+      averageMatchRating: identical(
+            averageMatchRating,
+            _kCopyWithKeepAverageMatchRating,
+          )
+          ? this.averageMatchRating
+          : averageMatchRating as double?,
     );
   }
 }

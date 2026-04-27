@@ -477,6 +477,14 @@
   "attendanceSaveTeamLoadError": "No se ha podido cargar la plantilla del equipo",
   "attendanceSaveInProgress": "Guardando…",
   "attendanceSaveSuccess": "Asistencia guardada correctamente",
+  "attendancePlayerDialogAverageMatchRating": "Nota media (partidos): {rating}",
+  "@attendancePlayerDialogAverageMatchRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
   "convDatetimeSectionTitle": "Fecha y horarios",
   "convPickDateTooltip": "Elegir fecha",
   "tooltipChange": "Cambiar",
@@ -590,6 +598,13 @@
   "matchLineupSubstitutes": "Suplentes",
   "matchLineupStarterTag": "Titular",
   "matchLineupSubstituteTag": "Suplente",
+  "matchStatsPlayerDialogScoringSection": "Acciones registradas",
+  "matchStatsPlayerDialogRatingChip": "Nota {rating}",
+  "@matchStatsPlayerDialogRatingChip": {
+    "placeholders": {
+      "rating": { "type": "String" }
+    }
+  },
   "matchFieldSelectPlayerFirst": "Selecciona primero un jugador en la lista",
   "matchFieldMaxPlayersExpulsionRule": "No puedes tener más jugadores en el campo. Por cada expulsado debe quedar un hueco libre.",
   "matchConvocationTableEmpty": "No hay jugadores convocados para este partido",

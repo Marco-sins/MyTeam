@@ -1136,6 +1136,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get attendanceSaveSuccess => 'Asistencia guardada correctamente';
 
   @override
+  String attendancePlayerDialogAverageMatchRating(String rating) {
+    return 'Nota media (partidos): $rating';
+  }
+
+  @override
   String get convDatetimeSectionTitle => 'Fecha y horarios';
 
   @override
@@ -1412,6 +1417,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get matchLineupSubstituteTag => 'Suplente';
+
+  @override
+  String get matchStatsPlayerDialogScoringSection => 'Acciones registradas';
+
+  @override
+  String matchStatsPlayerDialogRatingChip(String rating) {
+    return 'Nota $rating';
+  }
 
   @override
   String get matchFieldSelectPlayerFirst =>

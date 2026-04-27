@@ -477,6 +477,14 @@
   "attendanceSaveTeamLoadError": "Could not load the team squad",
   "attendanceSaveInProgress": "Saving…",
   "attendanceSaveSuccess": "Attendance saved successfully",
+  "attendancePlayerDialogAverageMatchRating": "Match average rating: {rating}",
+  "@attendancePlayerDialogAverageMatchRating": {
+    "placeholders": {
+      "rating": {
+        "type": "String"
+      }
+    }
+  },
   "convDatetimeSectionTitle": "Date and times",
   "convPickDateTooltip": "Pick date",
   "tooltipChange": "Change",
@@ -590,6 +598,13 @@
   "matchLineupSubstitutes": "Substitutes",
   "matchLineupStarterTag": "Starter",
   "matchLineupSubstituteTag": "Substitute",
+  "matchStatsPlayerDialogScoringSection": "Logged actions",
+  "matchStatsPlayerDialogRatingChip": "Rating {rating}",
+  "@matchStatsPlayerDialogRatingChip": {
+    "placeholders": {
+      "rating": { "type": "String" }
+    }
+  },
   "matchFieldSelectPlayerFirst": "Select a player in the list first",
   "matchFieldMaxPlayersExpulsionRule": "You cannot have more players on the pitch. Each sent-off player must leave a free slot.",
   "matchConvocationTableEmpty": "No players called up for this match",

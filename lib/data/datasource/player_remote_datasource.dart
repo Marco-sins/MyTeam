@@ -336,6 +336,8 @@ class PlayerRemoteDatasource {
       final playedSets = <int, Set<int>>{};
       final startedSets = <int, Set<int>>{};
       final minutesSum = <int, int>{};
+      final ratingSum = <int, double>{};
+      final ratingCount = <int, int>{};
 
       void markPlayed(int playerId, int matchId) {
         playedSets.putIfAbsent(playerId, () => {}).add(matchId);
@@ -349,9 +351,17 @@ class PlayerRemoteDatasource {
         minutesSum[playerId] = (minutesSum[playerId] ?? 0) + mins;
       }
 
+      void addMatchRatingIfPresent(int playerId, dynamic rawRating) {
+        if (rawRating == null) return;
+        final v = (rawRating is num) ? rawRating.toDouble() : null;
+        if (v == null) return;
+        ratingSum[playerId] = (ratingSum[playerId] ?? 0) + v;
+        ratingCount[playerId] = (ratingCount[playerId] ?? 0) + 1;
+      }
+
       final lineups = await _supabase
           .from('match_lineup')
-          .select('player_id, match_id, minutes_played, is_start')
+          .select('player_id, match_id, minutes_played, is_start, rating')
           .inFilter('match_id', matchIds);
 
       for (final row in lineups as List<dynamic>) {
@@ -362,6 +372,7 @@ class PlayerRemoteDatasource {
         final isStart = (map['is_start'] as bool?) ?? false;
 
         addMinutes(pid, mins);
+        addMatchRatingIfPresent(pid, map['rating']);
         if (mins > 0 || isStart) {
           markPlayed(pid, mid);
         }
@@ -395,14 +406,19 @@ class PlayerRemoteDatasource {
         ...playedSets.keys,
         ...startedSets.keys,
         ...minutesSum.keys,
+        ...ratingCount.keys,
       };
 
       final result = <int, PlayerParticipationTotals>{};
       for (final id in allIds) {
+        final nRatings = ratingCount[id] ?? 0;
+        final double? averageRating =
+            nRatings > 0 ? (ratingSum[id]! / nRatings) : null;
         result[id] = PlayerParticipationTotals(
           matchesPlayed: playedSets[id]?.length ?? 0,
           timesStarted: startedSets[id]?.length ?? 0,
           minutesPlayedSum: minutesSum[id] ?? 0,
+          averageMatchRating: averageRating,
         );
       }
       return result;
@@ -553,6 +569,7 @@ class PlayerRemoteDatasource {
               matchesPlayed: t.matchesPlayed,
               timesStarted: t.timesStarted,
               minutesPlayed: t.minutesPlayedSum,
+              averageMatchRating: t.averageMatchRating,
             ),
           );
         }
@@ -566,12 +583,14 @@ class PlayerRemoteDatasource {
           matchesPlayed: st.matchesPlayed,
           minutesPlayed: st.minutesPlayed,
           timesStarted: st.timesStarted,
+          averageMatchRating: st.averageMatchRating,
         );
         return p.copyWith(
           stats: model.copyWith(
             matchesPlayed: t.matchesPlayed,
             timesStarted: t.timesStarted,
             minutesPlayed: t.minutesPlayedSum,
+            averageMatchRating: t.averageMatchRating,
           ),
         );
       }).toList();
