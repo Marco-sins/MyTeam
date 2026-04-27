@@ -546,6 +546,9 @@
   "matchStatsScoreLive": "Score",
   "matchStatsTeamNamePlaceholder": "Team",
   "matchStatsLoadingSummary": "Loading match summary…",
+  "matchStatsTabMain": "Main",
+  "matchStatsTabStats": "Stats",
+  "matchStatsTabEvents": "Events",
   "matchStatsSectionField": "Lineup",
   "matchStatsFormationChip": "Formation: {formation}",
   "@matchStatsFormationChip": {

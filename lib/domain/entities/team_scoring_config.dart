@@ -96,6 +96,7 @@ class TeamScoringConfig {
   /// sin duplicar variantes legacy (p. ej. nota "tiro" vs tipo tiro).
   static const List<String> kDefaultScoringBuiltinIdsOrder = [
     TeamScoringBuiltinId.scoregoalScorer, // Gol
+    TeamScoringBuiltinId.scoregoalAssist, // Asistencia
     TeamScoringBuiltinId.shot, // Tiro
     TeamScoringBuiltinId.goodpass, // Buen pase
     TeamScoringBuiltinId.goodplay, // Buena jugada

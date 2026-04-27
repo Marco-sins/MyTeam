@@ -56,6 +56,15 @@ double _grassY(Rect grass, double ny) {
   return grass.top + grass.height * ny.clamp(0.0, 1.0);
 }
 
+/// [logSubstitutionEvent]: si es true, el padre debe persistir y registrar
+/// sustitución en [match_events] (entra [substitutionIn], sale [substitutionOut]).
+typedef MatchFieldLineupCommit = void Function(
+  List<Player?> newPositions, {
+  required bool logSubstitutionEvent,
+  Player? substitutionIn,
+  Player? substitutionOut,
+});
+
 void _placePlayerInFieldSlot({
   required int index,
   required Player playerIn,
@@ -66,8 +75,7 @@ void _placePlayerInFieldSlot({
   required int Function() currentPlayersOnField,
   required int Function() maxPlayersOnField,
   required void Function(String message, {bool error}) showSnack,
-  required void Function(List<Player?>) onPositionsChanged,
-  required void Function(Player, Player?) onSubstitutionRequested,
+  required MatchFieldLineupCommit onLineupChanged,
   required AppLocalizations l10n,
 }) {
   if (readOnly) {
@@ -90,8 +98,12 @@ void _placePlayerInFieldSlot({
   if (existingIndex != -1 && assignedAtIndex != null) {
     newPositions[existingIndex] = assignedAtIndex;
     newPositions[index] = playerIn;
-    onPositionsChanged(newPositions);
-    onSubstitutionRequested(playerIn, assignedAtIndex);
+    onLineupChanged(
+      newPositions,
+      logSubstitutionEvent: true,
+      substitutionIn: playerIn,
+      substitutionOut: assignedAtIndex,
+    );
     return;
   }
   if (existingIndex == -1 &&
@@ -107,8 +119,12 @@ void _placePlayerInFieldSlot({
     newPositions[existingIndex] = null;
   }
   newPositions[index] = playerIn;
-  onPositionsChanged(newPositions);
-  onSubstitutionRequested(playerIn, assignedAtIndex);
+  onLineupChanged(
+    newPositions,
+    logSubstitutionEvent: true,
+    substitutionIn: playerIn,
+    substitutionOut: assignedAtIndex,
+  );
 }
 
 /// Ancho de la columna (avatar + nombre) en el campo: mismo valor en [Positioned] y en banquillo.
@@ -177,9 +193,7 @@ class MatchFieldWithFormation extends StatelessWidget {
   final int Function() currentPlayersOnField;
   final int Function() maxPlayersOnField;
   final void Function(String message, {bool error}) showSnack;
-  final void Function(List<Player?> newPositions) onPositionsChanged;
-  final void Function(Player playerIn, Player? playerOut)
-  onSubstitutionRequested;
+  final MatchFieldLineupCommit onLineupChanged;
   final void Function(Player player) onPlayerActionRequested;
   final bool readOnly;
 
@@ -199,8 +213,7 @@ class MatchFieldWithFormation extends StatelessWidget {
     required this.currentPlayersOnField,
     required this.maxPlayersOnField,
     required this.showSnack,
-    required this.onPositionsChanged,
-    required this.onSubstitutionRequested,
+    required this.onLineupChanged,
     required this.onPlayerActionRequested,
     this.readOnly = false,
     this.formationLayoutKey,
@@ -357,7 +370,10 @@ class MatchFieldWithFormation extends StatelessWidget {
                         newPositions[index] = moved;
                         newPositions[from] = atTarget;
                       }
-                      onPositionsChanged(newPositions);
+                      onLineupChanged(
+                        newPositions,
+                        logSubstitutionEvent: false,
+                      );
                       return;
                     }
                     if (data is Player) {
@@ -371,8 +387,7 @@ class MatchFieldWithFormation extends StatelessWidget {
                         currentPlayersOnField: currentPlayersOnField,
                         maxPlayersOnField: maxPlayersOnField,
                         showSnack: showSnack,
-                        onPositionsChanged: onPositionsChanged,
-                        onSubstitutionRequested: onSubstitutionRequested,
+                        onLineupChanged: onLineupChanged,
                         l10n: l10n,
                       );
                     }
@@ -447,8 +462,7 @@ class MatchFieldWithFormation extends StatelessWidget {
                           currentPlayersOnField: currentPlayersOnField,
                           maxPlayersOnField: maxPlayersOnField,
                           showSnack: showSnack,
-                          onPositionsChanged: onPositionsChanged,
-                          onSubstitutionRequested: onSubstitutionRequested,
+                          onLineupChanged: onLineupChanged,
                           l10n: l10n,
                         );
                       },

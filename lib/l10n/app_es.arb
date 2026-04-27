@@ -546,6 +546,9 @@
   "matchStatsScoreLive": "Marcador",
   "matchStatsTeamNamePlaceholder": "Equipo",
   "matchStatsLoadingSummary": "Cargando resumen del partido…",
+  "matchStatsTabMain": "Principal",
+  "matchStatsTabStats": "Estadísticas",
+  "matchStatsTabEvents": "Eventos",
   "matchStatsSectionField": "Alineación",
   "matchStatsFormationChip": "Formación: {formation}",
   "@matchStatsFormationChip": {

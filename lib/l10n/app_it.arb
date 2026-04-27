@@ -546,6 +546,9 @@
   "matchStatsScoreLive": "Punto",
   "matchStatsTeamNamePlaceholder": "Squadra",
   "matchStatsLoadingSummary": "Caricamento riepilogo partita…",
+  "matchStatsTabMain": "Principale",
+  "matchStatsTabStats": "Statistiche",
+  "matchStatsTabEvents": "Eventi",
   "matchStatsSectionField": "Formazione",
   "matchStatsFormationChip": "Formazione: {formation}",
   "@matchStatsFormationChip": {

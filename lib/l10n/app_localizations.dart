@@ -2442,6 +2442,24 @@ abstract class AppLocalizations {
   /// **'Cargando resumen del partido…'**
   String get matchStatsLoadingSummary;
 
+  /// No description provided for @matchStatsTabMain.
+  ///
+  /// In es, this message translates to:
+  /// **'Principal'**
+  String get matchStatsTabMain;
+
+  /// No description provided for @matchStatsTabStats.
+  ///
+  /// In es, this message translates to:
+  /// **'Estadísticas'**
+  String get matchStatsTabStats;
+
+  /// No description provided for @matchStatsTabEvents.
+  ///
+  /// In es, this message translates to:
+  /// **'Eventos'**
+  String get matchStatsTabEvents;
+
   /// No description provided for @matchStatsSectionField.
   ///
   /// In es, this message translates to:

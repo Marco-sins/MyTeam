@@ -1265,6 +1265,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get matchStatsLoadingSummary => 'Loading match summary…';
 
   @override
+  String get matchStatsTabMain => 'Main';
+
+  @override
+  String get matchStatsTabStats => 'Stats';
+
+  @override
+  String get matchStatsTabEvents => 'Events';
+
+  @override
   String get matchStatsSectionField => 'Lineup';
 
   @override

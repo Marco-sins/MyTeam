@@ -1288,6 +1288,15 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchStatsLoadingSummary => 'Caricamento riepilogo partita…';
 
   @override
+  String get matchStatsTabMain => 'Principale';
+
+  @override
+  String get matchStatsTabStats => 'Statistiche';
+
+  @override
+  String get matchStatsTabEvents => 'Eventi';
+
+  @override
   String get matchStatsSectionField => 'Formazione';
 
   @override

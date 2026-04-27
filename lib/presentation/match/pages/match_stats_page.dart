@@ -14,11 +14,12 @@ import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 import 'package:football_manager/presentation/common/widgets/player_stats_dialog_widgets.dart';
 import 'package:football_manager/presentation/player/widgets/player_avatar.dart';
-import 'package:football_manager/core/theme/app_responsive_tokens.dart';
+import 'package:football_manager/core/theme/app_responsive.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
 import 'package:football_manager/presentation/match/widgets/match_live_stats_panel.dart';
+import 'package:football_manager/presentation/match/widgets/match_manager_synced_tabs.dart';
 import 'package:football_manager/presentation/match/widgets/match_stats_events_widgets.dart';
 import 'package:football_manager/presentation/match/utils/player_match_event_counts.dart';
 import 'package:football_manager/presentation/match/utils/team_scoring_line_match_save.dart';
@@ -517,7 +518,8 @@ class MatchStatsPage extends StatelessWidget {
     final authState = context.read<AuthCubit>().state;
     var isExternal = false;
     if (authState is Authenticated) {
-      isExternal = authState.user.teamRoles[match.teamId] == UserRole.external;
+      isExternal =
+          authState.user.teamRoles[match.teamId] == UserRole.external;
     }
 
     final page = Builder(
@@ -645,10 +647,17 @@ class MatchStatsPage extends StatelessWidget {
                     : match.goalsScored;
 
                 final eventAggs = state.eventAggregates;
+                final s = context.layoutScale;
+                final pagePad = AppResponsive.pageHorizontalPadding(context);
+                final pageScrollPad = EdgeInsets.fromLTRB(
+                  pagePad,
+                  12 * s,
+                  pagePad,
+                  24 * s,
+                );
+                const tabListPad = EdgeInsets.fromLTRB(16, 12, 16, 28);
 
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  children: [
+                final principalSections = <Widget>[
                     _MatchSummaryCard(
                       dateText: dateText,
                       statusLabel: _matchStatusLabel(l10n, match.status),
@@ -662,30 +671,6 @@ class MatchStatsPage extends StatelessWidget {
                       homeVenueLabel: l10n.matchVenueHome,
                       awayVenueLabel: l10n.matchVenueAway,
                     ),
-                    if (match.status == MatchStatus.finished &&
-                        eventAggs != null) ...[
-                      const SizedBox(height: 20),
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: MatchLiveStatsPanel(
-                          layoutScale: context.layoutScale,
-                          readOnly: true,
-                          shotsOur: eventAggs.shotsOur,
-                          shotsRival: eventAggs.shotsRival,
-                          foulsOur: eventAggs.foulsOur,
-                          foulsRival: eventAggs.foulsRival,
-                          cornersOur: eventAggs.cornersOur,
-                          cornersRival: eventAggs.cornersRival,
-                          offsidesOur: eventAggs.offsidesOur,
-                          offsidesRival: eventAggs.offsidesRival,
-                          yellowOur: eventAggs.yellowOur,
-                          yellowRival: eventAggs.yellowRival,
-                          redOur: eventAggs.redOur,
-                          redRival: eventAggs.redRival,
-                          l10n: l10n,
-                        ),
-                      ),
-                    ],
                     if (match.status == MatchStatus.finished &&
                         state.formationLines.isNotEmpty) ...[
                       const SizedBox(height: 20),
@@ -762,9 +747,7 @@ class MatchStatsPage extends StatelessWidget {
                                     maxPlayersOnField: () =>
                                         state.fieldPositionPlayers.length,
                                     showSnack: (_, {bool error = false}) {},
-                                    onPositionsChanged: (_) {},
-                                    onSubstitutionRequested:
-                                        (playerIn, playerOut) {},
+                                    onLineupChanged: (_, {required bool logSubstitutionEvent, Player? substitutionIn, Player? substitutionOut}) {},
                                     onPlayerActionRequested: (_) {},
                                     readOnly: true,
                                   ),
@@ -794,7 +777,68 @@ class MatchStatsPage extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 20),
+    ];
+                final statsSections = <Widget>[
+                    if (match.status == MatchStatus.finished &&
+                        eventAggs != null) ...[
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: MatchLiveStatsPanel(
+                          layoutScale: context.layoutScale,
+                          readOnly: true,
+                          shotsOur: eventAggs.shotsOur,
+                          shotsRival: eventAggs.shotsRival,
+                          foulsOur: eventAggs.foulsOur,
+                          foulsRival: eventAggs.foulsRival,
+                          cornersOur: eventAggs.cornersOur,
+                          cornersRival: eventAggs.cornersRival,
+                          offsidesOur: eventAggs.offsidesOur,
+                          offsidesRival: eventAggs.offsidesRival,
+                          yellowOur: eventAggs.yellowOur,
+                          yellowRival: eventAggs.yellowRival,
+                          redOur: eventAggs.redOur,
+                          redRival: eventAggs.redRival,
+                          l10n: l10n,
+                        ),
+                      ),
+                    ] else
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 32,
+                            horizontal: 20,
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.stacked_bar_chart,
+                                size: 48,
+                                color: scheme.outline.withValues(alpha: 0.75),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                l10n.matchStatsTimelineEmpty,
+                                textAlign: TextAlign.center,
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                l10n.matchStatsTimelineEmptyHint,
+                                textAlign: TextAlign.center,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+    ];
+                final eventsSections = <Widget>[
                     _MatchSectionTitle(
                       icon: Icons.timeline_rounded,
                       title: l10n.matchStatsSectionTimeline,
@@ -861,7 +905,18 @@ class MatchStatsPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                  ],
+    ];
+                return MatchManagerSyncedTabs(
+                  pageScrollPad: pageScrollPad,
+                  tabListPad: tabListPad,
+                  l10n: l10n,
+                  colorScheme: scheme,
+                  onRefresh: () async {
+                    await context.read<MatchStatsCubit>().load();
+                  },
+                  principalSections: principalSections,
+                  statsSections: statsSections,
+                  eventsSections: eventsSections,
                 );
               },
             ),
@@ -1140,8 +1195,14 @@ Future<void> _showPlayerMatchStats(
     state.allEventMaps,
     teamScoring: teamScoring,
   );
+  final mergedLineById = {
+    for (final l in teamScoring.lines) l.id: l,
+  };
+  for (final def in TeamScoringConfig.defaultBuiltInLines()) {
+    mergedLineById.putIfAbsent(def.id, () => def);
+  }
   final orderedLines = sortedScoringLinesForPlayerModal(
-    List<TeamScoringLine>.from(teamScoring.lines),
+    mergedLineById.values.toList(),
   );
 
   String lineTitle(TeamScoringLine line) {

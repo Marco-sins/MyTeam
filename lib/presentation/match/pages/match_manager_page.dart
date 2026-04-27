@@ -52,8 +52,10 @@ import 'package:football_manager/presentation/match/utils/match_foul_icon.dart'
 import 'package:football_manager/presentation/match/utils/match_player_discipline_highlight.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/widgets/match_convocation_table.dart';
-import 'package:football_manager/presentation/match/widgets/match_live_stats_panel.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
+import 'package:football_manager/presentation/match/widgets/match_manager_ui_policy.dart';
+import 'package:football_manager/presentation/match/widgets/match_manager_synced_tabs.dart';
+import 'package:football_manager/presentation/match/widgets/match_manager_stats_tab_section.dart';
 import 'package:football_manager/presentation/match/widgets/match_player_action_modal.dart';
 import 'package:football_manager/presentation/match/utils/team_scoring_line_match_save.dart';
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
@@ -162,6 +164,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   IMatchSpectatorRealtime? _spectatorRealtime;
   Timer? _spectatorRealtimeDebounce;
 
+  /// Tras mover jugadores en el campo, bloquea un momento la recarga de
+  /// [match_lineup] desde servidor para no pisar el estado local con datos
+  /// aún no persistidos (carrera con Realtime / refresh).
+  DateTime? _suppressRemoteLineupLoadUntil;
+
   /// Solo actualiza el reloj; evita [setState] a nivel de página cada segundo
   /// (reconstruía campo, convocatoria, cronología, etc.).
   final ValueNotifier<int> _clockTick = ValueNotifier<int>(0);
@@ -180,6 +187,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     if (authState is! Authenticated) return false;
     final role = authState.user.teamRoles[widget.team.id];
     return role?.hasAdminPrivileges ?? false;
+  }
+
+  /// Partido, convocatoria, contadores, etc.: solo admin / super admin pueden editar.
+  bool get _canModifyMatch {
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! Authenticated) return false;
+    return authState.user.teamRoles[widget.team.id]?.hasAdminPrivileges ?? false;
   }
 
   Map<int, int> _computeMinutesPlayedForConvoked() {
@@ -290,7 +304,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   Widget _buildLiveLastEventBlinkBanner(
     ThemeData theme,
     ColorScheme scheme,
-    bool isExternal,
+    bool blockTap,
     AppLocalizations l10n,
   ) {
     final row = _liveEvents.first;
@@ -358,7 +372,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                 borderRadius: BorderRadius.circular(radius),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: isExternal ? null : () => _onLiveEventTapped(row),
+                  onTap: blockTap ? null : () => _onLiveEventTapped(row),
                   borderRadius: BorderRadius.circular(radius),
                   splashColor: scheme.primary.withValues(alpha: 0.12),
                   highlightColor: scheme.primary.withValues(alpha: 0.06),
@@ -756,6 +770,29 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
+  /// Un solo hilo: primero [match_lineup], luego [match_events] si es sustitución
+  /// (evita carreras con Realtime o dobles persist en paralelo).
+  Future<void> _syncLineupAfterFieldChange({
+    required bool logSubstitutionEvent,
+    Player? substitutionIn,
+    Player? substitutionOut,
+  }) async {
+    try {
+      await _persistCurrentPositionsToMatchLineup();
+      if (!mounted) {
+        return;
+      }
+      if (logSubstitutionEvent && substitutionIn != null) {
+        await _saveSubstitutionEvent(
+          playerIn: substitutionIn,
+          playerOut: substitutionOut,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error syncing lineup from field: $e');
+    }
+  }
+
   void _changeFormation(String newKey) {
     setState(() {
       _selectedFormation = newKey;
@@ -781,7 +818,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }
 
   Future<void> _showFormationPicker() async {
-    if (_isExternal) return;
+    if (!_canModifyMatch) return;
     final choice = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -984,7 +1021,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     required String note,
   }) async {
     final l10n = AppLocalizations.of(context)!;
-    if (_isExternal) return;
+    if (!_canModifyMatch) return;
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) {
       _showSnack(l10n.matchMustLoginRegisterGoals, error: true);
@@ -1018,7 +1055,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _removeLastOfType(MatchEventEnum type) async {
     final l10n = AppLocalizations.of(context)!;
-    if (_isExternal) return;
+    if (!_canModifyMatch) return;
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) {
       _showSnack(l10n.matchMustLoginRegisterGoals, error: true);
@@ -1091,7 +1128,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   /// Recarga datos desde Supabase (marcador, campo, eventos). Usado al
   /// deslizar para abajo; relevante para externos que no modifican el partido.
-  Future<void> _onRefreshMatchScreen() async {
+  ///
+  /// [userPull]: si es true, se fuerza recarga de alineación remota (anula
+  /// [_suppressRemoteLineupLoadUntil]).
+  Future<void> _onRefreshMatchScreen({bool userPull = false}) async {
+    if (userPull) {
+      _suppressRemoteLineupLoadUntil = null;
+    }
     await _mergeMatchFromServer();
     if (!mounted) return;
     await _recalculatePlayerRatings();
@@ -1588,7 +1631,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }
 
   Future<void> _onLiveEventTapped(Map<String, dynamic> row) async {
-    if (_isExternal) {
+    if (!_canModifyMatch) {
       return;
     }
     final authState = context.read<AuthCubit>().state;
@@ -2012,6 +2055,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }
 
   Future<void> _loadPositionsFromEvents() async {
+    final until = _suppressRemoteLineupLoadUntil;
+    if (until != null && DateTime.now().isBefore(until)) {
+      return;
+    }
     try {
       final uc = context.read<FetchMatchLineupPositionsUseCase>();
       final res = await uc(_match.id);
@@ -2162,9 +2209,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   Future<void> _onPlayerActionRequested(Player player) async {
     final l10n = AppLocalizations.of(context)!;
-    if (_isExternal) {
+    if (!_canModifyMatch) {
       _showSnack(
-        l10n.matchSpectatorNoPlayerActions,
+        l10n.accessAdminOnlyInvite,
         error: true,
       );
       return;
@@ -2778,32 +2825,42 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final bool isExternal = _isExternal;
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
     final s = context.layoutScale;
     final pagePad = AppResponsive.pageHorizontalPadding(context);
     final screenW = MediaQuery.sizeOf(context).width;
+    const tabListPad = EdgeInsets.fromLTRB(16, 12, 16, 28);
+    final pageScrollPad = EdgeInsets.fromLTRB(pagePad, 12 * s, pagePad, 24 * s);
+    final policy = MatchManagerUiPolicy(
+      isExternal: _isExternal,
+      canModifyMatch: _canModifyMatch,
+    );
+    final statsSections = buildMatchManagerStatsTabSections(
+      policy: policy,
+      layoutScale: s,
+      l10n: l10n,
+      shotsOur: _shotsOur,
+      shotsRival: _shotsRival,
+      foulsOur: _foulsOur,
+      foulsRival: _foulsRival,
+      cornersOur: _cornersOur,
+      cornersRival: _cornersRival,
+      offsidesOur: _offsidesOur,
+      offsidesRival: _offsidesRival,
+      yellowOur: _yellowOur,
+      yellowRival: _yellowRival,
+      redOur: _redOur,
+      redRival: _redRival,
+      removeLastOfType: (t) {
+        _removeLastOfType(t);
+      },
+      saveManualCounterEvent: (t, n) {
+        _saveManualCounterEvent(type: t, note: n);
+      },
+    );
 
-    return TeamBrandedScope(
-      team: widget.team,
-      child: Scaffold(
-      appBar: AppBar(
-        title: Text(
-          l10n.screenMatchLive,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        centerTitle: true,
-        actions: const [TeamQuickNavAppBarButton()],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _onRefreshMatchScreen,
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(pagePad, 12 * s, pagePad, 24 * s),
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: [
+    final principalSections = <Widget>[
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: Padding(
@@ -2828,7 +2885,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                         ],
                       ),
                       const SizedBox(height: 12),
-                      if (isExternal && _phase == _MatchPhase.notStarted)
+                      if (policy.isExternal && _phase == _MatchPhase.notStarted)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           child: Text(
@@ -2845,7 +2902,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           builder: (context, isLoading) {
                             final schemeBtn = Theme.of(context).colorScheme;
                             return FilledButton(
-                              onPressed: (isLoading || isExternal)
+                              onPressed: (isLoading || !policy.canModifyMatch)
                                   ? null
                                   : _onBottomButtonPressed,
                               style: FilledButton.styleFrom(
@@ -3002,7 +3059,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                           ),
                         ],
                       ),
-                      if (!isExternal) ...[
+                      if (policy.canModifyMatch) ...[
                         const SizedBox(height: 16),
                         Text(
                           l10n.matchQuickScore,
@@ -3037,103 +3094,6 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               const SizedBox(height: 12),
               Card(
                 clipBehavior: Clip.antiAlias,
-                child: MatchLiveStatsPanel(
-                  layoutScale: s,
-                  readOnly: isExternal,
-                  shotsOur: _shotsOur,
-                  shotsRival: _shotsRival,
-                  foulsOur: _foulsOur,
-                  foulsRival: _foulsRival,
-                  cornersOur: _cornersOur,
-                  cornersRival: _cornersRival,
-                  offsidesOur: _offsidesOur,
-                  offsidesRival: _offsidesRival,
-                  yellowOur: _yellowOur,
-                  yellowRival: _yellowRival,
-                  redOur: _redOur,
-                  redRival: _redRival,
-                  l10n: l10n,
-                  onRemoveRivalShot: isExternal
-                      ? null
-                      : () => _removeLastOfType(MatchEventEnum.rivalShot),
-                  onAddRivalShot: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.rivalShot,
-                            note: l10n.matchEventRivalShot,
-                          ),
-                  onRemoveRivalFoul: isExternal
-                      ? null
-                      : () => _removeLastOfType(MatchEventEnum.rivalFoul),
-                  onAddRivalFoul: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.rivalFoul,
-                            note: 'Falta rival',
-                          ),
-                  onRemoveCorner: isExternal
-                      ? null
-                      : () => _removeLastOfType(MatchEventEnum.corner),
-                  onAddCorner: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.corner,
-                            note: 'Córner',
-                          ),
-                  onRemoveRivalCorner: isExternal
-                      ? null
-                      : () => _removeLastOfType(MatchEventEnum.rivalCorner),
-                  onAddRivalCorner: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.rivalCorner,
-                            note: 'Córner rival',
-                          ),
-                  onRemoveOffside: isExternal
-                      ? null
-                      : () => _removeLastOfType(MatchEventEnum.offside),
-                  onAddOffside: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.offside,
-                            note: l10n.matchEventOffside,
-                          ),
-                  onRemoveRivalOffside: isExternal
-                      ? null
-                      : () => _removeLastOfType(MatchEventEnum.rivalOffside),
-                  onAddRivalOffside: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.rivalOffside,
-                            note: l10n.matchEventRivalOffside,
-                          ),
-                  onRemoveRivalYellowCard: isExternal
-                      ? null
-                      : () => _removeLastOfType(
-                            MatchEventEnum.rivalYellowCard,
-                          ),
-                  onAddRivalYellowCard: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.rivalYellowCard,
-                            note: l10n.matchRivalYellowCardNote,
-                          ),
-                  onRemoveRivalRedCard: isExternal
-                      ? null
-                      : () => _removeLastOfType(
-                            MatchEventEnum.rivalRedCard,
-                          ),
-                  onAddRivalRedCard: isExternal
-                      ? null
-                      : () => _saveManualCounterEvent(
-                            type: MatchEventEnum.rivalRedCard,
-                            note: l10n.matchRivalRedCardNote,
-                          ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Card(
-                clipBehavior: Clip.antiAlias,
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(12 * s, 12 * s, 12 * s, 14 * s),
                   child: Column(
@@ -3153,7 +3113,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (isExternal)
+                          if (!policy.canModifyMatch)
                             Flexible(
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
@@ -3219,22 +3179,28 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                               currentPlayersOnField: _currentPlayersOnField,
                               maxPlayersOnField: _maxPlayersOnField,
                               showSnack: _showSnack,
-                              onPositionsChanged: (newPositions) {
+                              onLineupChanged: (newPositions, {
+                                required bool logSubstitutionEvent,
+                                Player? substitutionIn,
+                                Player? substitutionOut,
+                              }) {
                                 setState(() {
                                   _positionPlayers = newPositions;
                                   _selectedPlayer = null;
                                 });
-                                _persistCurrentPositionsToMatchLineup();
-                              },
-                              onSubstitutionRequested: (playerIn, playerOut) {
-                                _saveSubstitutionEvent(
-                                  playerIn: playerIn,
-                                  playerOut: playerOut,
+                                _suppressRemoteLineupLoadUntil = DateTime.now()
+                                    .add(const Duration(milliseconds: 2000));
+                                unawaited(
+                                  _syncLineupAfterFieldChange(
+                                    logSubstitutionEvent: logSubstitutionEvent,
+                                    substitutionIn: substitutionIn,
+                                    substitutionOut: substitutionOut,
+                                  ),
                                 );
                               },
                               onPlayerActionRequested:
                                   _onPlayerActionRequested,
-                              readOnly: isExternal,
+                              readOnly: policy.readOnlyMatchActions,
                               playerDiscipline: _playerDisciplineHighlight,
                             ),
                             ),
@@ -3245,19 +3211,19 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
               if (_showLiveLastEventHighlight) ...[
+                const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: _buildLiveLastEventBlinkBanner(
                     theme,
                     scheme,
-                    isExternal,
+                    !policy.canModifyMatch,
                     l10n,
                   ),
                 ),
-                const SizedBox(height: 12),
               ],
+              const SizedBox(height: 12),
               Card(
                 clipBehavior: Clip.antiAlias,
                 child: Padding(
@@ -3281,7 +3247,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                         ?.copyWith(fontWeight: FontWeight.w700),
                                   ),
                                   Text(
-                                    isExternal
+                                    policy.isExternal
                                         ? l10n.matchSquadHintSpectator
                                         : l10n.matchSquadHintCoach,
                                     style: theme.textTheme.bodySmall?.copyWith(
@@ -3308,10 +3274,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                             ? _computeMinutesPlayedForConvoked()
                             : null,
                         scrollingChild: true,
-                        readOnly: isExternal,
+                        readOnly: policy.readOnlyMatchActions,
                         playerDiscipline: _playerDisciplineHighlight,
                         onPlayerTap: (player, isSentOff) {
-                          if (isExternal) return;
+                          if (!policy.canModifyMatch) return;
                           if (isSentOff) {
                             _showSnack(
                               l10n.matchPlayerSentOffCannotReturn,
@@ -3332,7 +3298,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+    ];
+    final eventsSections = <Widget>[
               RepaintBoundary(
                 child: Card(
                   clipBehavior: Clip.antiAlias,
@@ -3357,7 +3324,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        isExternal
+                        policy.isExternal
                             ? l10n.matchEventsHintSpectator
                             : l10n.matchEventsHintCoach,
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -3414,7 +3381,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    onTap: isExternal
+                                    onTap: !policy.canModifyMatch
                                         ? null
                                         : () => _onLiveEventTapped(
                                             _liveEvents[i],
@@ -3504,7 +3471,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                                               ],
                                             ),
                                           ),
-                                          if (!isExternal)
+                                          if (policy.canModifyMatch)
                                             Icon(
                                               Icons.delete_outline,
                                               size: 22,
@@ -3522,13 +3489,35 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                     ],
                   ),
                 ),
-              ),
                 ),
-            ],
+              ),
+    ];
+
+    return TeamBrandedScope(
+      team: widget.team,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            l10n.screenMatchLive,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          centerTitle: true,
+          actions: const [TeamQuickNavAppBarButton()],
+        ),
+        body: SafeArea(
+          child: MatchManagerSyncedTabs(
+            pageScrollPad: pageScrollPad,
+            tabListPad: tabListPad,
+            l10n: l10n,
+            colorScheme: scheme,
+            onRefresh: () => _onRefreshMatchScreen(userPull: true),
+            principalSections: principalSections,
+            statsSections: statsSections,
+            eventsSections: eventsSections,
           ),
         ),
       ),
-    ),
     );
   }
 }
