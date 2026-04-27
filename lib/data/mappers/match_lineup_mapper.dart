@@ -10,6 +10,7 @@ class MatchLineupMapper {
       isStarting: matchLineup.isStarting,
       minutesPlayed: matchLineup.minutesPlayed,
       position: matchLineup.position,
+      initialPosition: matchLineup.initialPosition,
       rating: matchLineup.rating,
     );
   }
@@ -22,6 +23,7 @@ class MatchLineupMapper {
       isStarting: matchLineupModel.isStarting,
       minutesPlayed: matchLineupModel.minutesPlayed,
       position: matchLineupModel.position,
+      initialPosition: matchLineupModel.initialPosition,
       rating: matchLineupModel.rating,
     );
   }

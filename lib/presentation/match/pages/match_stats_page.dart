@@ -12,10 +12,17 @@ import 'package:football_manager/presentation/auth/cubit/auth_cubit.dart';
 import 'package:football_manager/presentation/auth/cubit/auth_state.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
+import 'package:football_manager/core/theme/app_responsive_tokens.dart';
 import 'package:football_manager/core/theme/team_brand_theme.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
+import 'package:football_manager/presentation/match/widgets/match_live_stats_panel.dart';
 import 'package:football_manager/presentation/match/widgets/match_stats_events_widgets.dart';
+import 'package:football_manager/presentation/match/utils/player_match_event_counts.dart';
+import 'package:football_manager/presentation/match/utils/team_scoring_line_match_save.dart';
+import 'package:football_manager/presentation/team/utils/team_scoring_builtin_label.dart';
+import 'package:football_manager/domain/entities/team_scoring_config.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/presentation/match/widgets/match_stats_lineup_section.dart';
 
 /// Tono para acciones guardadas como [statusChange] + nota (datos anteriores al enum dedicado).
@@ -635,6 +642,8 @@ class MatchStatsPage extends StatelessWidget {
                     ? match.goalsConceded
                     : match.goalsScored;
 
+                final eventAggs = state.eventAggregates;
+
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                   children: [
@@ -651,6 +660,30 @@ class MatchStatsPage extends StatelessWidget {
                       homeVenueLabel: l10n.matchVenueHome,
                       awayVenueLabel: l10n.matchVenueAway,
                     ),
+                    if (match.status == MatchStatus.finished &&
+                        eventAggs != null) ...[
+                      const SizedBox(height: 20),
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: MatchLiveStatsPanel(
+                          layoutScale: context.layoutScale,
+                          readOnly: true,
+                          shotsOur: eventAggs.shotsOur,
+                          shotsRival: eventAggs.shotsRival,
+                          foulsOur: eventAggs.foulsOur,
+                          foulsRival: eventAggs.foulsRival,
+                          cornersOur: eventAggs.cornersOur,
+                          cornersRival: eventAggs.cornersRival,
+                          offsidesOur: eventAggs.offsidesOur,
+                          offsidesRival: eventAggs.offsidesRival,
+                          yellowOur: eventAggs.yellowOur,
+                          yellowRival: eventAggs.yellowRival,
+                          redOur: eventAggs.redOur,
+                          redRival: eventAggs.redRival,
+                          l10n: l10n,
+                        ),
+                      ),
+                    ],
                     if (match.status == MatchStatus.finished &&
                         state.formationLines.isNotEmpty) ...[
                       const SizedBox(height: 20),
@@ -717,6 +750,7 @@ class MatchStatsPage extends StatelessWidget {
                                     formationLines: state.formationLines,
                                     formationLayoutKey: state.formationLabel,
                                     positionPlayers: state.fieldPositionPlayers,
+                                    benchPlayers: state.substitutePlayers,
                                     selectedPlayer: null,
                                     sentOffPlayerIds: state.sentOffPlayerIds,
                                     currentPlayersOnField: () => state
@@ -735,6 +769,25 @@ class MatchStatsPage extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (showLineupSection) ...[
+                      const SizedBox(height: 20),
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+                          child: MatchLineupSection(
+                            startingPlayers: state.startingPlayers,
+                            substitutePlayers: state.substitutePlayers,
+                            playerRatings: state.playerRatings,
+                            showRatings: !isExternal,
+                            onPlayerTap: (player) {
+                              if (isExternal) return;
+                              _showPlayerMatchStats(context, match, state, player);
+                            },
                           ),
                         ),
                       ),
@@ -806,25 +859,6 @@ class MatchStatsPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                    if (showLineupSection) ...[
-                      const SizedBox(height: 20),
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
-                          child: MatchLineupSection(
-                            startingPlayers: state.startingPlayers,
-                            substitutePlayers: state.substitutePlayers,
-                            playerRatings: state.playerRatings,
-                            showRatings: !isExternal,
-                            onPlayerTap: (player) {
-                              if (isExternal) return;
-                              _showPlayerMatchStats(context, state, player);
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 );
               },
@@ -1081,36 +1115,32 @@ class _MatchSectionTitle extends StatelessWidget {
   }
 }
 
-class _PlayerMatchStats {
-  const _PlayerMatchStats({
-    required this.goals,
-    required this.assists,
-    required this.goodPasses,
-    required this.badPasses,
-    required this.goodPlays,
-    required this.badPlays,
-    required this.minutesPlayed,
-  });
-
-  final int goals;
-  final int assists;
-  final int goodPasses;
-  final int badPasses;
-  final int goodPlays;
-  final int badPlays;
-  final int minutesPlayed;
-}
-
 Future<void> _showPlayerMatchStats(
   BuildContext context,
+  Match match,
   MatchStatsState state,
   Player player,
 ) async {
-  final stats = _calculatePlayerMatchStats(state, player);
+  final minutesPlayed = _calculateMinutesPlayed(state, player);
   final theme = Theme.of(context);
   final scheme = theme.colorScheme;
   final textTheme = theme.textTheme;
   final l10n = AppLocalizations.of(context)!;
+
+  var lines = context.read<TeamScoringConfigStorage>().load(match.teamId)?.lines ??
+      TeamScoringConfig.defaultBuiltInLines();
+  if (lines.isEmpty) {
+    lines = TeamScoringConfig.defaultBuiltInLines();
+  }
+  final teamScoring = TeamScoringConfig(lines: lines);
+  final counts = countPlayerEventsByScoringLine(
+    player.id,
+    state.allEventMaps,
+    teamScoring: teamScoring,
+  );
+  final orderedLines = sortedScoringLinesForPlayerModal(
+    List<TeamScoringLine>.from(teamScoring.lines),
+  );
 
   Widget statRow(
     IconData icon,
@@ -1145,6 +1175,66 @@ Future<void> _showPlayerMatchStats(
     );
   }
 
+  String lineTitle(TeamScoringLine line) {
+    if (line.isCustom) {
+      final n = line.name?.trim();
+      if (n == null || n.isEmpty) {
+        return l10n.teamScoringUnnamed;
+      }
+      return n;
+    }
+    return teamScoringBuiltinTitle(l10n, line.id);
+  }
+
+  IconData iconForScoringLine(TeamScoringLine line) {
+    if (line.points < 0) {
+      return Icons.trending_down;
+    }
+    if (line.points > 0) {
+      return Icons.trending_up;
+    }
+    return Icons.remove;
+  }
+
+  Color? colorForScoringLine(TeamScoringLine line) {
+    if (line.points < 0) {
+      return scheme.error;
+    }
+    if (line.points > 0) {
+      return scheme.tertiary;
+    }
+    return scheme.onSurfaceVariant;
+  }
+
+  final eventStatRows = <Widget>[];
+  for (final line in orderedLines) {
+    final n = counts[line.id] ?? 0;
+    if (n <= 0) {
+      continue;
+    }
+    eventStatRows.add(
+      statRow(
+        iconForScoringLine(line),
+        lineTitle(line),
+        '$n',
+        iconColor: colorForScoringLine(line),
+      ),
+    );
+  }
+
+  final detailRows = <Widget>[
+    statRow(
+      Icons.timer_outlined,
+      l10n.matchStatsMinutesPlayed,
+      '$minutesPlayed',
+      iconColor: scheme.tertiary,
+    ),
+    if (eventStatRows.isNotEmpty) ...[
+      const Divider(height: 20),
+      ...eventStatRows,
+    ],
+  ];
+
   await showDialog<void>(
     context: context,
     builder: (ctx) {
@@ -1161,51 +1251,7 @@ Future<void> _showPlayerMatchStats(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              statRow(
-                Icons.timer_outlined,
-                l10n.matchStatsMinutesPlayed,
-                '${stats.minutesPlayed}',
-                iconColor: scheme.tertiary,
-              ),
-              const Divider(height: 20),
-              statRow(
-                Icons.sports_soccer_rounded,
-                l10n.matchStatsStatGoals,
-                '${stats.goals}',
-              ),
-              statRow(
-                Icons.directions_run_rounded,
-                l10n.matchStatsStatAssists,
-                '${stats.assists}',
-              ),
-              const Divider(height: 20),
-              statRow(
-                Icons.check_circle_outline_rounded,
-                l10n.matchStatsStatGoodPasses,
-                '${stats.goodPasses}',
-                iconColor: scheme.tertiary,
-              ),
-              statRow(
-                Icons.cancel_outlined,
-                l10n.matchStatsStatBadPasses,
-                '${stats.badPasses}',
-                iconColor: scheme.error,
-              ),
-              const Divider(height: 20),
-              statRow(
-                Icons.thumb_up_outlined,
-                l10n.matchStatsStatGoodPlays,
-                '${stats.goodPlays}',
-                iconColor: scheme.tertiary,
-              ),
-              statRow(
-                Icons.thumb_down_outlined,
-                l10n.matchStatsStatBadPlays,
-                '${stats.badPlays}',
-                iconColor: scheme.outline,
-              ),
-            ],
+            children: detailRows,
           ),
         ),
         actions: [
@@ -1219,96 +1265,11 @@ Future<void> _showPlayerMatchStats(
   );
 }
 
-_PlayerMatchStats _calculatePlayerMatchStats(
-  MatchStatsState state,
-  Player player,
-) {
-  final int playerId = player.id;
-
-  int goals = 0;
-  int assists = 0;
-  int goodPasses = 0;
-  int badPasses = 0;
-  int goodPlays = 0;
-  int badPlays = 0;
-
-  for (final event in state.events) {
-    final rawType = event['type'];
-    final typeKey = canonicalMatchEventTypeKey(rawType);
-    final int? p1 = event['player_id1'] as int?;
-    final int? p2 = event['player_id2'] as int?;
-    final String? note = event['note'] as String?;
-
-    if (typeKey == 'scoregoal') {
-      if (p1 == playerId) {
-        goals++;
-      }
-      if (p2 == playerId) {
-        assists++;
-      }
-    }
-
-    if (p1 != playerId) continue;
-
-    final isGoodPass = typeKey == 'goodpass';
-    final isBadPass = typeKey == 'badpass';
-    final isGoodPlay = typeKey == 'goodplay';
-    final isBadPlay = typeKey == 'badplay';
-    final isBallRecovery = typeKey == 'ballrecovery';
-
-    if (isGoodPass || note == 'Buen pase') {
-      goodPasses++;
-    } else if (isBadPass || note == 'Mal pase' || note == 'Pase impreciso') {
-      badPasses++;
-    } else if (note == 'Pase clave' || typeKey == 'keypass') {
-      goodPlays++;
-    } else if (isGoodPlay ||
-        isBallRecovery ||
-        typeKey == 'shot' ||
-        typeKey == 'goodsave' ||
-        note == 'Buena jugada' ||
-        note == 'Recuperación' ||
-        note == 'Balón recuperado' ||
-        note == 'Buena parada' ||
-        note == 'Tiro' ||
-        note == 'Buen tiro' ||
-        note == 'Recupera posesión' ||
-        note == 'Gana posesión') {
-      goodPlays++;
-    } else if (isBadPlay ||
-        typeKey == 'foul' ||
-        typeKey == 'cantada' ||
-        note == 'Mala jugada' ||
-        note == 'Jugada imprecisa' ||
-        note == 'Falta' ||
-        note == 'Cantada' ||
-        note == 'Pierde marca' ||
-        note == 'Pierde posición' ||
-        note == 'Pierde posesión' ||
-        note == 'Gol concedido' ||
-        note == 'Gol en propia') {
-      badPlays++;
-    }
-  }
-
-  final minutesPlayed = _calculateMinutesPlayed(state, player);
-
-  return _PlayerMatchStats(
-    goals: goals,
-    assists: assists,
-    goodPasses: goodPasses,
-    badPasses: badPasses,
-    goodPlays: goodPlays,
-    badPlays: badPlays,
-    minutesPlayed: minutesPlayed,
-  );
-}
-
 int _calculateMinutesPlayed(MatchStatsState state, Player player) {
   final int playerId = player.id;
 
   final List<Map<String, dynamic>> sortedEvents =
-      List<Map<String, dynamic>>.from(state.events);
+      List<Map<String, dynamic>>.from(state.allEventMaps);
   sortedEvents.sort((a, b) {
     final ma = supabaseInt(a['minute']) ?? 0;
     final mb = supabaseInt(b['minute']) ?? 0;
@@ -1353,7 +1314,7 @@ int _calculateMinutesPlayed(MatchStatsState state, Player player) {
 int _getMatchEndMinute(MatchStatsState state) {
   int? finishedMinute;
 
-  for (final event in state.events) {
+  for (final event in state.allEventMaps) {
     final rawType = event['type'];
     final typeKey = canonicalMatchEventTypeKey(rawType);
     final String? note = event['note'] as String?;
@@ -1370,7 +1331,7 @@ int _getMatchEndMinute(MatchStatsState state) {
   }
 
   int maxMinute = 0;
-  for (final event in state.events) {
+  for (final event in state.allEventMaps) {
     final minute = supabaseInt(event['minute']) ?? 0;
     if (minute > maxMinute) {
       maxMinute = minute;

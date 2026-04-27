@@ -10,6 +10,7 @@ import 'package:football_manager/core/notifications/match_event_app_notification
 import 'package:football_manager/core/notifications/match_notif_app_lifecycle.dart';
 import 'package:football_manager/core/push/push_notification_service.dart';
 import 'package:football_manager/core/di/injection_container.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/core/locale/locale_cubit.dart';
 import 'package:football_manager/core/theme/app_responsive.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
@@ -42,9 +43,11 @@ import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart
 import 'package:football_manager/domain/usecase/match/get_match_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match/lock_initial_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_match_event_by_db_type_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
@@ -132,6 +135,9 @@ class FootballApp extends StatelessWidget {
               RepositoryProvider.value(
                 value: sl<GetLatestFormationNoteByMatchUseCase>(),
               ),
+              RepositoryProvider.value(
+                value: sl<GetFirstFormationNoteByMatchUseCase>(),
+              ),
               RepositoryProvider.value(value: sl<GetMatchByIdUseCase>()),
               RepositoryProvider.value(
                 value: sl<GetMatchEventAggregatesFromEventsUseCase>(),
@@ -164,6 +170,9 @@ class FootballApp extends StatelessWidget {
                 value: sl<PersistMatchLineupPositionsUseCase>(),
               ),
               RepositoryProvider.value(
+                value: sl<LockInitialLineupPositionsUseCase>(),
+              ),
+              RepositoryProvider.value(
                 value: sl<ApplyMatchLineupStartersUseCase>(),
               ),
               RepositoryProvider.value(
@@ -187,6 +196,9 @@ class FootballApp extends StatelessWidget {
               RepositoryProvider.value(value: sl<RejectInvitationUseCase>()),
               RepositoryProvider<ITeamRepository>.value(
                 value: sl<ITeamRepository>(),
+              ),
+              RepositoryProvider<TeamScoringConfigStorage>.value(
+                value: sl<TeamScoringConfigStorage>(),
               ),
             ],
             child: MultiBlocProvider(

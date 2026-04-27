@@ -7,8 +7,11 @@ import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
 import 'package:football_manager/presentation/common/cubit/loading_cubit.dart';
 import 'package:football_manager/presentation/match/cubit/match_stats_cubit.dart';
@@ -564,8 +567,14 @@ class _MatchListPageState extends State<MatchListPage>
                                 .read<GetMatchEventsByMatchUseCase>();
                             final getMatchLineupsByMatchUseCase = context
                                 .read<GetMatchLineupsByMatchUseCase>();
+                            final getFirstFormationNoteByMatchUseCase = context
+                                .read<GetFirstFormationNoteByMatchUseCase>();
                             final getLatestFormationNoteByMatchUseCase = context
                                 .read<GetLatestFormationNoteByMatchUseCase>();
+                            final getMatchEventAggregatesFromEventsUseCase = context
+                                .read<GetMatchEventAggregatesFromEventsUseCase>();
+                            final teamScoringConfigStorage = context
+                                .read<TeamScoringConfigStorage>();
                             final loadErrorMessage =
                                 AppLocalizations.of(context)!.matchStatsLoadError;
                             Navigator.push(
@@ -580,8 +589,14 @@ class _MatchListPageState extends State<MatchListPage>
                                         getMatchEventsByMatchUseCase,
                                     getMatchLineupsByMatchUseCase:
                                         getMatchLineupsByMatchUseCase,
+                                    getFirstFormationNoteByMatchUseCase:
+                                        getFirstFormationNoteByMatchUseCase,
                                     getLatestFormationNoteByMatchUseCase:
                                         getLatestFormationNoteByMatchUseCase,
+                                    getMatchEventAggregatesFromEventsUseCase:
+                                        getMatchEventAggregatesFromEventsUseCase,
+                                    teamScoringConfigStorage:
+                                        teamScoringConfigStorage,
                                     loadErrorMessage: loadErrorMessage,
                                   )..load(),
                                   child: MatchStatsPage(

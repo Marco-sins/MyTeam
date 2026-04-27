@@ -28,7 +28,7 @@ class MatchLineupSection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
@@ -56,6 +56,7 @@ class MatchLineupSection extends StatelessWidget {
               _MatchLineupPlayerRow(
                 player: p,
                 label: l10n.matchLineupStarterTag,
+                isStarter: true,
                 rating: playerRatings[p.id],
                 showRating: showRatings,
                 onTap: () => onPlayerTap(p),
@@ -75,6 +76,7 @@ class MatchLineupSection extends StatelessWidget {
               _MatchLineupPlayerRow(
                 player: p,
                 label: l10n.matchLineupSubstituteTag,
+                isStarter: false,
                 rating: playerRatings[p.id],
                 showRating: showRatings,
                 onTap: () => onPlayerTap(p),
@@ -90,6 +92,7 @@ class _MatchLineupPlayerRow extends StatelessWidget {
   const _MatchLineupPlayerRow({
     required this.player,
     required this.label,
+    required this.isStarter,
     required this.onTap,
     this.rating,
     this.showRating = true,
@@ -97,6 +100,7 @@ class _MatchLineupPlayerRow extends StatelessWidget {
 
   final Player player;
   final String label;
+  final bool isStarter;
   final VoidCallback onTap;
   final double? rating;
   final bool showRating;
@@ -128,63 +132,66 @@ class _MatchLineupPlayerRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
           child: Row(
             children: [
-            SizedBox(
-              width: 32,
-              child: Text(
-                player.number?.toString() ?? '-',
-                textAlign: TextAlign.center,
-                style: textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: scheme.primary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: PlayerNameText(
-                player: player,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyMedium,
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (showRating)
-              Container(
-                width: 34,
-                height: 34,
-                margin: const EdgeInsets.only(right: 6),
-                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-                alignment: Alignment.center,
+              SizedBox(
+                width: 32,
                 child: Text(
-                  value.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                  player.number?.toString() ?? '-',
+                  textAlign: TextAlign.center,
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
                   ),
                 ),
               ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: label == 'Titular'
-                    ? scheme.primaryContainer.withValues(alpha: 0.85)
-                    : scheme.secondaryContainer.withValues(alpha: 0.65),
-              ),
-              child: Text(
-                label,
-                style: textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: label == 'Titular'
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSecondaryContainer,
+              const SizedBox(width: 8),
+              Expanded(
+                child: PlayerNameText(
+                  player: player,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium,
                 ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              if (showRating)
+                Container(
+                  width: 34,
+                  height: 34,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    value.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: isStarter
+                      ? scheme.primaryContainer.withValues(alpha: 0.85)
+                      : scheme.secondaryContainer.withValues(alpha: 0.65),
+                ),
+                child: Text(
+                  label,
+                  style: textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: isStarter
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSecondaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

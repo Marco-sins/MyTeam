@@ -42,6 +42,15 @@ class MatchEventRepository implements IMatchEventRepository {
   }
 
   @override
+  Future<Either<Failure, String?>> getFirstFormationNoteByMatchId(
+    int matchId,
+  ) {
+    return runRepositoryGuard(
+      () => _remoteDatasource.getFirstFormationNoteByMatchId(matchId),
+    );
+  }
+
+  @override
   Future<Either<Failure, Unit>> saveMatchEvent(MatchEvent matchEvent) {
     return runRepositoryGuard(() async {
       await _remoteDatasource.saveMatchEvent(
@@ -76,6 +85,8 @@ class MatchEventRepository implements IMatchEventRepository {
         foulsRival: a.foulsRival,
         cornersOur: a.cornersOur,
         cornersRival: a.cornersRival,
+        offsidesOur: a.offsidesOur,
+        offsidesRival: a.offsidesRival,
         yellowOur: a.yellowOur,
         yellowRival: a.yellowRival,
         redOur: a.redOur,

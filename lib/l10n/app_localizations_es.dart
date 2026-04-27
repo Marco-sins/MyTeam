@@ -442,6 +442,81 @@ class AppLocalizationsEs extends AppLocalizations {
       'Invitar admins o espectadores al equipo';
 
   @override
+  String get teamMgmtScoringTitle => 'Pesos de valoración';
+
+  @override
+  String get teamMgmtScoringSubtitle =>
+      'Cambia cuánto suma cada evento a la nota del partido';
+
+  @override
+  String get teamScoringScreenTitle => 'Pesos de nota de partido';
+
+  @override
+  String get teamScoringSave => 'Guardar';
+
+  @override
+  String get teamScoringAddEvent => 'Añadir evento';
+
+  @override
+  String get teamScoringAddDialogTitle => 'Nuevo evento personalizado';
+
+  @override
+  String get teamScoringEventName => 'Nombre como en la nota del partido';
+
+  @override
+  String get teamScoringPoints => 'Puntos';
+
+  @override
+  String get teamScoringUnnamed => '(Sin nombre)';
+
+  @override
+  String get teamScoringInvalidNumber => 'Revisa los números';
+
+  @override
+  String get teamScoringDuplicateName =>
+      'No puede haber dos eventos con el mismo nombre';
+
+  @override
+  String get teamScoringCustomHint =>
+      'Debe coincidir con el texto de la nota (sin distinguir mayúsculas)';
+
+  @override
+  String get teamScoringDeleteTooltip => 'Quitar de la lista';
+
+  @override
+  String get teamScoringGoalScorer => 'Gol';
+
+  @override
+  String get teamScoringGoalAssist => 'Asistencia';
+
+  @override
+  String get teamScoringEventOwnGoal => 'Gol en propia';
+
+  @override
+  String get teamScoringEventGoalConceded => 'Gol encajado';
+
+  @override
+  String get teamScoringParadaIncreible => 'Parada increíble';
+
+  @override
+  String get teamScoringPaseClaveNota => 'Pase clave';
+
+  @override
+  String get teamScoringJugadaClaveNota => 'Jugada clave';
+
+  @override
+  String get teamScoringTiroNota => 'Tiro';
+
+  @override
+  String get teamScoringAmarillaNota => 'Tarjeta amarilla';
+
+  @override
+  String get teamScoringRojaNota => 'Tarjeta roja';
+
+  @override
+  String get teamScoringCantadaNota => 'Cantada';
+
+  @override
   String get teamImportPlayerTitle => 'Importar de otro equipo';
 
   @override
@@ -740,6 +815,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get matchCornersShort => 'Córners';
 
   @override
+  String get matchOffsidesShort => 'Fueras de juego';
+
+  @override
+  String get matchEventOffside => 'Fuera de juego';
+
+  @override
+  String get matchEventRivalOffside => 'Fuera de juego rival';
+
+  @override
   String get matchYellowCardsShort => 'Amarillas';
 
   @override
@@ -765,6 +849,13 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get matchFieldAndFormation => 'Campo y formación';
+
+  @override
+  String get matchFieldBenchTitle => 'Banquillo';
+
+  @override
+  String get matchFieldBenchHint =>
+      'Mantén pulsado un reserva y suéltalo en una posición del campo (sustitución o rellenar un hueco).';
 
   @override
   String get matchSquadTitle => 'Convocados';
@@ -1192,6 +1283,36 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get matchStatsStatBadPlays => 'Malas jugadas';
+
+  @override
+  String get matchStatsStatOwnGoals => 'Goles en propia';
+
+  @override
+  String get matchStatsStatGoalsConceded => 'Goles encajados';
+
+  @override
+  String get matchStatsStatShots => 'Tiros';
+
+  @override
+  String get matchStatsStatSaves => 'Paradas';
+
+  @override
+  String get matchStatsStatKeyPasses => 'Pases clave';
+
+  @override
+  String get matchStatsStatBallRecoveries => 'Recuperaciones';
+
+  @override
+  String get matchStatsStatFouls => 'Faltas';
+
+  @override
+  String get matchStatsStatCantadas => 'Cantadas';
+
+  @override
+  String get matchStatsStatYellowCards => 'Amarillas';
+
+  @override
+  String get matchStatsStatRedCards => 'Rojas';
 
   @override
   String get matchStatsOurGoalChip => 'Gol a favor';

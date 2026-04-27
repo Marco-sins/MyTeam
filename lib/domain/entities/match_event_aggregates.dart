@@ -8,6 +8,8 @@ class MatchEventAggregates {
   final int foulsRival;
   final int cornersOur;
   final int cornersRival;
+  final int offsidesOur;
+  final int offsidesRival;
   final int yellowOur;
   final int yellowRival;
   final int redOur;
@@ -22,6 +24,8 @@ class MatchEventAggregates {
     required this.foulsRival,
     required this.cornersOur,
     required this.cornersRival,
+    required this.offsidesOur,
+    required this.offsidesRival,
     required this.yellowOur,
     required this.yellowRival,
     required this.redOur,

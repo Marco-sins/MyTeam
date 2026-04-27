@@ -268,6 +268,36 @@ class MatchRemoteDatasource {
     }
   }
 
+  /// Fija alineación de salida: `initial_position` = `position` si aún no estaba fijada.
+  Future<void> lockInitialLineupPositions(int matchId) async {
+    try {
+      final result = await _supabase
+          .from('match_lineup')
+          .select('player_id, position, initial_position')
+          .eq('match_id', matchId);
+      final list = result as List<dynamic>? ?? const [];
+      for (final row in list) {
+        final m = Map<String, dynamic>.from(row as Map);
+        final init = m['initial_position'];
+        if (init != null) continue;
+        final pid = m['player_id'];
+        final pos = m['position'];
+        final int? playerId = pid is int ? pid : (pid as num?)?.round();
+        final int? position = pos is int ? pos : (pos as num?)?.round();
+        if (playerId == null || position == null) continue;
+        await _supabase
+            .from('match_lineup')
+            .update({'initial_position': position})
+            .eq('match_id', matchId)
+            .eq('player_id', playerId);
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
   Future<void> setAllLineupNotStarters(int matchId) async {
     try {
       await _supabase

@@ -3,13 +3,17 @@ import 'package:equatable/equatable.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
+import 'package:football_manager/domain/entities/match_event_aggregates.dart';
+import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
 import 'package:football_manager/domain/entities/match_live_timeline_row.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/domain/services/match_live_timeline_filter.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/player/get_players_by_team_use_case.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/presentation/match/utils/match_formation_utils.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 
@@ -56,7 +60,10 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
     required this.getPlayersByTeamUseCase,
     required this.getMatchEventsByMatchUseCase,
     required this.getMatchLineupsByMatchUseCase,
+    required this.getFirstFormationNoteByMatchUseCase,
     required this.getLatestFormationNoteByMatchUseCase,
+    required this.getMatchEventAggregatesFromEventsUseCase,
+    required this.teamScoringConfigStorage,
     required this.loadErrorMessage,
   }) : super(const MatchStatsState.initial());
 
@@ -64,8 +71,12 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
   final GetPlayersByTeamUseCase getPlayersByTeamUseCase;
   final GetMatchEventsByMatchUseCase getMatchEventsByMatchUseCase;
   final GetMatchLineupsByMatchUseCase getMatchLineupsByMatchUseCase;
+  final GetFirstFormationNoteByMatchUseCase getFirstFormationNoteByMatchUseCase;
   final GetLatestFormationNoteByMatchUseCase
       getLatestFormationNoteByMatchUseCase;
+  final GetMatchEventAggregatesFromEventsUseCase
+      getMatchEventAggregatesFromEventsUseCase;
+  final TeamScoringConfigStorage teamScoringConfigStorage;
   final String loadErrorMessage;
 
   Set<int> _sentOffPlayerIdsFromEvents(List<Map<String, dynamic>> events) {
@@ -103,10 +114,20 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
       );
       if (matchEvents == null) return;
 
+      MatchEventAggregates? eventAggregates;
+      if (match.status == MatchStatus.finished) {
+        final aggEither =
+            await getMatchEventAggregatesFromEventsUseCase(match.id);
+        eventAggregates = aggEither.fold((_) => null, (a) => a);
+      } else {
+        eventAggregates = null;
+      }
+
       final fullEventMaps = _matchEventsToEventMaps(matchEvents);
       final eventMaps = _sortChronologyLikeManager(
         fullEventMaps,
       );
+      final teamScoring = teamScoringConfigStorage.load(match.teamId);
 
       final playersEither = await getPlayersByTeamUseCase(match.teamId);
       final playersById = playersEither.fold<Map<int, Player>?>(
@@ -155,8 +176,11 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
 
       final playerRatings = <int, double>{};
       for (final entry in playersById.entries) {
-        playerRatings[entry.key] =
-            calculatePlayerRating(entry.key, fullEventMaps);
+        playerRatings[entry.key] = calculatePlayerRating(
+          entry.key,
+          fullEventMaps,
+          teamScoring: teamScoring,
+        );
       }
 
       final sentOff = _sentOffPlayerIdsFromEvents(fullEventMaps);
@@ -166,16 +190,48 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
       var fieldPositionPlayers = <Player?>[];
 
       if (match.status == MatchStatus.finished) {
-        final formationEither =
-            await getLatestFormationNoteByMatchUseCase(match.id);
-        final formationKey = formationEither.fold((_) => null, (n) => n);
+        int? slotCountFromFormationKey(String? key) {
+          final fromKey = MatchFormationUtils.linesFromKeyOrNull(key);
+          if (fromKey == null) {
+            return null;
+          }
+          return fromKey.fold<int>(0, (sum, n) => sum + n);
+        }
 
         var maxPos = -1;
         for (final row in lineups) {
-          final pos = row.position;
+          if (!row.isStarting) {
+            continue;
+          }
+          final pos = row.initialPosition ?? row.position;
           if (pos != null && pos > maxPos) {
             maxPos = pos;
           }
+        }
+
+        final firstFormationEither =
+            await getFirstFormationNoteByMatchUseCase(match.id);
+        final firstFormationKey =
+            firstFormationEither.fold((_) => null, (n) => n);
+        final latestFormationEither =
+            await getLatestFormationNoteByMatchUseCase(match.id);
+        final latestFormationKey =
+            latestFormationEither.fold((_) => null, (n) => n);
+
+        final neededSlots = maxPos < 0 ? 0 : maxPos + 1;
+        String? formationKey;
+        if (neededSlots > 0) {
+          final cFirst = slotCountFromFormationKey(firstFormationKey);
+          final cLast = slotCountFromFormationKey(latestFormationKey);
+          if (cFirst == neededSlots) {
+            formationKey = firstFormationKey;
+          } else if (cLast == neededSlots) {
+            formationKey = latestFormationKey;
+          } else {
+            formationKey = firstFormationKey ?? latestFormationKey;
+          }
+        } else {
+          formationKey = firstFormationKey ?? latestFormationKey;
         }
 
         final startingRowCount = lineups.where((r) => r.isStarting).length;
@@ -208,7 +264,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
               continue;
             }
             final playerId = row.playerId;
-            final pos = row.position;
+            final pos = row.initialPosition ?? row.position;
             if (pos == null || pos < 0 || pos >= total) {
               continue;
             }
@@ -252,6 +308,8 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
             isLoading: false,
             error: null,
             events: eventMaps,
+            eventAggregates: eventAggregates,
+            allEventMaps: fullEventMaps,
             playersById: playersById,
             startingPlayers: starting,
             substitutePlayers: subs,

@@ -22,10 +22,13 @@ import 'package:football_manager/domain/usecase/match/fetch_convoked_player_ids_
 import 'package:football_manager/domain/usecase/match/fetch_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match/lock_initial_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_match_event_by_db_type_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_events_by_match_use_case.dart';
@@ -52,6 +55,7 @@ import 'package:football_manager/presentation/match/widgets/match_convocation_ta
 import 'package:football_manager/presentation/match/widgets/match_live_stats_panel.dart';
 import 'package:football_manager/presentation/match/widgets/match_field_with_formation.dart';
 import 'package:football_manager/presentation/match/widgets/match_player_action_modal.dart';
+import 'package:football_manager/presentation/match/utils/team_scoring_line_match_save.dart';
 import 'package:football_manager/presentation/match/pages/match_stats_page.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
@@ -107,6 +111,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// Córners (eventos `corner` / `rivalCorner`, manuales).
   int _cornersOur = 0;
   int _cornersRival = 0;
+
+  /// Fueras de juego (eventos `offside` / `rivalOffside`, manuales).
+  int _offsidesOur = 0;
+  int _offsidesRival = 0;
 
   /// Tarjetas propias (`yellowCard` / `redCard` por jugador) y rival (manual).
   int _yellowOur = 0;
@@ -691,6 +699,33 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return maxAllowed < 0 ? 0 : maxAllowed;
   }
 
+  /// Convocados en banquillo: no están en el campo. Incluye reservas y **expulsados**
+  /// (misma franja; el estilo de tarjeta indica no jugables).
+  List<Player> get _benchPlayers {
+    final onField = <int>{};
+    for (final p in _positionPlayers) {
+      if (p != null) onField.add(p.id);
+    }
+    final out = <Player>[];
+    for (final p in _convokedPlayers) {
+      if (onField.contains(p.id)) continue;
+      out.add(p);
+    }
+    int byDorsalThenSentOffLast(Player a, Player b) {
+      final aOff = _sentOffPlayerIds.contains(a.id);
+      final bOff = _sentOffPlayerIds.contains(b.id);
+      if (aOff != bOff) {
+        return aOff ? 1 : -1; // reservas antes que expulsados
+      }
+      final na = a.number ?? 9999;
+      final nb = b.number ?? 9999;
+      return na.compareTo(nb);
+    }
+
+    out.sort(byDorsalThenSentOffLast);
+    return out;
+  }
+
   void _saveCurrentLineup() {
     final playerIds = _positionPlayers.map((p) => p?.id).toList();
     _savedLineups[_match.id] = _SavedLineupState(
@@ -920,6 +955,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     _foulsRival = agg.foulsRival;
     _cornersOur = agg.cornersOur;
     _cornersRival = agg.cornersRival;
+    _offsidesOur = agg.offsidesOur;
+    _offsidesRival = agg.offsidesRival;
     _yellowOur = agg.yellowOur;
     _yellowRival = agg.yellowRival;
     _redOur = agg.redOur;
@@ -1017,8 +1054,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       final result = await uc(_match.id);
       return result.fold((_) => null, (events) {
         final Map<int, double> newRatings = {};
+        final teamScoring = context
+            .read<TeamScoringConfigStorage>()
+            .load(_match.teamId);
         for (final player in _convokedPlayers) {
-          newRatings[player.id] = calculatePlayerRating(player.id, events);
+          newRatings[player.id] = calculatePlayerRating(
+            player.id,
+            events,
+            teamScoring: teamScoring,
+          );
         }
         return newRatings;
       });
@@ -1248,6 +1292,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       }
     });
 
+    if (sentOff != null &&
+        needsDiscipline &&
+        sentOff.difference(prevSentOff).isNotEmpty) {
+      unawaited(_persistCurrentPositionsToMatchLineup());
+    }
     if (needsDiscipline &&
         mounted &&
         !prevSentOff.contains(player.id) &&
@@ -2026,6 +2075,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         _selectedPlayer = null;
       }
     });
+    unawaited(_persistCurrentPositionsToMatchLineup());
   }
 
   String _bottomButtonLabel(AppLocalizations l10n) {
@@ -2119,11 +2169,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       );
       return;
     }
-    final action = await showMatchPlayerActionModal(context, player);
+    final selection = await showMatchPlayerActionModal(
+      context,
+      player,
+      teamId: widget.team.id,
+    );
 
-    if (action == null) return;
+    if (selection == null) return;
 
-    final label = _playerActionLabel(action, l10n);
+    final label = selection.confirmLabel;
     final baseStyle = Theme.of(context).textTheme.bodyMedium!;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2160,44 +2214,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     );
     if (confirmed != true) return;
 
-    await _savePlayerActionEvent(player, action);
+    await _savePlayerScoringSelection(player, selection);
   }
 
-  String _playerActionLabel(
-    MatchPlayerActionType action,
-    AppLocalizations l10n,
-  ) {
-    switch (action) {
-      case MatchPlayerActionType.goal:
-        return l10n.matchActionLabelGoal;
-      case MatchPlayerActionType.goodPass:
-        return l10n.matchActionLabelGoodPass;
-      case MatchPlayerActionType.goodPlay:
-        return l10n.matchActionLabelGoodPlay;
-      case MatchPlayerActionType.goodSave:
-        return l10n.matchActionLabelGoodSave;
-      case MatchPlayerActionType.ballRecovery:
-        return l10n.matchActionLabelBallRecovery;
-      case MatchPlayerActionType.shot:
-        return l10n.matchActionLabelShot;
-      case MatchPlayerActionType.yellowCard:
-        return l10n.matchActionLabelYellowCard;
-      case MatchPlayerActionType.redCard:
-        return l10n.matchActionLabelRedCard;
-      case MatchPlayerActionType.badPass:
-        return l10n.matchActionLabelBadPass;
-      case MatchPlayerActionType.badPlay:
-        return l10n.matchActionLabelBadPlay;
-      case MatchPlayerActionType.foul:
-        return l10n.matchActionLabelFoul;
-      case MatchPlayerActionType.cantada:
-        return l10n.matchActionLabelCantada;
-    }
-  }
-
-  Future<void> _savePlayerActionEvent(
+  Future<void> _savePlayerScoringSelection(
     Player player,
-    MatchPlayerActionType action,
+    MatchPlayerScoringSelection selection,
   ) async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -2209,9 +2231,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
       final minute = _currentMatchMinute();
+      final kind = selection.kind;
 
-      // Caso especial: gol con posible asistente y gol de equipo
-      if (action == MatchPlayerActionType.goal) {
+      if (kind is MatchPlayerScoringSaveGoal) {
         await _savePlayerGoalWithAssist(
           player: player,
           minute: minute,
@@ -2220,60 +2242,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         );
         return;
       }
-
-      late MatchEventEnum type;
-      late String note;
-
-      switch (action) {
-        case MatchPlayerActionType.goal:
-          // El caso de gol se maneja antes con _savePlayerGoalWithAssist.
-          return;
-        case MatchPlayerActionType.goodPass:
-          type = MatchEventEnum.goodPass;
-          note = 'Buen pase';
-          break;
-        case MatchPlayerActionType.goodPlay:
-          type = MatchEventEnum.goodPlay;
-          note = 'Buena jugada';
-          break;
-        case MatchPlayerActionType.goodSave:
-          type = MatchEventEnum.goodSave;
-          note = 'Buena parada';
-          break;
-        case MatchPlayerActionType.ballRecovery:
-          type = MatchEventEnum.ballRecovery;
-          note = 'Balón recuperado';
-          break;
-        case MatchPlayerActionType.shot:
-          type = MatchEventEnum.shot;
-          note = 'Tiro';
-          break;
-        case MatchPlayerActionType.badPass:
-          type = MatchEventEnum.badPass;
-          note = 'Mal pase';
-          break;
-        case MatchPlayerActionType.badPlay:
-          type = MatchEventEnum.badPlay;
-          note = 'Mala jugada';
-          break;
-        case MatchPlayerActionType.foul:
-          type = MatchEventEnum.foul;
-          note = 'Falta';
-          break;
-        case MatchPlayerActionType.yellowCard:
-          type = MatchEventEnum.yellowCard;
-          note = 'Tarjeta amarilla';
-          break;
-        case MatchPlayerActionType.redCard:
-          type = MatchEventEnum.redCard;
-          note = 'Tarjeta roja';
-          break;
-        case MatchPlayerActionType.cantada:
-          type = MatchEventEnum.cantada;
-          note = 'Cantada';
-          break;
+      if (kind is! MatchPlayerScoringSaveEvent) {
+        return;
       }
 
+      final type = kind.type;
+      final note = kind.note;
       final event = MatchEvent(
         id: 0,
         matchId: _match.id,
@@ -2486,6 +2460,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           await _persistCurrentPositionsToMatchLineup();
           // Actualizamos en BD qué jugadores empiezan como titulares.
           await _updateStartersInMatchLineup();
+          if (!mounted) return;
+          final lockInitialRes = await context
+              .read<LockInitialLineupPositionsUseCase>()(_match.id);
+          lockInitialRes.fold(
+            (f) => debugPrint('Lock initial lineup: ${f.message}'),
+            (_) {},
+          );
+          if (!mounted) return;
           // Formación al inicio: si nunca se abrió el selector, aún hace falta
           // un evento "formation" en match_events para estadísticas y detalle.
           await _saveFormationEvent();
@@ -2753,8 +2735,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
               .read<GetMatchEventsByMatchUseCase>();
           final getMatchLineupsByMatchUseCase = context
               .read<GetMatchLineupsByMatchUseCase>();
+          final getFirstFormationNoteByMatchUseCase = context
+              .read<GetFirstFormationNoteByMatchUseCase>();
           final getLatestFormationNoteByMatchUseCase = context
               .read<GetLatestFormationNoteByMatchUseCase>();
+          final getMatchEventAggregatesFromEventsUseCase = context
+              .read<GetMatchEventAggregatesFromEventsUseCase>();
+          final teamScoringConfigStorage =
+              context.read<TeamScoringConfigStorage>();
           final loadErrorMessage =
               AppLocalizations.of(context)!.matchStatsLoadError;
           await Navigator.of(context).pushReplacement(
@@ -2765,8 +2753,13 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                   getPlayersByTeamUseCase: getPlayersByTeamUseCase,
                   getMatchEventsByMatchUseCase: getMatchEventsByMatchUseCase,
                   getMatchLineupsByMatchUseCase: getMatchLineupsByMatchUseCase,
+                  getFirstFormationNoteByMatchUseCase:
+                      getFirstFormationNoteByMatchUseCase,
                   getLatestFormationNoteByMatchUseCase:
                       getLatestFormationNoteByMatchUseCase,
+                  getMatchEventAggregatesFromEventsUseCase:
+                      getMatchEventAggregatesFromEventsUseCase,
+                  teamScoringConfigStorage: teamScoringConfigStorage,
                   loadErrorMessage: loadErrorMessage,
                 )..load(),
                 child: MatchStatsPage(
@@ -3053,6 +3046,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                   foulsRival: _foulsRival,
                   cornersOur: _cornersOur,
                   cornersRival: _cornersRival,
+                  offsidesOur: _offsidesOur,
+                  offsidesRival: _offsidesRival,
                   yellowOur: _yellowOur,
                   yellowRival: _yellowRival,
                   redOur: _redOur,
@@ -3093,6 +3088,24 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                       : () => _saveManualCounterEvent(
                             type: MatchEventEnum.rivalCorner,
                             note: 'Córner rival',
+                          ),
+                  onRemoveOffside: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.offside),
+                  onAddOffside: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.offside,
+                            note: l10n.matchEventOffside,
+                          ),
+                  onRemoveRivalOffside: isExternal
+                      ? null
+                      : () => _removeLastOfType(MatchEventEnum.rivalOffside),
+                  onAddRivalOffside: isExternal
+                      ? null
+                      : () => _saveManualCounterEvent(
+                            type: MatchEventEnum.rivalOffside,
+                            note: l10n.matchEventRivalOffside,
                           ),
                   onRemoveRivalYellowCard: isExternal
                       ? null
@@ -3200,6 +3213,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                               formationLines: _formationLines,
                               formationLayoutKey: _selectedFormation,
                               positionPlayers: _positionPlayers,
+                              benchPlayers: _benchPlayers,
                               selectedPlayer: _selectedPlayer,
                               sentOffPlayerIds: _sentOffPlayerIds,
                               currentPlayersOnField: _currentPlayersOnField,

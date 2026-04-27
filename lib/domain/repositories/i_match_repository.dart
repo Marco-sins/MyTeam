@@ -39,6 +39,9 @@ abstract class IMatchRepository {
     required Map<int, int> onFieldPositionByPlayerId,
   });
 
+  /// Copia [position] → [initial_position] donde aún sea null (al inicio del partido).
+  Future<Either<Failure, Unit>> lockInitialLineupPositions(int matchId);
+
   Future<Either<Failure, Unit>> updateMatchLineupStarters({
     required int matchId,
     required List<int> starterPlayerIds,

@@ -8,6 +8,9 @@ abstract class IMatchEventRepository {
   Future<Either<Failure, List<MatchEvent>>> getMatchEventsByMatch(int matchId);
   /// Nota del último evento de tipo formación (clave tipo `4-4-2`), o null.
   Future<Either<Failure, String?>> getLatestFormationNoteByMatchId(int matchId);
+
+  /// Primer evento de formación (p. ej. alineación al inicio), o null.
+  Future<Either<Failure, String?>> getFirstFormationNoteByMatchId(int matchId);
   Future<Either<Failure, Unit>> saveMatchEvent(MatchEvent matchEvent);
   Future<Either<Failure, Unit>> updateMatchEvent(MatchEvent matchEvent);
   Future<Either<Failure, Unit>> deleteMatchEvent(int id);

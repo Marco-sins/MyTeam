@@ -165,6 +165,14 @@ class MatchRepository implements IMatchRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> lockInitialLineupPositions(int matchId) {
+    return runRepositoryGuard(() async {
+      await _remoteDatasource.lockInitialLineupPositions(matchId);
+      return unit;
+    });
+  }
+
+  @override
   Future<Either<Failure, Unit>> updateMatchLineupStarters({
     required int matchId,
     required List<int> starterPlayerIds,

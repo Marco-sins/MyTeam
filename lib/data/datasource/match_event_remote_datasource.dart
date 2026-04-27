@@ -69,6 +69,28 @@ class MatchEventRemoteDatasource {
     }
   }
 
+  Future<String?> getFirstFormationNoteByMatchId(int matchId) async {
+    try {
+      final rowsRaw = await _supabase
+          .from('match_events')
+          .select('note')
+          .eq('match_id', matchId)
+          .eq('type', 'formation')
+          .order('id', ascending: true)
+          .limit(1);
+      final rows = supabaseResponseAsList(rowsRaw);
+      if (rows.isEmpty) return null;
+      final raw = (rows.first as Map<String, dynamic>)['note'] as String?;
+      final trimmed = raw?.trim();
+      if (trimmed == null || trimmed.isEmpty) return null;
+      return trimmed;
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
   Future<void> saveMatchEvent(MatchEventModel matchEvent) async {
     try {
       final response = await _supabase
@@ -117,6 +139,8 @@ class MatchEventRemoteDatasource {
     int foulsRival,
     int cornersOur,
     int cornersRival,
+    int offsidesOur,
+    int offsidesRival,
     int yellowOur,
     int yellowRival,
     int redOur,
@@ -136,6 +160,8 @@ class MatchEventRemoteDatasource {
       int foulsRival = 0;
       int cornersOur = 0;
       int cornersRival = 0;
+      int offsidesOur = 0;
+      int offsidesRival = 0;
       int yellowOur = 0;
       int yellowRival = 0;
       int redOur = 0;
@@ -167,6 +193,10 @@ class MatchEventRemoteDatasource {
           cornersOur++;
         } else if (typeString == 'rivalCorner') {
           cornersRival++;
+        } else if (typeString == 'offside') {
+          offsidesOur++;
+        } else if (typeString == 'rivalOffside') {
+          offsidesRival++;
         } else if (typeString == 'yellowCard') {
           yellowOur++;
           if (p1 != null) {
@@ -204,6 +234,8 @@ class MatchEventRemoteDatasource {
         foulsRival: foulsRival,
         cornersOur: cornersOur,
         cornersRival: cornersRival,
+        offsidesOur: offsidesOur,
+        offsidesRival: offsidesRival,
         yellowOur: yellowOur,
         yellowRival: yellowRival,
         redOur: redOur,

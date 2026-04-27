@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:football_manager/data/datasource/attendance_remote_datasource.dart';
@@ -54,9 +55,11 @@ import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart
 import 'package:football_manager/domain/usecase/match/get_match_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
+import 'package:football_manager/domain/usecase/match/lock_initial_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
+import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_match_event_by_db_type_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
@@ -81,6 +84,7 @@ import 'package:football_manager/domain/usecase/team/get_teams_use_case.dart';
 import 'package:football_manager/domain/usecase/team/leave_team_as_external_use_case.dart';
 import 'package:football_manager/domain/usecase/team/update_team_use_case.dart';
 import 'package:football_manager/domain/usecase/team/upload_team_logo_use_case.dart';
+import 'package:football_manager/data/team_scoring_config_storage.dart';
 
 /// Localizador de dependencias (composition root). Llamar a [configureDependencies]
 /// tras [Supabase.initialize].
@@ -90,6 +94,12 @@ Future<void> configureDependencies() async {
   if (sl.isRegistered<IAuthRepository>()) {
     return;
   }
+
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerSingleton<SharedPreferences>(sharedPreferences);
+  sl.registerLazySingleton(
+    () => TeamScoringConfigStorage(sl<SharedPreferences>()),
+  );
 
   final client = Supabase.instance.client;
 
@@ -218,6 +228,9 @@ Future<void> configureDependencies() async {
     () => GetLatestFormationNoteByMatchUseCase(sl<IMatchEventRepository>()),
   );
   sl.registerLazySingleton(
+    () => GetFirstFormationNoteByMatchUseCase(sl<IMatchEventRepository>()),
+  );
+  sl.registerLazySingleton(
     () => GetMatchByIdUseCase(sl<IMatchRepository>()),
   );
   sl.registerLazySingleton(
@@ -253,6 +266,9 @@ Future<void> configureDependencies() async {
   );
   sl.registerLazySingleton(
     () => PersistMatchLineupPositionsUseCase(sl<IMatchRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => LockInitialLineupPositionsUseCase(sl<IMatchRepository>()),
   );
   sl.registerLazySingleton(
     () => ApplyMatchLineupStartersUseCase(sl<IMatchRepository>()),

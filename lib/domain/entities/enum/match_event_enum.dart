@@ -27,6 +27,10 @@ enum MatchEventEnum {
   corner,
   /// Córner del rival (contador manual).
   rivalCorner,
+  /// Fuera de juego a favor (contador manual +/−).
+  offside,
+  /// Fuera de juego del rival (contador manual +/−).
+  rivalOffside,
   /// Falta del rival (contador manual).
   rivalFoul,
   /// Tarjeta amarilla del rival (contador manual +/−).

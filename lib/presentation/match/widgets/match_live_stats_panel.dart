@@ -21,6 +21,8 @@ class MatchLiveStatsPanel extends StatelessWidget {
     required this.foulsRival,
     required this.cornersOur,
     required this.cornersRival,
+    required this.offsidesOur,
+    required this.offsidesRival,
     required this.yellowOur,
     required this.yellowRival,
     required this.redOur,
@@ -34,6 +36,10 @@ class MatchLiveStatsPanel extends StatelessWidget {
     this.onAddCorner,
     this.onRemoveRivalCorner,
     this.onAddRivalCorner,
+    this.onRemoveOffside,
+    this.onAddOffside,
+    this.onRemoveRivalOffside,
+    this.onAddRivalOffside,
     this.onRemoveRivalYellowCard,
     this.onAddRivalYellowCard,
     this.onRemoveRivalRedCard,
@@ -48,6 +54,8 @@ class MatchLiveStatsPanel extends StatelessWidget {
   final int foulsRival;
   final int cornersOur;
   final int cornersRival;
+  final int offsidesOur;
+  final int offsidesRival;
   final int yellowOur;
   final int yellowRival;
   final int redOur;
@@ -62,6 +70,10 @@ class MatchLiveStatsPanel extends StatelessWidget {
   final VoidCallback? onAddCorner;
   final VoidCallback? onRemoveRivalCorner;
   final VoidCallback? onAddRivalCorner;
+  final VoidCallback? onRemoveOffside;
+  final VoidCallback? onAddOffside;
+  final VoidCallback? onRemoveRivalOffside;
+  final VoidCallback? onAddRivalOffside;
   final VoidCallback? onRemoveRivalYellowCard;
   final VoidCallback? onAddRivalYellowCard;
   final VoidCallback? onRemoveRivalRedCard;
@@ -269,6 +281,60 @@ class MatchLiveStatsPanel extends StatelessWidget {
                           readOnly: readOnly,
                           onMinus: onRemoveRivalCorner,
                           onPlus: onAddRivalCorner,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14 * s),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  _SectionLabel(
+                    leading: Icon(
+                      Icons.flag,
+                      size: 20 * s,
+                      color: scheme.primary.withValues(alpha: 0.9),
+                    ),
+                    label: l10n.matchOffsidesShort,
+                    scheme: scheme,
+                    s: s,
+                    theme: theme,
+                  ),
+                  SizedBox(height: 12 * s),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _CornerBlock(
+                          value: offsidesOur,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.primary,
+                          readOnly: readOnly,
+                          onMinus: onRemoveOffside,
+                          onPlus: onAddOffside,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
+                        ),
+                      ),
+                      SizedBox(width: 10 * s),
+                      Expanded(
+                        child: _CornerBlock(
+                          value: offsidesRival,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.tertiary,
+                          readOnly: readOnly,
+                          onMinus: onRemoveRivalOffside,
+                          onPlus: onAddRivalOffside,
                           tooltipMinus: l10n.matchCounterRemoveTooltip,
                           tooltipPlus: l10n.matchCounterAddTooltip,
                         ),

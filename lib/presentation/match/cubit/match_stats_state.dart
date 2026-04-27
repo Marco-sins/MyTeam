@@ -14,6 +14,8 @@ class MatchStatsState extends Equatable {
     required this.formationLabel,
     required this.fieldPositionPlayers,
     required this.sentOffPlayerIds,
+    this.eventAggregates,
+    required this.allEventMaps,
   });
 
   const MatchStatsState.initial()
@@ -28,7 +30,9 @@ class MatchStatsState extends Equatable {
       formationLines = const [],
       formationLabel = null,
       fieldPositionPlayers = const [],
-      sentOffPlayerIds = const {};
+      sentOffPlayerIds = const {},
+      eventAggregates = null,
+      allEventMaps = const [];
 
   final bool isLoading;
   final String? error;
@@ -42,9 +46,17 @@ class MatchStatsState extends Equatable {
   final List<int> formationLines;
   /// Clave de formación guardada (`4-4-2`, …) o null si se infirió por posiciones.
   final String? formationLabel;
-  /// Jugadores por hueco al final del partido (expulsados fuera del campo).
+  /// Titulares en el diagrama: alineación **inicial** ([MatchLineup.initialPosition]) en
+  /// partidos finalizados; [sentOffPlayerIds] se aplica en la UI de lectura.
   final List<Player?> fieldPositionPlayers;
   final Set<int> sentOffPlayerIds;
+
+  /// Conteos de tiros, faltas, córners y tarjetas (misma fuente que el gestor en vivo).
+  final MatchEventAggregates? eventAggregates;
+
+  /// Todos los eventos del partido (misma base que [calculatePlayerRating]), no el listado
+  /// de cronología filtrada.
+  final List<Map<String, dynamic>> allEventMaps;
 
   MatchStatsState copyWith({
     bool? isLoading,
@@ -59,6 +71,8 @@ class MatchStatsState extends Equatable {
     String? formationLabel,
     List<Player?>? fieldPositionPlayers,
     Set<int>? sentOffPlayerIds,
+    MatchEventAggregates? eventAggregates,
+    List<Map<String, dynamic>>? allEventMaps,
   }) {
     return MatchStatsState(
       isLoading: isLoading ?? this.isLoading,
@@ -73,6 +87,8 @@ class MatchStatsState extends Equatable {
       formationLabel: formationLabel ?? this.formationLabel,
       fieldPositionPlayers: fieldPositionPlayers ?? this.fieldPositionPlayers,
       sentOffPlayerIds: sentOffPlayerIds ?? this.sentOffPlayerIds,
+      eventAggregates: eventAggregates ?? this.eventAggregates,
+      allEventMaps: allEventMaps ?? this.allEventMaps,
     );
   }
 
@@ -90,5 +106,7 @@ class MatchStatsState extends Equatable {
     formationLabel,
     fieldPositionPlayers,
     sentOffPlayerIds,
+    eventAggregates,
+    allEventMaps,
   ];
 }
