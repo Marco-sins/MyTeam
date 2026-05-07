@@ -1,6 +1,10 @@
 part of 'match_stats_cubit.dart';
 
+/// Estado inmutable con los datos listos para la pantalla de estadisticas.
+/// Se construye desde el cubit y se compara por valor con [Equatable].
 class MatchStatsState extends Equatable {
+  /// Crea un estado completo con todos los campos obligatorios.
+  /// Lo hace asignando cada propiedad para mantener inmutabilidad.
   const MatchStatsState({
     required this.isLoading,
     required this.error,
@@ -16,6 +20,8 @@ class MatchStatsState extends Equatable {
     required this.sentOffPlayerIds,
   });
 
+  /// Estado inicial sin datos cargados ni errores.
+  /// Lo hace usando colecciones vacias y banderas por defecto.
   const MatchStatsState.initial()
     : isLoading = false,
       error = null,
@@ -38,14 +44,19 @@ class MatchStatsState extends Equatable {
   final List<Player> substitutePlayers;
   final Map<int, bool> isStarterById;
   final Map<int, double> playerRatings;
+
   /// Filas del campo (portero + líneas), p. ej. [1,4,4,2]. Vacío = no hay dibujo.
   final List<int> formationLines;
+
   /// Clave de formación guardada (`4-4-2`, …) o null si se infirió por posiciones.
   final String? formationLabel;
+
   /// Jugadores por hueco al final del partido (expulsados fuera del campo).
   final List<Player?> fieldPositionPlayers;
   final Set<int> sentOffPlayerIds;
 
+  /// Crea una copia con cambios puntuales.
+  /// Lo hace reusando los valores actuales cuando el parametro es null.
   MatchStatsState copyWith({
     bool? isLoading,
     String? error,
@@ -76,6 +87,8 @@ class MatchStatsState extends Equatable {
     );
   }
 
+  /// Lista de props para comparacion por valor.
+  /// Lo hace exponiendo todas las propiedades relevantes del estado.
   @override
   List<Object?> get props => [
     isLoading,

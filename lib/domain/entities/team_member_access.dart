@@ -1,3 +1,4 @@
+/// Información de acceso de un miembro de equipo: role/username/email.
 class TeamMemberAccess {
   final String userId;
   final String role;

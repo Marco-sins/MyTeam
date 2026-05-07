@@ -1,3 +1,5 @@
+/// Modelo de usuario autenticado (session) mapeado a la entidad de dominio
+/// `AuthUser`.
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 

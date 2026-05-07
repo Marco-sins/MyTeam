@@ -7,6 +7,7 @@ import 'package:football_manager/data/datasource/invitation_remote_datasource.da
 import 'package:football_manager/data/datasource/match_event_remote_datasource.dart';
 import 'package:football_manager/data/datasource/match_remote_datasource.dart';
 import 'package:football_manager/data/datasource/player_remote_datasource.dart';
+import 'package:football_manager/data/datasource/player_event_scoring_datasource.dart';
 import 'package:football_manager/data/datasource/profile_remote_datasource.dart';
 import 'package:football_manager/data/datasource/team_remote_datasource.dart';
 import 'package:football_manager/data/repositories/attendance_repository.dart';
@@ -15,6 +16,7 @@ import 'package:football_manager/data/repositories/invitation_repository.dart';
 import 'package:football_manager/data/repositories/match_event_repository.dart';
 import 'package:football_manager/data/repositories/match_repository.dart';
 import 'package:football_manager/data/repositories/player_repository.dart';
+import 'package:football_manager/data/repositories/player_event_scoring_repository_impl.dart';
 import 'package:football_manager/data/repositories/profile_repository.dart';
 import 'package:football_manager/data/realtime/match_spectator_realtime_service.dart';
 import 'package:football_manager/data/repositories/team_repository.dart';
@@ -27,6 +29,7 @@ import 'package:football_manager/domain/repositories/i_match_spectator_realtime.
 import 'package:football_manager/domain/repositories/i_player_repository.dart';
 import 'package:football_manager/domain/repositories/i_profile_repository.dart';
 import 'package:football_manager/domain/repositories/i_team_repository.dart';
+import 'package:football_manager/domain/repositories/player_event_scoring_repository.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_day_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_use_case.dart';
@@ -121,32 +124,24 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton<IMatchSpectatorRealtime>(
     () => MatchSpectatorRealtimeService(client),
   );
+  sl.registerLazySingleton<PlayerEventScoringRepository>(
+    () => PlayerEventScoringRepositoryImpl(
+      PlayerEventScoringDatasource(client),
+      null,
+    ),
+  );
 
   // —— Casos de uso ——
-  sl.registerLazySingleton(
-    () => GetTeamsUseCase(sl<ITeamRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => GetTeamByIdUseCase(sl<ITeamRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => UploadTeamLogoUseCase(sl<ITeamRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => UpdateTeamUseCase(sl<ITeamRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => AddNewPlayerUseCase(sl<IPlayerRepository>()),
-  );
+  sl.registerLazySingleton(() => GetTeamsUseCase(sl<ITeamRepository>()));
+  sl.registerLazySingleton(() => GetTeamByIdUseCase(sl<ITeamRepository>()));
+  sl.registerLazySingleton(() => UploadTeamLogoUseCase(sl<ITeamRepository>()));
+  sl.registerLazySingleton(() => UpdateTeamUseCase(sl<ITeamRepository>()));
+  sl.registerLazySingleton(() => AddNewPlayerUseCase(sl<IPlayerRepository>()));
   sl.registerLazySingleton(
     () => ImportPlayerFromOtherTeamUseCase(sl<IPlayerRepository>()),
   );
-  sl.registerLazySingleton(
-    () => DeletePlayerUseCase(sl<IPlayerRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => UpdatePlayerUseCase(sl<IPlayerRepository>()),
-  );
+  sl.registerLazySingleton(() => DeletePlayerUseCase(sl<IPlayerRepository>()));
+  sl.registerLazySingleton(() => UpdatePlayerUseCase(sl<IPlayerRepository>()));
   sl.registerLazySingleton(
     () => GetPlayersByTeamUseCase(sl<IPlayerRepository>()),
   );
@@ -156,9 +151,7 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(
     () => DeleteStoredPlayerPhotoUseCase(sl<IPlayerRepository>()),
   );
-  sl.registerLazySingleton(
-    () => DeleteTeamUseCase(sl<ITeamRepository>()),
-  );
+  sl.registerLazySingleton(() => DeleteTeamUseCase(sl<ITeamRepository>()));
   sl.registerLazySingleton(
     () => LeaveTeamAsExternalUseCase(sl<ITeamRepository>()),
   );
@@ -183,21 +176,14 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(
     () => DeleteAttendanceDayUseCase(sl<IAttendanceRepository>()),
   );
-  sl.registerLazySingleton(
-    () => CreateMatchUseCase(sl<IMatchRepository>()),
-  );
+  sl.registerLazySingleton(() => CreateMatchUseCase(sl<IMatchRepository>()));
   sl.registerLazySingleton(
     () => GetMatchesByTeamUseCase(sl<IMatchRepository>()),
   );
   sl.registerLazySingleton(
-    () => DeleteMatchUseCase(
-      sl<IMatchRepository>(),
-      sl<IPlayerRepository>(),
-    ),
+    () => DeleteMatchUseCase(sl<IMatchRepository>(), sl<IPlayerRepository>()),
   );
-  sl.registerLazySingleton(
-    () => StartMatchUseCase(sl<IMatchRepository>()),
-  );
+  sl.registerLazySingleton(() => StartMatchUseCase(sl<IMatchRepository>()));
   sl.registerLazySingleton(
     () => FinishMatchUseCase(
       sl<IMatchRepository>(),
@@ -217,13 +203,9 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(
     () => GetLatestFormationNoteByMatchUseCase(sl<IMatchEventRepository>()),
   );
+  sl.registerLazySingleton(() => GetMatchByIdUseCase(sl<IMatchRepository>()));
   sl.registerLazySingleton(
-    () => GetMatchByIdUseCase(sl<IMatchRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => GetMatchEventAggregatesFromEventsUseCase(
-      sl<IMatchEventRepository>(),
-    ),
+    () => GetMatchEventAggregatesFromEventsUseCase(sl<IMatchEventRepository>()),
   );
   sl.registerLazySingleton(
     () => GetMatchLiveTimelineMapsUseCase(sl<IMatchEventRepository>()),
@@ -235,9 +217,8 @@ Future<void> configureDependencies() async {
     () => GetPlayerRatingEventRowsUseCase(sl<IMatchEventRepository>()),
   );
   sl.registerLazySingleton(
-    () => GetPlayerCardSummaryForMatchPlayerUseCase(
-      sl<IMatchEventRepository>(),
-    ),
+    () =>
+        GetPlayerCardSummaryForMatchPlayerUseCase(sl<IMatchEventRepository>()),
   );
   sl.registerLazySingleton(
     () => GetLatestMatchEventByDbTypeUseCase(sl<IMatchEventRepository>()),
@@ -281,21 +262,11 @@ Future<void> configureDependencies() async {
   sl.registerLazySingleton(
     () => RejectInvitationUseCase(sl<IInvitationRepository>()),
   );
-  sl.registerLazySingleton(
-    () => SignInUseCase(sl<IAuthRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => SignUpUseCase(sl<IAuthRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => SignOutUseCase(sl<IAuthRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => GetUserSessionUseCase(sl<IAuthRepository>()),
-  );
-  sl.registerLazySingleton(
-    () => CreateTeamUseCase(sl<ITeamRepository>()),
-  );
+  sl.registerLazySingleton(() => SignInUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton(() => SignUpUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton(() => SignOutUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton(() => GetUserSessionUseCase(sl<IAuthRepository>()));
+  sl.registerLazySingleton(() => CreateTeamUseCase(sl<ITeamRepository>()));
 }
 
 /// Para pruebas o hot-reload controlado.

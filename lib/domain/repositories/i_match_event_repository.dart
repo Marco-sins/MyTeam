@@ -6,6 +6,11 @@ import 'package:football_manager/domain/entities/match_live_timeline_row.dart';
 
 abstract class IMatchEventRepository {
   Future<Either<Failure, List<MatchEvent>>> getMatchEventsByMatch(int matchId);
+
+  /// Contrato de repositorio para operaciones sobre `match_events`.
+  ///
+  /// Define las operaciones que deben implementar las fuentes de datos
+  /// (remotas o locales) para trabajar con eventos de partido.
   /// Nota del último evento de tipo formación (clave tipo `4-4-2`), o null.
   Future<Either<Failure, String?>> getLatestFormationNoteByMatchId(int matchId);
   Future<Either<Failure, Unit>> saveMatchEvent(MatchEvent matchEvent);
@@ -20,13 +25,14 @@ abstract class IMatchEventRepository {
     int matchId,
   );
 
-  Future<Either<Failure, List<MatchLiveTimelineRow>>>
-      getLiveTimelineSourceRows(int matchId);
+  Future<Either<Failure, List<MatchLiveTimelineRow>>> getLiveTimelineSourceRows(
+    int matchId,
+  );
 
   Future<Either<Failure, Set<int>>> getSentOffPlayerIds(int matchId);
 
   Future<Either<Failure, ({int yellowCount, bool hasRed})>>
-      getPlayerCardSummaryForPlayer(int matchId, int playerId);
+  getPlayerCardSummaryForPlayer(int matchId, int playerId);
 
   Future<Either<Failure, MatchEvent?>> getLatestEventByTypeString({
     required int matchId,

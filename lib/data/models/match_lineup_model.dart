@@ -1,3 +1,5 @@
+/// Modelo que representa la formación/alineación de un partido en la BD.
+/// Provee `fromJson`/`toJson` y facilita persistencia de posiciones.
 import 'package:football_manager/domain/entities/match_lineup.dart';
 
 class MatchLineupModel extends MatchLineup {

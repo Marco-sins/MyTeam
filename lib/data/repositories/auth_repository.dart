@@ -1,3 +1,5 @@
+/// Repositorio de autenticación que envuelve las operaciones de auth y adapta
+/// los resultados al dominio.
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
@@ -27,10 +29,7 @@ class AuthRepository implements IAuthRepository {
   }
 
   @override
-  Future<Either<Failure, AuthUser>> signIn(
-    String email,
-    String password,
-  ) {
+  Future<Either<Failure, AuthUser>> signIn(String email, String password) {
     return runRepositoryGuard(() async {
       final response = await _datasource.signIn(email, password);
       return AuthUserMapper.toEntity(response);

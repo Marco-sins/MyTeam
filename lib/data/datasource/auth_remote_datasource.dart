@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:gotrue/gotrue.dart' show User;
+
+/// Datasource de autenticación: puente directo a `supabase_flutter` para
+/// iniciar sesión, registro, cerrar sesión y otras operaciones de autorización.
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/config/auth_redirect_urls.dart';
 import 'package:football_manager/core/errors/exception/auth_server_exception.dart';
@@ -37,8 +39,8 @@ class AuthRemoteDatasource {
       final username = fromForm.isNotEmpty
           ? fromForm
           : nameStr.isNotEmpty
-              ? nameStr
-              : (email.contains('@') ? email.split('@').first : 'Usuario');
+          ? nameStr
+          : (email.contains('@') ? email.split('@').first : 'Usuario');
 
       await _supabase.from('profiles').insert({
         'id': user.id,
@@ -49,9 +51,7 @@ class AuthRemoteDatasource {
       if (e.code == '23505') {
         return;
       }
-      debugPrint(
-        '_ensureProfileForAuthUser: ${e.message} (code: ${e.code})',
-      );
+      debugPrint('_ensureProfileForAuthUser: ${e.message} (code: ${e.code})');
     } catch (e) {
       debugPrint('_ensureProfileForAuthUser: $e');
     }
@@ -118,15 +118,8 @@ class AuthRemoteDatasource {
 
   /// [awaitingEmailConfirmation] true cuando Supabase exige verificar el correo
   /// y aún no hay sesión ([AuthResponse.session] == null).
-  Future<({
-    bool awaitingEmailConfirmation,
-    AuthUserModel? user,
-    String email,
-  })> signUp(
-    String email,
-    String name,
-    String password,
-  ) async {
+  Future<({bool awaitingEmailConfirmation, AuthUserModel? user, String email})>
+  signUp(String email, String name, String password) async {
     try {
       final response = await _supabase.auth.signUp(
         email: email,

@@ -1,4 +1,16 @@
-// Utilidades para valores que vienen de PostgREST / JSON en Supabase.
+/// Utilidades para valores que vienen de PostgREST / JSON en Supabase.
+///
+/// Este archivo publica funciones de ayuda para transformar y normalizar
+/// los valores que vienen de la base de datos (vía Supabase/PostgREST). Entre
+/// ellas:
+/// - `supabaseResponseAsList`: protege contra responses `null` o no-list.
+/// - `supabaseInt`: convierte a `int` desde `num`/`String`.
+/// - `resolveMatchEventMinute`: heurística para extraer el minuto del evento.
+/// - `canonicalMatchEventTypeKey`: normaliza variantes de tipo de evento
+///   (camels, snake_case, textos en español) a una clave canónica.
+///
+/// Usar estas utilidades siempre que se parseen filas devueltas por la API
+/// para mantener comportamiento consistente en todo el código.
 
 /// Respuesta de `.select()` / `.insert()` / etc.: a veces es `null` en el cliente;
 /// nunca usar [Iterable.isEmpty] directamente sobre el valor crudo.
@@ -69,6 +81,10 @@ String canonicalMatchEventTypeKey(dynamic rawType) {
     'corner': 'corner',
     'cornerrival': 'rivalcorner',
     'faltarival': 'rivalfoul',
+    'fueradejuego': 'offside',
+    'fueradejuegorival': 'rivaloffside',
+    'tarjetaamarillarival': 'rivalyellowcard',
+    'tarjetarojarival': 'rivalredcard',
   };
 
   return aliases[k] ?? k;

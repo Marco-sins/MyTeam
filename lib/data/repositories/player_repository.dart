@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+/// Repositorio de jugadores: implementa las operaciones definidas en el
+/// contrato de dominio `IPlayerRepository` y delega en `PlayerRemoteDatasource`.
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';

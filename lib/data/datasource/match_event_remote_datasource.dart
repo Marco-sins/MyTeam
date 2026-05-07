@@ -1,3 +1,8 @@
+/// Datasource remoto para la tabla `match_events`.
+///
+/// Provee lecturas (timeline, filas para cálculos de valoración), inserciones
+/// y actualizaciones de eventos de partido. Normaliza y persiste el campo
+/// `type` tal y como la app lo espera.
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
@@ -38,7 +43,10 @@ class MatchEventRemoteDatasource {
           .order('minute', ascending: false)
           .order('created_at', ascending: false);
       return supabaseResponseAsList(result)
-          .map((e) => MatchEventModel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .map(
+            (e) =>
+                MatchEventModel.fromJson(Map<String, dynamic>.from(e as Map)),
+          )
           .toList();
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
@@ -108,16 +116,19 @@ class MatchEventRemoteDatasource {
     }
   }
 
-  Future<({
-    int goalsScored,
-    int goalsConceded,
-    int shotsOur,
-    int shotsRival,
-    int foulsOur,
-    int foulsRival,
-    int cornersOur,
-    int cornersRival,
-  })> getEventAggregates(int matchId) async {
+  Future<
+    ({
+      int goalsScored,
+      int goalsConceded,
+      int shotsOur,
+      int shotsRival,
+      int foulsOur,
+      int foulsRival,
+      int cornersOur,
+      int cornersRival,
+    })
+  >
+  getEventAggregates(int matchId) async {
     try {
       final result = await _supabase
           .from('match_events')
@@ -136,24 +147,25 @@ class MatchEventRemoteDatasource {
       for (final row in supabaseResponseAsList(result)) {
         final raw = row['type'];
         if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
+        final typeString = canonicalMatchEventTypeKey(raw);
 
-        if (typeString == 'scoreGoal') {
+        if (typeString == 'scoregoal') {
           scored++;
           shotsOur++;
-        } else if (typeString == 'concedeGoal' || typeString == 'ownGoal') {
+        } else if (typeString == 'concedegoal' || typeString == 'owngoal') {
           conceded++;
+          shotsRival++;
         } else if (typeString == 'shot') {
           shotsOur++;
-        } else if (typeString == 'rivalShot') {
+        } else if (typeString == 'rivalshot') {
           shotsRival++;
         } else if (typeString == 'foul') {
           foulsOur++;
-        } else if (typeString == 'rivalFoul') {
+        } else if (typeString == 'rivalfoul') {
           foulsRival++;
         } else if (typeString == 'corner') {
           cornersOur++;
-        } else if (typeString == 'rivalCorner') {
+        } else if (typeString == 'rivalcorner') {
           cornersRival++;
         }
       }
@@ -175,15 +187,17 @@ class MatchEventRemoteDatasource {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getRowsForPlayerRatings(int matchId) async {
+  Future<List<Map<String, dynamic>>> getRowsForPlayerRatings(
+    int matchId,
+  ) async {
     try {
       final result = await _supabase
           .from('match_events')
-          .select('type, player_id1, player_id2, note')
+          .select('type, player_id1, player_id2, note, point')
           .eq('match_id', matchId);
-      return supabaseResponseAsList(result)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      return supabaseResponseAsList(
+        result,
+      ).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -191,21 +205,19 @@ class MatchEventRemoteDatasource {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getLiveTimelineRawRows(
-    int matchId,
-  ) async {
+  Future<List<Map<String, dynamic>>> getLiveTimelineRawRows(int matchId) async {
     try {
       final raw = await _supabase
           .from('match_events')
           .select(
-            'id, match_id, type, minute, player_id1, player_id2, note, created_at',
+            'id, match_id, type, minute, player_id1, player_id2, note, point, created_at',
           )
           .eq('match_id', matchId)
           .order('minute', ascending: true)
           .order('created_at', ascending: true);
-      return supabaseResponseAsList(raw)
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      return supabaseResponseAsList(
+        raw,
+      ).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

@@ -1,3 +1,6 @@
+/// Datasource remoto para operaciones sobre `players`, `player_stats` y
+/// datos relacionados. Implementa las llamadas HTTP/SQL vía Supabase/PostgREST
+/// y encapsula detalles de manejo de errores y compatibilidad de esquema.
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -50,7 +53,10 @@ Future<void> _updatePlayerStatsWithSchemaFallback(
       );
     }
     try {
-      await supabase.from('player_stats').update(data).eq('player_id', playerId);
+      await supabase
+          .from('player_stats')
+          .update(data)
+          .eq('player_id', playerId);
       return;
     } on PostgrestException catch (e) {
       final next = _removeColumnFromPayloadIfSchemaError(e, data);
@@ -82,8 +88,10 @@ Future<void> _insertPlayerStatsWithSchemaFallback(
       );
     }
     try {
-      final statsResponse =
-          await supabase.from('player_stats').insert(data).select();
+      final statsResponse = await supabase
+          .from('player_stats')
+          .insert(data)
+          .select();
       if (statsResponse.isEmpty) {
         throw ServerException(
           message: 'Failed to create player stats',
@@ -147,7 +155,9 @@ class PlayerRemoteDatasource {
       final path =
           '$teamId/${segment}_${DateTime.now().millisecondsSinceEpoch}_$sanitized';
 
-      await _supabase.storage.from(_photoBucket).uploadBinary(
+      await _supabase.storage
+          .from(_photoBucket)
+          .uploadBinary(
             path,
             bytes,
             fileOptions: const FileOptions(cacheControl: '3600'),
@@ -425,15 +435,11 @@ class PlayerRemoteDatasource {
         (playersRes as List<dynamic>).map((row) async {
           final id = (row as Map)['id'] as int;
           final t = totals[id] ?? PlayerParticipationTotals.zero;
-          await _updatePlayerStatsWithSchemaFallback(
-            _supabase,
-            id,
-            {
-              'matches_played': t.matchesPlayed,
-              'times_started': t.timesStarted,
-              'minutes_played': t.minutesPlayedSum,
-            },
-          );
+          await _updatePlayerStatsWithSchemaFallback(_supabase, id, {
+            'matches_played': t.matchesPlayed,
+            'times_started': t.timesStarted,
+            'minutes_played': t.minutesPlayedSum,
+          });
         }),
       );
     } on PostgrestException catch (e) {
@@ -501,12 +507,15 @@ class PlayerRemoteDatasource {
       await Future.wait(
         (playersRes as List<dynamic>).map((row) async {
           final id = (row as Map)['id'] as int;
-          await _supabase.from('player_stats').update({
-            'goals': goals[id] ?? 0,
-            'assistences': assists[id] ?? 0,
-            'yellow_cards': yellows[id] ?? 0,
-            'red_cards': reds[id] ?? 0,
-          }).eq('player_id', id);
+          await _supabase
+              .from('player_stats')
+              .update({
+                'goals': goals[id] ?? 0,
+                'assistences': assists[id] ?? 0,
+                'yellow_cards': yellows[id] ?? 0,
+                'red_cards': reds[id] ?? 0,
+              })
+              .eq('player_id', id);
         }),
       );
     } on PostgrestException catch (e) {
@@ -544,17 +553,19 @@ class PlayerRemoteDatasource {
             ),
           );
         }
-        final model = st is PlayerStatsModel ? st : PlayerStatsModel(
-          id: st.id,
-          playerId: st.playerId,
-          goals: st.goals,
-          assists: st.assists,
-          yellowCards: st.yellowCards,
-          redCards: st.redCards,
-          matchesPlayed: st.matchesPlayed,
-          minutesPlayed: st.minutesPlayed,
-          timesStarted: st.timesStarted,
-        );
+        final model = st is PlayerStatsModel
+            ? st
+            : PlayerStatsModel(
+                id: st.id,
+                playerId: st.playerId,
+                goals: st.goals,
+                assists: st.assists,
+                yellowCards: st.yellowCards,
+                redCards: st.redCards,
+                matchesPlayed: st.matchesPlayed,
+                minutesPlayed: st.minutesPlayed,
+                timesStarted: st.timesStarted,
+              );
         return p.copyWith(
           stats: model.copyWith(
             matchesPlayed: t.matchesPlayed,

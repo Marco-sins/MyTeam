@@ -1,4 +1,6 @@
 import 'package:football_manager/data/mappers/player_stats_mapper.dart';
+
+/// Mapeador entre `PlayerModel` y la entidad de dominio `Player`.
 import 'package:football_manager/data/models/player_model.dart';
 import 'package:football_manager/data/models/player_stats_model.dart';
 import 'package:football_manager/domain/entities/player.dart';
@@ -15,8 +17,8 @@ class PlayerMapper {
       email: player.email,
       imgUrl: player.imgUrl,
       positions: player.positions,
-      stats: player.stats != null 
-          ? PlayerStatsMapper.toModel(player.stats!) 
+      stats: player.stats != null
+          ? PlayerStatsMapper.toModel(player.stats!)
           : null,
     );
   }
@@ -32,8 +34,8 @@ class PlayerMapper {
       email: playerModel.email,
       imgUrl: playerModel.imgUrl,
       positions: playerModel.positions,
-      stats: playerModel.stats != null 
-          ? PlayerStatsMapper.toEntity(playerModel.stats! as PlayerStatsModel) 
+      stats: playerModel.stats != null
+          ? PlayerStatsMapper.toEntity(playerModel.stats! as PlayerStatsModel)
           : null,
     );
   }

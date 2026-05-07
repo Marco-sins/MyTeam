@@ -17,6 +17,7 @@ enum MatchPlayerActionType {
   badPass,
   badPlay,
   foul,
+  offside,
   cantada,
 }
 
@@ -25,6 +26,7 @@ class MatchPlayerActionButton extends StatelessWidget {
   final VoidCallback onTap;
   final Color? textColor;
 
+  /// Crea un boton de accion con estilo y color opcional.
   const MatchPlayerActionButton({
     super.key,
     required this.label,
@@ -32,6 +34,8 @@ class MatchPlayerActionButton extends StatelessWidget {
     this.textColor,
   });
 
+  /// Construye el boton con alineacion a la izquierda.
+  /// Lo hace con ElevatedButton y padding.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -57,6 +61,8 @@ class MatchPlayerActionButton extends StatelessWidget {
   }
 }
 
+/// Muestra un modal con acciones disponibles para el jugador.
+/// Lo hace con un Dialog y devuelve la accion seleccionada.
 Future<MatchPlayerActionType?> showMatchPlayerActionModal(
   BuildContext context,
   Player player,
@@ -83,9 +89,7 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                     Expanded(
                       child: PlayerNameText(
                         player: player,
-                        style: const TextStyle(
-                          fontSize: 16,
-                        ),
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                     IconButton(
@@ -176,6 +180,13 @@ Future<MatchPlayerActionType?> showMatchPlayerActionModal(
                         textColor: Colors.red,
                         onTap: () =>
                             Navigator.of(ctx).pop(MatchPlayerActionType.foul),
+                      ),
+                      MatchPlayerActionButton(
+                        label: 'Fuera de juego',
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.offside),
                       ),
                       MatchPlayerActionButton(
                         label: l10n.matchActionLabelCantada,

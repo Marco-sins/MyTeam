@@ -13,6 +13,8 @@ const double _kCampoPngHeight = 253;
 /// (misma altura que la imagen dibujada, sin hueco 4:3 artificial).
 const double kMatchCampoAspectRatio = _kCampoPngWidth / _kCampoPngHeight;
 
+/// Calcula el rectangulo de la imagen con BoxFit.contain.
+/// Lo hace comparando aspect ratios de origen y destino.
 Rect _campoContainRect(double maxWidth, double maxHeight) {
   if (maxWidth <= 0 || maxHeight <= 0) {
     return Rect.zero;
@@ -30,6 +32,7 @@ Rect _campoContainRect(double maxWidth, double maxHeight) {
 }
 
 /// Rectángulo de juego dentro del PNG (marco blanco + líneas; suele haber más aire abajo).
+/// Lo hace aplicando insets proporcionales al rectangulo de pintura.
 Rect _grassRectFromFieldPaint(Rect fieldPaint) {
   if (fieldPaint.width <= 0 || fieldPaint.height <= 0) {
     return fieldPaint;
@@ -46,11 +49,14 @@ Rect _grassRectFromFieldPaint(Rect fieldPaint) {
   );
 }
 
-/// [nx],[ny] ∈ [0,1] dentro del césped útil (0 arriba = ataque, 1 abajo = portería).
+/// [nx],[ny] ∈ [0,1] dentro del cesped util (0 arriba = ataque, 1 abajo = porteria).
+/// Lo hace interpolando dentro del rectangulo util.
 double _grassX(Rect grass, double nx) {
   return grass.left + grass.width * nx.clamp(0.0, 1.0);
 }
 
+/// Calcula coordenada Y dentro del cesped util.
+/// Lo hace interpolando dentro del rectangulo util.
 double _grassY(Rect grass, double ny) {
   return grass.top + grass.height * ny.clamp(0.0, 1.0);
 }
@@ -58,6 +64,8 @@ double _grassY(Rect grass, double ny) {
 /// Campo táctil: colocación por **jugador seleccionado en la lista + toque en la posición**.
 /// Se evitó [DragTarget]/arrastre desde lista porque en scrollables dispara asserts de
 /// semántica (`!semantics.parentDataDirty`) y congela la UI en varias versiones de Flutter.
+/// Campo tactico con posiciones y gestion de toques.
+/// Muestra jugadores segun formacion y permite sustituir.
 class MatchFieldWithFormation extends StatelessWidget {
   final List<int> formationLines;
   final List<Player?> positionPlayers;
@@ -71,9 +79,12 @@ class MatchFieldWithFormation extends StatelessWidget {
   onSubstitutionRequested;
   final void Function(Player player) onPlayerActionRequested;
   final bool readOnly;
+  final bool recordSwapAsSubstitution;
+
   /// Clave guardada (`3-2-1`, …). Solo F7: activa posiciones del diagrama táctico.
   final String? formationLayoutKey;
 
+  /// Crea el widget de campo con formacion y handlers.
   const MatchFieldWithFormation({
     super.key,
     required this.formationLines,
@@ -87,9 +98,12 @@ class MatchFieldWithFormation extends StatelessWidget {
     required this.onSubstitutionRequested,
     required this.onPlayerActionRequested,
     this.readOnly = false,
+    this.recordSwapAsSubstitution = false,
     this.formationLayoutKey,
   });
 
+  /// Construye el tablero y coloca los jugadores en sus huecos.
+  /// Lo hace calculando el layout y creando widgets posicionados.
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -121,15 +135,12 @@ class MatchFieldWithFormation extends StatelessWidget {
         final fieldPaint = _campoContainRect(boardW, boardH);
         final grass = _grassRectFromFieldPaint(fieldPaint);
         final rows = formationLines.length;
-        final totalSlots = formationLines.fold<int>(
-          0,
-          (a, b) => a + b,
-        );
+        final totalSlots = formationLines.fold<int>(0, (a, b) => a + b);
         final List<Offset>? tacticalCenters =
             MatchFormationUtils.tacticalSlotCentersOrNull(
-          formationLayoutKey,
-          totalSlots,
-        );
+              formationLayoutKey,
+              totalSlots,
+            );
 
         final List<Widget> children = [
           Positioned.fill(
@@ -165,6 +176,9 @@ class MatchFieldWithFormation extends StatelessWidget {
                 ? positionPlayers[index]
                 : null;
             final displayNumber = assignedPlayer?.number?.toString() ?? '';
+            final isSentOff =
+                assignedPlayer != null &&
+                sentOffPlayerIds.contains(assignedPlayer.id);
 
             const nameBlockWidth = 92.0;
             final hasName = assignedPlayer != null;
@@ -184,6 +198,13 @@ class MatchFieldWithFormation extends StatelessWidget {
                     // esta posición tiene jugador en el campo, abrimos
                     // el modal de acciones para ese jugador.
                     if (selectedPlayer == null && assignedPlayer != null) {
+                      if (isSentOff) {
+                        showSnack(
+                          'Jugador expulsado, no puede realizar acciones',
+                          error: true,
+                        );
+                        return;
+                      }
                       onPlayerActionRequested(assignedPlayer);
                       return;
                     }
@@ -213,15 +234,19 @@ class MatchFieldWithFormation extends StatelessWidget {
                       return;
                     }
 
-                    final newPositions = List<Player?>.from(
-                      positionPlayers,
-                    );
+                    final newPositions = List<Player?>.from(positionPlayers);
 
                     // Intercambio de posiciones entre dos jugadores en campo.
                     if (existingIndex != -1 && assignedPlayer != null) {
                       newPositions[existingIndex] = assignedPlayer;
                       newPositions[index] = selectedPlayer;
                       onPositionsChanged(newPositions);
+                      if (recordSwapAsSubstitution) {
+                        onSubstitutionRequested(
+                          selectedPlayer!,
+                          assignedPlayer,
+                        );
+                      }
                       return;
                     }
 
@@ -243,10 +268,7 @@ class MatchFieldWithFormation extends StatelessWidget {
 
                     newPositions[index] = selectedPlayer;
                     onPositionsChanged(newPositions);
-                    onSubstitutionRequested(
-                      selectedPlayer!,
-                      assignedPlayer,
-                    );
+                    onSubstitutionRequested(selectedPlayer!, assignedPlayer);
                   },
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -255,16 +277,21 @@ class MatchFieldWithFormation extends StatelessWidget {
                         child: CircleAvatar(
                           radius: 16,
                           backgroundColor: assignedPlayer != null
-                              ? scheme.primaryContainer
-                              : scheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.92),
+                              ? (isSentOff
+                                    ? scheme.error
+                                    : scheme.primaryContainer)
+                              : scheme.surfaceContainerHighest.withValues(
+                                  alpha: 0.92,
+                                ),
                           child: Text(
                             displayNumber,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: assignedPlayer != null
-                                  ? scheme.onPrimaryContainer
+                                  ? (isSentOff
+                                        ? scheme.onError
+                                        : scheme.onPrimaryContainer)
                                   : scheme.onSurfaceVariant,
                             ),
                           ),
@@ -281,7 +308,7 @@ class MatchFieldWithFormation extends StatelessWidget {
                             fontSize: 11,
                             height: 1.1,
                             fontWeight: FontWeight.w700,
-                            color: scheme.onSurface,
+                            color: isSentOff ? scheme.error : scheme.onSurface,
                           ),
                         ),
                       ],
@@ -311,6 +338,8 @@ class MatchFieldWithFormation extends StatelessWidget {
   }
 }
 
+/// Devuelve el nombre corto para mostrar en el campo.
+/// Lo hace priorizando el nombre extraido y luego tokens del nombre.
 String _fieldDisplayFirstName(Player player) {
   final g = playerNamePartsMatchShort(player).given.trim();
   if (g.isNotEmpty) {
@@ -322,7 +351,10 @@ String _fieldDisplayFirstName(Player player) {
     return fnTok.first;
   }
   final full = player.fullName.trim();
-  final fullTok = full.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+  final fullTok = full
+      .split(RegExp(r'\s+'))
+      .where((s) => s.isNotEmpty)
+      .toList();
   if (fullTok.isEmpty) {
     return '—';
   }

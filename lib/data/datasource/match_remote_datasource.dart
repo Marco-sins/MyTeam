@@ -1,3 +1,7 @@
+/// Datasource remoto para la entidad `matches`.
+///
+/// Contiene las operaciones CRUD y consultas específicas de partido usando
+/// el cliente Supabase. Traduce errores de PostgREST a excepciones locales.
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
@@ -164,9 +168,8 @@ class MatchRemoteDatasource {
           .eq('match_id', matchId);
       return (result as List)
           .map(
-            (e) => MatchLineupModel.fromJson(
-              Map<String, dynamic>.from(e as Map),
-            ),
+            (e) =>
+                MatchLineupModel.fromJson(Map<String, dynamic>.from(e as Map)),
           )
           .toList();
     } on PostgrestException catch (e) {
@@ -213,11 +216,10 @@ class MatchRemoteDatasource {
   }) async {
     try {
       final iso = secondHalfStart.toIso8601String();
-      await _supabase.from('matches').update({
-        'status': 'secondHalf',
-        'date': iso,
-        'hour': iso,
-      }).eq('id', matchId);
+      await _supabase
+          .from('matches')
+          .update({'status': 'secondHalf', 'date': iso, 'hour': iso})
+          .eq('id', matchId);
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

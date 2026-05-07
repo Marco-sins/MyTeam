@@ -1,3 +1,5 @@
+/// Conversores entre `MatchEvent` (entidad del dominio) y `MatchEventModel`
+/// (modelo persistible). Centraliza la serialización/deserialización.
 import 'package:football_manager/data/models/match_event_model.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 
@@ -11,6 +13,7 @@ class MatchEventMapper {
       minute: matchEvent.minute,
       type: matchEvent.type,
       note: matchEvent.note,
+      point: matchEvent.point,
     );
   }
 
@@ -23,6 +26,7 @@ class MatchEventMapper {
       minute: matchEventModel.minute,
       type: matchEventModel.type,
       note: matchEventModel.note,
+      point: matchEventModel.point,
     );
   }
 }

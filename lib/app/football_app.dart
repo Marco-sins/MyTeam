@@ -9,6 +9,7 @@ import 'package:football_manager/core/theme/app_responsive.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
 import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
 import 'package:football_manager/domain/repositories/i_team_repository.dart';
+import 'package:football_manager/domain/repositories/player_event_scoring_repository.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_day_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_use_case.dart';
@@ -70,6 +71,7 @@ import 'package:football_manager/presentation/auth/pages/login_page.dart';
 import 'package:football_manager/presentation/create_team/cubit/create_team_cubit.dart';
 import 'package:football_manager/presentation/home/cubit/home_cubit.dart';
 import 'package:football_manager/presentation/home/pages/home_page.dart';
+import 'package:football_manager/presentation/match/cubit/player_event_rating_settings_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Raíz de la UI: localización, inyección de casos de uso vía [RepositoryProvider]
@@ -192,6 +194,11 @@ class FootballApp extends StatelessWidget {
                     signOutUseCase: sl<SignOutUseCase>(),
                     getUserSessionUseCase: sl<GetUserSessionUseCase>(),
                   )..checkUserSession(),
+                ),
+                BlocProvider(
+                  create: (_) => PlayerEventRatingSettingsCubit(
+                    sl<PlayerEventScoringRepository>(),
+                  ),
                 ),
                 BlocProvider(create: (_) => HomeCubit(sl<GetTeamsUseCase>())),
                 BlocProvider(

@@ -4,6 +4,7 @@ import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 class MatchLineupSection extends StatelessWidget {
+  /// Crea la seccion de titulares y suplentes.
   const MatchLineupSection({
     super.key,
     required this.startingPlayers,
@@ -19,6 +20,8 @@ class MatchLineupSection extends StatelessWidget {
   final void Function(Player) onPlayerTap;
   final bool showRatings;
 
+  /// Construye la seccion con grupos y filas de jugadores.
+  /// Lo hace listando titulares y suplentes si existen.
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -87,6 +90,7 @@ class MatchLineupSection extends StatelessWidget {
 }
 
 class _MatchLineupPlayerRow extends StatelessWidget {
+  /// Crea la fila de jugador con rating y etiqueta.
   const _MatchLineupPlayerRow({
     required this.player,
     required this.label,
@@ -101,12 +105,15 @@ class _MatchLineupPlayerRow extends StatelessWidget {
   final double? rating;
   final bool showRating;
 
+  /// Construye la fila con dorsal, nombre, rating y chip.
+  /// Lo hace calculando el color segun la puntuacion.
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final value = (rating ?? 5.0).clamp(0.0, 10.0);
 
+    // Calcula el color del rating por rango.
     Color ratingColor(double v) {
       if (v <= 5.0) {
         final t = v / 5.0;
@@ -128,63 +135,66 @@ class _MatchLineupPlayerRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
           child: Row(
             children: [
-            SizedBox(
-              width: 32,
-              child: Text(
-                player.number?.toString() ?? '-',
-                textAlign: TextAlign.center,
-                style: textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: scheme.primary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: PlayerNameText(
-                player: player,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.bodyMedium,
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (showRating)
-              Container(
-                width: 34,
-                height: 34,
-                margin: const EdgeInsets.only(right: 6),
-                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-                alignment: Alignment.center,
+              SizedBox(
+                width: 32,
                 child: Text(
-                  value.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                  player.number?.toString() ?? '-',
+                  textAlign: TextAlign.center,
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: scheme.primary,
                   ),
                 ),
               ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: label == 'Titular'
-                    ? scheme.primaryContainer.withValues(alpha: 0.85)
-                    : scheme.secondaryContainer.withValues(alpha: 0.65),
-              ),
-              child: Text(
-                label,
-                style: textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: label == 'Titular'
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSecondaryContainer,
+              const SizedBox(width: 8),
+              Expanded(
+                child: PlayerNameText(
+                  player: player,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium,
                 ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              if (showRating)
+                Container(
+                  width: 34,
+                  height: 34,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    value.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: label == 'Titular'
+                      ? scheme.primaryContainer.withValues(alpha: 0.85)
+                      : scheme.secondaryContainer.withValues(alpha: 0.65),
+                ),
+                child: Text(
+                  label,
+                  style: textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: label == 'Titular'
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSecondaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

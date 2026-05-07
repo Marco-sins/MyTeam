@@ -1,5 +1,10 @@
+/// Modelo de persistencia para filas de la tabla `match_events`.
+///
+/// Extiende la entidad de dominio `MatchEvent` y aporta `fromJson`/`toJson`
+/// para la interacción con Supabase/PostgREST.
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 
 class MatchEventModel extends MatchEvent {
   const MatchEventModel({
@@ -10,6 +15,7 @@ class MatchEventModel extends MatchEvent {
     required super.minute,
     required super.type,
     super.note,
+    super.point,
   });
 
   factory MatchEventModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +28,7 @@ class MatchEventModel extends MatchEvent {
       minute: e.minute,
       type: e.type,
       note: e.note,
+      point: e.point,
     );
   }
 
@@ -31,9 +38,10 @@ class MatchEventModel extends MatchEvent {
       'player_id1': playerId1,
       'player_id2': playerId2,
       'minute': minute,
-      // Guardamos solo el nombre del enum ("scoreGoal", "concedeGoal", etc.)
-      'type': type.toString().split('.').last,
+      // Guardamos la clave canónica normalizada (ej: 'scoregoal', 'rivaloffside')
+      'type': canonicalMatchEventTypeKey(type),
       'note': note,
+      'point': point,
     };
   }
 
@@ -45,6 +53,7 @@ class MatchEventModel extends MatchEvent {
     int? minute,
     MatchEventEnum? type,
     String? note,
+    double? point,
   }) {
     return MatchEventModel(
       id: id ?? this.id,
@@ -54,6 +63,7 @@ class MatchEventModel extends MatchEvent {
       minute: minute ?? this.minute,
       type: type ?? this.type,
       note: note ?? this.note,
+      point: point ?? this.point,
     );
   }
 }

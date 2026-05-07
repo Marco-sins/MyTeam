@@ -1,3 +1,8 @@
+/// Entidad de dominio que representa un evento del partido (gol, falta,
+/// tarjeta, sustitución, etc.).
+///
+/// Incluye una fábrica `fromSupabaseMap` que normaliza filas de PostgREST y
+/// resuelve el `minute` mediante utilidades de `supabase_dynamic`.
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 
@@ -9,6 +14,7 @@ class MatchEvent {
   final int minute;
   final MatchEventEnum type;
   final String? note;
+  final double? point;
 
   const MatchEvent({
     required this.id,
@@ -18,6 +24,7 @@ class MatchEvent {
     required this.minute,
     required this.type,
     this.note,
+    this.point,
   });
 
   /// Construye la entidad desde una fila JSON de Supabase (p. ej. evento en vivo).
@@ -39,6 +46,7 @@ class MatchEvent {
       type: parsedType,
       minute: resolveMatchEventMinute(json),
       note: json['note'] as String?,
+      point: (json['point'] as num?)?.toDouble(),
     );
   }
 }

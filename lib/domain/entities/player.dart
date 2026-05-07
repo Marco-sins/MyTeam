@@ -1,6 +1,8 @@
 import 'package:football_manager/domain/entities/enum/player_position.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
 
+/// Entidad `Player` con información personal, dorsal, posiciones y estadísticas
+/// derivadas. Usada por la UI y la lógica de partidos/jugadores.
 class Player {
   final int id;
   final int teamId;
@@ -9,6 +11,7 @@ class Player {
   final int? number;
   final String? phone;
   final String? email;
+
   /// URL pública de la foto (p. ej. Supabase Storage); columna `img_url`.
   final String? imgUrl;
   final List<PlayerPosition>? positions;

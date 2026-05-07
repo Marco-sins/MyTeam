@@ -1,3 +1,4 @@
+/// Mapeador para `player_stats` entre filas de BD y objetos de dominio.
 import 'package:football_manager/data/models/player_stats_model.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
 

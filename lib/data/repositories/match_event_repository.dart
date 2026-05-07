@@ -1,3 +1,6 @@
+/// Repositorio que implementa `IMatchEventRepository` usando
+/// [MatchEventRemoteDatasource]. Traduce resultados y excepciones a tipos
+/// de `Either<Failure, T>` consumidos por la capa de dominio.
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
@@ -23,9 +26,7 @@ class MatchEventRepository implements IMatchEventRepository {
   }
 
   @override
-  Future<Either<Failure, List<MatchEvent>>> getMatchEventsByMatch(
-    int matchId,
-  ) {
+  Future<Either<Failure, List<MatchEvent>>> getMatchEventsByMatch(int matchId) {
     return runRepositoryGuard(() async {
       final result = await _remoteDatasource.getMatchEventsByMatch(matchId);
       return result.map(MatchEventMapper.toEntity).toList();
@@ -90,8 +91,9 @@ class MatchEventRepository implements IMatchEventRepository {
   }
 
   @override
-  Future<Either<Failure, List<MatchLiveTimelineRow>>>
-      getLiveTimelineSourceRows(int matchId) {
+  Future<Either<Failure, List<MatchLiveTimelineRow>>> getLiveTimelineSourceRows(
+    int matchId,
+  ) {
     return runRepositoryGuard(() async {
       final raw = await _remoteDatasource.getLiveTimelineRawRows(matchId);
       return raw.map(MatchLiveTimelineRow.fromPostgresMap).toList();
@@ -100,12 +102,14 @@ class MatchEventRepository implements IMatchEventRepository {
 
   @override
   Future<Either<Failure, Set<int>>> getSentOffPlayerIds(int matchId) {
-    return runRepositoryGuard(() => _remoteDatasource.getSentOffPlayerIds(matchId));
+    return runRepositoryGuard(
+      () => _remoteDatasource.getSentOffPlayerIds(matchId),
+    );
   }
 
   @override
   Future<Either<Failure, ({int yellowCount, bool hasRed})>>
-      getPlayerCardSummaryForPlayer(int matchId, int playerId) {
+  getPlayerCardSummaryForPlayer(int matchId, int playerId) {
     return runRepositoryGuard(
       () => _remoteDatasource.getPlayerCardSummaryForPlayer(
         matchId: matchId,

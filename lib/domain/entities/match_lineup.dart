@@ -1,3 +1,6 @@
+/// Representa la participación de un jugador en un partido (alineación).
+///
+/// Contiene si el jugador fue titular, minutos jugados, posición y valoración.
 class MatchLineup {
   final int id;
   final int playerId;

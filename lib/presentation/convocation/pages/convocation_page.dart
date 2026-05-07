@@ -55,6 +55,9 @@ class _ConvocationPageState extends State<ConvocationPage> {
   }
 
   Future<void> _pickDate() async {
+    // Asegurarse de cerrar el teclado antes de abrir el picker
+    FocusScope.of(context).unfocus();
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -69,6 +72,9 @@ class _ConvocationPageState extends State<ConvocationPage> {
   }
 
   Future<void> _pickTime() async {
+    // Cerrar teclado para evitar que reaparezca al volver del picker
+    FocusScope.of(context).unfocus();
+
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
@@ -81,6 +87,9 @@ class _ConvocationPageState extends State<ConvocationPage> {
   }
 
   Future<void> _pickCallTime() async {
+    // Cerrar teclado para evitar que reaparezca al volver del picker
+    FocusScope.of(context).unfocus();
+
     final picked = await showTimePicker(
       context: context,
       initialTime: _callTime,
@@ -126,115 +135,115 @@ class _ConvocationPageState extends State<ConvocationPage> {
     final String formattedDate = _formattedDate(_selectedDate);
     final String formattedMatchTime = _formattedTime(_selectedTime);
     final String formattedCallTime = _formattedTime(_callTime);
-    final bottomInset =
-        MediaQuery.of(context).padding.bottom + 72;
+    final bottomInset = MediaQuery.of(context).padding.bottom + 72;
 
     return BlocProvider.value(
       value: _convocationCubit,
       child: TeamBrandedScope(
         team: team,
         child: Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.screenConvocation),
-          centerTitle: true,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                TeamSessionRoutes.detailHomeReplacingStack(context),
-                (route) => route.isFirst,
-              );
-            },
+          appBar: AppBar(
+            title: Text(AppLocalizations.of(context)!.screenConvocation),
+            centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  TeamSessionRoutes.detailHomeReplacingStack(context),
+                  (route) => route.isFirst,
+                );
+              },
+            ),
+            actions: const [TeamQuickNavAppBarButton()],
           ),
-          actions: const [TeamQuickNavAppBarButton()],
-        ),
-        body: TeamAreaBackground(
-          team: team,
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ConvocationHeaderSection(
-                    rivalController: _rivalController,
-                    awayLocationController: _awayLocationController,
-                    isHome: _isHome,
-                    onHomeAwayChanged: (home) {
-                      setState(() {
-                        _isHome = home;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  ConvocationDateTimeSection(
-                    formattedDate: formattedDate,
-                    formattedMatchTime: formattedMatchTime,
-                    formattedCallTime: formattedCallTime,
-                    onPickDate: _pickDate,
-                    onPickMatchTime: _pickTime,
-                    onPickCallTime: _pickCallTime,
-                  ),
-                  const SizedBox(height: 12),
-                  BlocBuilder<TeamDetailCubit, TeamDetailState>(
-                    builder: (context, state) {
-                      if (state is TeamDetailLoading ||
-                          state is TeamDetailInitial) {
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: Theme.of(context).colorScheme.primary,
+          body: TeamAreaBackground(
+            team: team,
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, bottomInset),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ConvocationHeaderSection(
+                      rivalController: _rivalController,
+                      awayLocationController: _awayLocationController,
+                      isHome: _isHome,
+                      onHomeAwayChanged: (home) {
+                        setState(() {
+                          _isHome = home;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    ConvocationDateTimeSection(
+                      formattedDate: formattedDate,
+                      formattedMatchTime: formattedMatchTime,
+                      formattedCallTime: formattedCallTime,
+                      onPickDate: _pickDate,
+                      onPickMatchTime: _pickTime,
+                      onPickCallTime: _pickCallTime,
+                    ),
+                    const SizedBox(height: 12),
+                    BlocBuilder<TeamDetailCubit, TeamDetailState>(
+                      builder: (context, state) {
+                        if (state is TeamDetailLoading ||
+                            state is TeamDetailInitial) {
+                          return Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      }
-                      if (state is TeamDetailError) {
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    state.message,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium,
+                          );
+                        }
+                        if (state is TeamDetailError) {
+                          return Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Theme.of(context).colorScheme.error,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      state.message,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                      if (state is TeamDetailLoaded) {
-                        return ConvocationPlayersSection(
-                            players: state.players);
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  ConvocationNotesField(notesController: _notesController),
-                  const SizedBox(height: 8),
-                  ConvocationActionsRow(
-                    onCancel: () => Navigator.of(context).pop(),
-                    onSave: _onSavePressed,
-                  ),
-                ],
+                          );
+                        }
+                        if (state is TeamDetailLoaded) {
+                          return ConvocationPlayersSection(
+                            players: state.players,
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    ConvocationNotesField(notesController: _notesController),
+                    const SizedBox(height: 8),
+                    ConvocationActionsRow(
+                      onCancel: () => Navigator.of(context).pop(),
+                      onSave: _onSavePressed,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-        bottomNavigationBar: const TeamBottomBar(),
+          bottomNavigationBar: const TeamBottomBar(),
         ),
       ),
     );

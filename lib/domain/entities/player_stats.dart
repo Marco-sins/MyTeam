@@ -1,3 +1,5 @@
+/// Estadísticas acumuladas de un jugador (goles, asistencias, tarjetas,
+/// minutos, partidos jugados). Se utiliza para mostrar resúmenes y rankings.
 class PlayerStats {
   final int id;
   final int playerId;

@@ -1,3 +1,4 @@
+/// Mapeador para `AuthUserModel` usado por la capa de autenticación.
 import 'package:football_manager/data/models/auth_user_model.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 

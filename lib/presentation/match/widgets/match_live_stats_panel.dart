@@ -6,6 +6,7 @@ import 'package:football_manager/l10n/app_localizations.dart';
 /// Estilo alineado con las tarjetas del gestor: superficie contenida, tipografía
 /// clara y bloques duales “nosotros / rival”.
 class MatchLiveStatsPanel extends StatelessWidget {
+  /// Crea el panel con los contadores y callbacks opcionales.
   const MatchLiveStatsPanel({
     super.key,
     required this.layoutScale,
@@ -16,7 +17,15 @@ class MatchLiveStatsPanel extends StatelessWidget {
     required this.foulsRival,
     required this.cornersOur,
     required this.cornersRival,
+    required this.offsidesOur,
+    required this.offsidesRival,
+    required this.yellowCardsOur,
+    required this.yellowCardsRival,
+    required this.redCardsOur,
+    required this.redCardsRival,
     required this.l10n,
+    this.onRemoveShot,
+    this.onAddShot,
     this.onRemoveRivalShot,
     this.onAddRivalShot,
     this.onRemoveRivalFoul,
@@ -25,6 +34,12 @@ class MatchLiveStatsPanel extends StatelessWidget {
     this.onAddCorner,
     this.onRemoveRivalCorner,
     this.onAddRivalCorner,
+    this.onRemoveRivalOffside,
+    this.onAddRivalOffside,
+    this.onRemoveRivalYellowCard,
+    this.onAddRivalYellowCard,
+    this.onRemoveRivalRedCard,
+    this.onAddRivalRedCard,
   });
 
   final double layoutScale;
@@ -35,8 +50,16 @@ class MatchLiveStatsPanel extends StatelessWidget {
   final int foulsRival;
   final int cornersOur;
   final int cornersRival;
+  final int offsidesOur;
+  final int offsidesRival;
+  final int yellowCardsOur;
+  final int yellowCardsRival;
+  final int redCardsOur;
+  final int redCardsRival;
   final AppLocalizations l10n;
 
+  final VoidCallback? onRemoveShot;
+  final VoidCallback? onAddShot;
   final VoidCallback? onRemoveRivalShot;
   final VoidCallback? onAddRivalShot;
   final VoidCallback? onRemoveRivalFoul;
@@ -45,7 +68,15 @@ class MatchLiveStatsPanel extends StatelessWidget {
   final VoidCallback? onAddCorner;
   final VoidCallback? onRemoveRivalCorner;
   final VoidCallback? onAddRivalCorner;
+  final VoidCallback? onRemoveRivalOffside;
+  final VoidCallback? onAddRivalOffside;
+  final VoidCallback? onRemoveRivalYellowCard;
+  final VoidCallback? onAddRivalYellowCard;
+  final VoidCallback? onRemoveRivalRedCard;
+  final VoidCallback? onAddRivalRedCard;
 
+  /// Construye el panel con secciones de tiros, faltas y corners.
+  /// Lo hace componiendo bloques con contadores y botones.
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -126,7 +157,11 @@ class MatchLiveStatsPanel extends StatelessWidget {
                           theme: theme,
                           s: s,
                           accent: scheme.primary,
-                          readOnly: true,
+                          readOnly: readOnly,
+                          onMinus: onRemoveShot,
+                          onPlus: onAddShot,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
                         ),
                       ),
                       SizedBox(width: 10 * s),
@@ -242,6 +277,144 @@ class MatchLiveStatsPanel extends StatelessWidget {
                       ),
                     ],
                   ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14 * s),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  _SectionLabel(
+                    icon: Icons.outlined_flag,
+                    label: 'Fuera de juego',
+                    scheme: scheme,
+                    s: s,
+                    theme: theme,
+                  ),
+                  SizedBox(height: 10 * s),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _CornerBlock(
+                          value: offsidesOur,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.primary,
+                          readOnly: true,
+                        ),
+                      ),
+                      SizedBox(width: 10 * s),
+                      Expanded(
+                        child: _CornerBlock(
+                          value: offsidesRival,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.tertiary,
+                          readOnly: readOnly,
+                          onMinus: onRemoveRivalOffside,
+                          onPlus: onAddRivalOffside,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14 * s),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  _SectionLabel(
+                    icon: Icons.style_outlined,
+                    label: l10n.matchActionLabelYellowCard,
+                    scheme: scheme,
+                    s: s,
+                    theme: theme,
+                  ),
+                  SizedBox(height: 10 * s),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _CornerBlock(
+                          value: yellowCardsOur,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.primary,
+                          readOnly: true,
+                        ),
+                      ),
+                      SizedBox(width: 10 * s),
+                      Expanded(
+                        child: _CornerBlock(
+                          value: yellowCardsRival,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.tertiary,
+                          readOnly: readOnly,
+                          onMinus: onRemoveRivalYellowCard,
+                          onPlus: onAddRivalYellowCard,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 14 * s),
+                    child: Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: scheme.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  _SectionLabel(
+                    icon: Icons.stop_circle_outlined,
+                    label: l10n.matchActionLabelRedCard,
+                    scheme: scheme,
+                    s: s,
+                    theme: theme,
+                  ),
+                  SizedBox(height: 10 * s),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _CornerBlock(
+                          value: redCardsOur,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.primary,
+                          readOnly: true,
+                        ),
+                      ),
+                      SizedBox(width: 10 * s),
+                      Expanded(
+                        child: _CornerBlock(
+                          value: redCardsRival,
+                          scheme: scheme,
+                          theme: theme,
+                          s: s,
+                          accent: scheme.tertiary,
+                          readOnly: readOnly,
+                          onMinus: onRemoveRivalRedCard,
+                          onPlus: onAddRivalRedCard,
+                          tooltipMinus: l10n.matchCounterRemoveTooltip,
+                          tooltipPlus: l10n.matchCounterAddTooltip,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -253,6 +426,7 @@ class MatchLiveStatsPanel extends StatelessWidget {
 }
 
 class _SectionLabel extends StatelessWidget {
+  /// Crea la etiqueta de seccion con icono.
   const _SectionLabel({
     required this.icon,
     required this.label,
@@ -267,6 +441,8 @@ class _SectionLabel extends StatelessWidget {
   final double s;
   final ThemeData theme;
 
+  /// Construye la fila con icono y texto.
+  /// Lo hace con un Row simple.
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -291,6 +467,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _MiniCounterButton extends StatelessWidget {
+  /// Crea el boton compacto de suma/resta.
   const _MiniCounterButton({
     required this.tooltip,
     required this.icon,
@@ -309,6 +486,8 @@ class _MiniCounterButton extends StatelessWidget {
   final bool filled;
   final bool compact;
 
+  /// Construye el boton con estilos y tooltip.
+  /// Lo hace usando Material e InkWell.
   @override
   Widget build(BuildContext context) {
     final pad = compact ? 3.5 * s : 6 * s;
@@ -322,9 +501,7 @@ class _MiniCounterButton extends StatelessWidget {
             : scheme.surfaceContainerHigh.withValues(alpha: 0.9),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius),
-          side: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.5),
-          ),
+          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
         ),
         child: InkWell(
           onTap: onPressed,
@@ -344,6 +521,7 @@ class _MiniCounterButton extends StatelessWidget {
 }
 
 class _CornerBlock extends StatelessWidget {
+  /// Crea el bloque de contador con botones opcionales.
   const _CornerBlock({
     required this.value,
     required this.scheme,
@@ -368,15 +546,15 @@ class _CornerBlock extends StatelessWidget {
   final String? tooltipMinus;
   final String? tooltipPlus;
 
+  /// Construye el bloque segun el modo lectura o editable.
+  /// Lo hace alternando entre texto fijo y botones.
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(14 * s),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.38),
-        ),
+        border: Border.all(color: accent.withValues(alpha: 0.38)),
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 6 * s, vertical: 8 * s),

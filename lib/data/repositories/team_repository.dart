@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+/// Repositorio para la entidad `team` que traduce operaciones remotas a la
+/// interfaz del dominio `ITeamRepository`.
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
@@ -65,10 +67,7 @@ class TeamRepository implements ITeamRepository {
   }
 
   @override
-  Future<Either<Failure, String>> uploadLogo(
-    Uint8List bytes,
-    String fileName,
-  ) {
+  Future<Either<Failure, String>> uploadLogo(Uint8List bytes, String fileName) {
     return runRepositoryGuard(() => _datasource.uploadLogo(bytes, fileName));
   }
 }

@@ -14,6 +14,7 @@ import 'package:football_manager/presentation/convocation/pages/convocation_page
 import 'package:football_manager/presentation/match/pages/match_list_page.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/cubit/team_detail_cubit.dart';
+import 'package:football_manager/presentation/team/pages/player_event_scoring_page.dart';
 import 'package:football_manager/presentation/team/pages/team_management_page.dart';
 import 'package:football_manager/presentation/team/team_session_routes.dart';
 
@@ -141,6 +142,21 @@ abstract final class TeamSessionNavigation {
           context,
           teamId: team.id,
           child: const TeamManagementPage(),
+        ),
+      ),
+    );
+  }
+
+  static void openPlayerEventScoring(BuildContext context) {
+    final team = context.read<TeamContextCubit>().state;
+    if (isExternalMember(context, team.id)) return;
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _shellWithDetail(
+          context,
+          teamId: team.id,
+          child: const PlayerEventScoringPage(),
         ),
       ),
     );

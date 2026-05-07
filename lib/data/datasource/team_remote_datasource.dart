@@ -1,5 +1,9 @@
 import 'dart:typed_data';
 
+/// Datasource remoto para la entidad `teams`.
+///
+/// Encapsula llamadas a Supabase para la gestión de equipos (logo, color,
+/// metadatos) y traduce errores de la API a excepciones locales.
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
@@ -39,7 +43,8 @@ class TeamRemoteDatasource {
           .select();
       if (response.isEmpty) {
         throw ServerException(
-          message: 'No se ha podido abandonar el equipo (sin filas eliminadas).',
+          message:
+              'No se ha podido abandonar el equipo (sin filas eliminadas).',
           code: '404',
         );
       }

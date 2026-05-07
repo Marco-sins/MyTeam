@@ -13,6 +13,8 @@ import 'package:football_manager/presentation/match/utils/player_rating_utils.da
 
 part 'match_stats_state.dart';
 
+/// Convierte eventos de dominio a mapas consumibles por la UI.
+/// Lo hace proyectando solo los campos usados en las vistas.
 List<Map<String, dynamic>> _matchEventsToEventMaps(List<MatchEvent> events) {
   return events
       .map(
@@ -22,12 +24,17 @@ List<Map<String, dynamic>> _matchEventsToEventMaps(List<MatchEvent> events) {
           'player_id2': e.playerId2,
           'note': e.note,
           'minute': e.minute,
+          'point': e.point,
         },
       )
       .toList();
 }
 
+/// Cubit que prepara los datos de estadisticas del partido.
+/// Orquesta casos de uso y calcula derivados para la vista.
 class MatchStatsCubit extends Cubit<MatchStatsState> {
+  /// Crea el cubit con las dependencias y estado inicial.
+  /// Recibe el partido y casos de uso que se ejecutaran en [load].
   MatchStatsCubit({
     required this.match,
     required this.getPlayersByTeamUseCase,
@@ -42,9 +49,11 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
   final GetMatchEventsByMatchUseCase getMatchEventsByMatchUseCase;
   final GetMatchLineupsByMatchUseCase getMatchLineupsByMatchUseCase;
   final GetLatestFormationNoteByMatchUseCase
-      getLatestFormationNoteByMatchUseCase;
+  getLatestFormationNoteByMatchUseCase;
   final String loadErrorMessage;
 
+  /// Calcula los ids expulsados a partir de los eventos.
+  /// Cuenta rojas y dobles amarillas recorriendo la lista.
   Set<int> _sentOffPlayerIdsFromEvents(List<Map<String, dynamic>> events) {
     final yellowCounts = <int, int>{};
     final sentOff = <int>{};
@@ -67,39 +76,33 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
     return sentOff;
   }
 
+  /// Carga estadisticas del partido y emite el estado completo.
+  /// Lo hace pidiendo eventos, jugadores y alineaciones, y derivando
+  /// ratings, formacion y jugadores expulsados.
   Future<void> load() async {
     emit(state.copyWith(isLoading: true, error: null));
     try {
       final eventsEither = await getMatchEventsByMatchUseCase(match.id);
-      final matchEvents = eventsEither.fold<List<MatchEvent>?>(
-        (failure) {
-          emit(state.copyWith(isLoading: false, error: failure.message));
-          return null;
-        },
-        (list) => list,
-      );
+      final matchEvents = eventsEither.fold<List<MatchEvent>?>((failure) {
+        emit(state.copyWith(isLoading: false, error: failure.message));
+        return null;
+      }, (list) => list);
       if (matchEvents == null) return;
 
       final eventMaps = _matchEventsToEventMaps(matchEvents);
 
       final playersEither = await getPlayersByTeamUseCase(match.teamId);
-      final playersById = playersEither.fold<Map<int, Player>?>(
-        (f) {
-          emit(state.copyWith(isLoading: false, error: f.message));
-          return null;
-        },
-        (players) => {for (final p in players) p.id: p},
-      );
+      final playersById = playersEither.fold<Map<int, Player>?>((f) {
+        emit(state.copyWith(isLoading: false, error: f.message));
+        return null;
+      }, (players) => {for (final p in players) p.id: p});
       if (playersById == null) return;
 
       final lineupsEither = await getMatchLineupsByMatchUseCase(match.id);
-      final lineups = lineupsEither.fold(
-        (failure) {
-          emit(state.copyWith(isLoading: false, error: failure.message));
-          return null;
-        },
-        (list) => list,
-      );
+      final lineups = lineupsEither.fold((failure) {
+        emit(state.copyWith(isLoading: false, error: failure.message));
+        return null;
+      }, (list) => list);
       if (lineups == null) return;
 
       final starting = <Player>[];
@@ -118,6 +121,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
         }
       }
 
+      // Ordena por dorsal para mostrar titulares y suplentes en orden.
       int byDorsal(Player a, Player b) {
         final na = a.number ?? 9999;
         final nb = b.number ?? 9999;
@@ -139,8 +143,9 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
       var fieldPositionPlayers = <Player?>[];
 
       if (match.status == MatchStatus.finished) {
-        final formationEither =
-            await getLatestFormationNoteByMatchUseCase(match.id);
+        final formationEither = await getLatestFormationNoteByMatchUseCase(
+          match.id,
+        );
         final formationKey = formationEither.fold((_) => null, (n) => n);
 
         var maxPos = -1;
@@ -196,12 +201,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
       }
     } catch (_) {
       if (!isClosed) {
-        emit(
-          state.copyWith(
-            isLoading: false,
-            error: loadErrorMessage,
-          ),
-        );
+        emit(state.copyWith(isLoading: false, error: loadErrorMessage));
       }
     }
   }

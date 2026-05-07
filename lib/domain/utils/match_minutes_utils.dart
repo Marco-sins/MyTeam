@@ -59,13 +59,48 @@ int minutesPlayedForPlayer({
   bool onField = isStarter;
   int lastOnMinute = isStarter ? 0 : -1;
   int totalMinutes = 0;
+  int yellowCount = 0;
+  bool sentOff = false;
 
   for (final event in sorted) {
+    final minute = event.minute;
+
+    if (event.type == MatchEventEnum.yellowCard &&
+        event.playerId1 == playerId) {
+      yellowCount++;
+      if (yellowCount >= 2 && onField) {
+        final start = lastOnMinute >= 0 ? lastOnMinute : minute;
+        if (minute > start) {
+          totalMinutes += minute - start;
+        }
+        onField = false;
+        lastOnMinute = -1;
+        sentOff = true;
+      }
+      continue;
+    }
+
+    if (event.type == MatchEventEnum.redCard && event.playerId1 == playerId) {
+      if (onField) {
+        final start = lastOnMinute >= 0 ? lastOnMinute : minute;
+        if (minute > start) {
+          totalMinutes += minute - start;
+        }
+        onField = false;
+        lastOnMinute = -1;
+      }
+      sentOff = true;
+      continue;
+    }
+
+    if (sentOff) {
+      continue;
+    }
+
     if (event.type != MatchEventEnum.substitution) {
       continue;
     }
 
-    final minute = event.minute;
     final int? inId = event.playerId1;
     final int? outId = event.playerId2;
 

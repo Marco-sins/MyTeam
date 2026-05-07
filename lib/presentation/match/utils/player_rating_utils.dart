@@ -1,6 +1,8 @@
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
+import 'package:football_manager/presentation/match/utils/player_event_rating_settings_store.dart';
 
 /// Calcula la media de un jugador a partir de la lista de eventos del partido.
+/// Lo hace iterando eventos y ajustando la nota segun tipo y nota legacy.
 ///
 /// - Todos los jugadores empiezan con 5.0 de media.
 /// - El resultado se limita al rango [0, 10].
@@ -22,79 +24,63 @@ double calculatePlayerRating(
     final typeKey = canonicalMatchEventTypeKey(rawType);
     final int? p1 = event['player_id1'] as int?;
     final int? p2 = event['player_id2'] as int?;
+    final double? eventPoint = (event['point'] as num?)?.toDouble();
     final String? noteRaw = event['note'] as String?;
     final String? note = noteRaw?.trim();
     final String noteLower = note?.toLowerCase() ?? '';
 
+    const supportedKeys = {
+      'scoregoal',
+      'assist',
+      'shot',
+      'goodpass',
+      'badpass',
+      'goodplay',
+      'badplay',
+      'ballrecovery',
+      'goodsave',
+      'yellowcard',
+      'redcard',
+      'foul',
+      'cantada',
+      'keypass',
+      'owngoal',
+      'concedegoal',
+      'offside',
+    };
+
     // Goles (goleador y asistente)
     if (typeKey == 'scoregoal') {
       if (p1 == playerId) {
-        rating += 1.0;
+        rating +=
+            eventPoint ??
+            PlayerEventRatingSettingsStore.instance.pointsForKey('scoregoal');
       }
       if (p2 == playerId) {
-        rating += 0.75;
+        rating += PlayerEventRatingSettingsStore.instance.pointsForKey(
+          'assist',
+        );
       }
       continue;
     }
 
-    // A partir de aquí sólo aplicamos notas al jugador principal (player_id1).
+    // El resto de eventos solo afectan al jugador principal del evento.
     if (p1 != playerId) {
       continue;
     }
 
-    // Gol en propia / autogol
-    if (typeKey == 'owngoal' ||
-        noteLower == 'gol en propia' ||
-        noteLower == 'autogol') {
-      rating -= 1.0;
+    if (supportedKeys.contains(typeKey)) {
+      if (eventPoint != null) {
+        rating += eventPoint;
+      } else {
+        final rule = PlayerEventRatingSettingsStore.instance.ruleForKey(
+          typeKey,
+        );
+        if (rule != null && rule.enabled) {
+          rating += rule.points;
+        }
+      }
       continue;
-    }
-
-    // Gol concedido (portero/defensa)
-    if (typeKey == 'concedegoal' || noteLower == 'gol concedido') {
-      rating -= 0.4;
-      continue;
-    }
-
-    switch (typeKey) {
-      case 'shot':
-        rating += 0.1;
-        continue;
-      case 'goodpass':
-        rating += 0.12;
-        continue;
-      case 'badpass':
-        rating -= 0.12;
-        continue;
-      case 'goodplay':
-        rating += 0.22;
-        continue;
-      case 'badplay':
-        rating -= 0.28;
-        continue;
-      case 'ballrecovery':
-        rating += 0.28;
-        continue;
-      case 'goodsave':
-        rating += 0.42;
-        continue;
-      case 'yellowcard':
-        rating -= 0.9;
-        continue;
-      case 'redcard':
-        rating -= 2.5;
-        continue;
-      case 'foul':
-        rating -= 0.32;
-        continue;
-      case 'cantada':
-        rating -= 1.25;
-        continue;
-      case 'keypass':
-        rating += 0.25;
-        continue;
-      default:
-        break;
     }
 
     // Compatibilidad con datos antiguos (solo nota / tipos legacy)
@@ -102,8 +88,7 @@ double calculatePlayerRating(
       rating += noteLower == 'pase clave' ? 0.25 : 0.12;
       continue;
     }
-    if (noteLower == 'mal pase' ||
-        noteLower == 'pase impreciso') {
+    if (noteLower == 'mal pase' || noteLower == 'pase impreciso') {
       rating -= 0.12;
       continue;
     }

@@ -11,15 +11,9 @@ class MatchLiveTimelineFilter {
   /// No se listan: buena parada ([goodsave]), cantada ([cantada]), córners /
   /// contadores manuales, ni tiro / recuperación / pases / jugadas (solo mal pase
   /// y falta entre acciones de campo).
-  static const Set<String> _playerActionTimelineKeys = {
-    'badpass',
-    'foul',
-  };
+  static const Set<String> _playerActionTimelineKeys = {'badpass', 'foul'};
 
-  static const Set<String> _hiddenPlayerActionKeys = {
-    'goodsave',
-    'cantada',
-  };
+  static const Set<String> _hiddenPlayerActionKeys = {'goodsave', 'cantada'};
 
   /// Notas de [statusChange] que marcan tiempo de partido (no acciones de jugador).
   static bool isMatchTimeStatusNote(String? note) {
@@ -48,7 +42,7 @@ class MatchLiveTimelineFilter {
     final key = canonicalMatchEventTypeKey(row.rawType);
     if (key == 'formation') return false;
     if (key == 'substitution') {
-      return row.playerId1 != null && row.playerId2 != null;
+      return row.minute > 0 && row.playerId1 != null && row.playerId2 != null;
     }
     if (key == 'scoregoal' || key == 'concedegoal' || key == 'owngoal') {
       return true;
@@ -73,7 +67,9 @@ class MatchLiveTimelineFilter {
     final key = canonicalMatchEventTypeKey(event['type']);
     if (key == 'formation') return false;
     if (key == 'substitution') {
-      return supabaseInt(event['player_id1']) != null &&
+      return supabaseInt(event['minute']) != null &&
+          supabaseInt(event['minute'])! > 0 &&
+          supabaseInt(event['player_id1']) != null &&
           supabaseInt(event['player_id2']) != null;
     }
     if (key == 'scoregoal' || key == 'concedegoal' || key == 'owngoal') {
@@ -108,10 +104,7 @@ class MatchLiveTimelineFilter {
     return best;
   }
 
-  static int eventHalf(
-    MatchLiveTimelineRow row,
-    DateTime? secondHalfStart,
-  ) {
+  static int eventHalf(MatchLiveTimelineRow row, DateTime? secondHalfStart) {
     if (secondHalfStart == null) return 1;
     return !row.createdAt.isBefore(secondHalfStart) ? 2 : 1;
   }
