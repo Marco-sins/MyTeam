@@ -1,3 +1,5 @@
+/// Modelo que representa la formación/alineación de un partido en la BD.
+/// Provee `fromJson`/`toJson` y facilita persistencia de posiciones.
 import 'package:football_manager/domain/entities/match_lineup.dart';
 
 class MatchLineupModel extends MatchLineup {
@@ -8,7 +10,6 @@ class MatchLineupModel extends MatchLineup {
     required super.isStarting,
     super.minutesPlayed,
     super.position,
-    super.initialPosition,
     super.rating,
   });
 
@@ -20,7 +21,6 @@ class MatchLineupModel extends MatchLineup {
       isStarting: json['is_start'],
       minutesPlayed: json['minutes_played'] ?? 0,
       position: json['position'] as int?,
-      initialPosition: json['initial_position'] as int?,
       rating: (json['rating'] as num?)?.toDouble() ?? 5,
     );
   }
@@ -44,7 +44,6 @@ class MatchLineupModel extends MatchLineup {
     bool? isStarting,
     int? minutesPlayed,
     int? position,
-    int? initialPosition,
     double? rating,
   }) {
     return MatchLineupModel(
@@ -54,7 +53,6 @@ class MatchLineupModel extends MatchLineup {
       isStarting: isStarting ?? this.isStarting,
       minutesPlayed: minutesPlayed ?? this.minutesPlayed,
       position: position ?? this.position,
-      initialPosition: initialPosition ?? this.initialPosition,
       rating: rating ?? this.rating,
     );
   }

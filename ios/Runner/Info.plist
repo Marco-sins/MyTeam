@@ -72,10 +72,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.marco.myteam</string>
+			<string>com.example.tfg1</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.marco.myteam</string>
+				<string>com.example.tfg1</string>
 			</array>
 		</dict>
 	</array>

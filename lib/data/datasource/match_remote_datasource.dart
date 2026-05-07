@@ -1,3 +1,7 @@
+/// Datasource remoto para la entidad `matches`.
+///
+/// Contiene las operaciones CRUD y consultas específicas de partido usando
+/// el cliente Supabase. Traduce errores de PostgREST a excepciones locales.
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
@@ -164,9 +168,8 @@ class MatchRemoteDatasource {
           .eq('match_id', matchId);
       return (result as List)
           .map(
-            (e) => MatchLineupModel.fromJson(
-              Map<String, dynamic>.from(e as Map),
-            ),
+            (e) =>
+                MatchLineupModel.fromJson(Map<String, dynamic>.from(e as Map)),
           )
           .toList();
     } on PostgrestException catch (e) {
@@ -213,11 +216,10 @@ class MatchRemoteDatasource {
   }) async {
     try {
       final iso = secondHalfStart.toIso8601String();
-      await _supabase.from('matches').update({
-        'status': 'secondHalf',
-        'date': iso,
-        'hour': iso,
-      }).eq('id', matchId);
+      await _supabase
+          .from('matches')
+          .update({'status': 'secondHalf', 'date': iso, 'hour': iso})
+          .eq('id', matchId);
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -261,36 +263,6 @@ class MatchRemoteDatasource {
           .update({'position': position})
           .eq('match_id', matchId)
           .eq('player_id', playerId);
-    } on PostgrestException catch (e) {
-      throw ServerException(message: e.message, code: e.code);
-    } catch (e) {
-      throw UnknowException('Unexpected error: $e');
-    }
-  }
-
-  /// Fija alineación de salida: `initial_position` = `position` si aún no estaba fijada.
-  Future<void> lockInitialLineupPositions(int matchId) async {
-    try {
-      final result = await _supabase
-          .from('match_lineup')
-          .select('player_id, position, initial_position')
-          .eq('match_id', matchId);
-      final list = result as List<dynamic>? ?? const [];
-      for (final row in list) {
-        final m = Map<String, dynamic>.from(row as Map);
-        final init = m['initial_position'];
-        if (init != null) continue;
-        final pid = m['player_id'];
-        final pos = m['position'];
-        final int? playerId = pid is int ? pid : (pid as num?)?.round();
-        final int? position = pos is int ? pos : (pos as num?)?.round();
-        if (playerId == null || position == null) continue;
-        await _supabase
-            .from('match_lineup')
-            .update({'initial_position': position})
-            .eq('match_id', matchId)
-            .eq('player_id', playerId);
-      }
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

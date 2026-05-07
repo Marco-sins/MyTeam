@@ -1,3 +1,4 @@
+/// Entidad `Profile` con información mínima del usuario (id, username, email).
 class Profile {
   final String id;
   final String username;

@@ -1,5 +1,9 @@
 import 'package:football_manager/data/models/match_lineup_model.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
+
+/// Modelo de persistencia para `Match` (tabla `matches`).
+///
+/// Aporta `fromJson` y `toJson` para la lectura y creación de partidos.
 import 'package:football_manager/domain/entities/match.dart';
 
 class MatchModel extends Match {

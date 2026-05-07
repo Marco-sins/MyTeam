@@ -22,7 +22,7 @@ class _AddTeamPageState extends State<AddTeamPage> {
   String _selectedCategory = 'Senior';
 
   Future<void> _pickLogo() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
     );

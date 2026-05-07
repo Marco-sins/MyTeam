@@ -1,3 +1,7 @@
+/// Datasource para la gestión de `attendance` (asistencias) en Supabase.
+///
+/// Provee operaciones para crear, actualizar y obtener asistencias por fecha
+/// y equipo, manejando errores y compatibilidad de esquema.
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';

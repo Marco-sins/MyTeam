@@ -1,3 +1,8 @@
+/// Entidad de dominio que representa un evento del partido (gol, falta,
+/// tarjeta, sustitución, etc.).
+///
+/// Incluye una fábrica `fromSupabaseMap` que normaliza filas de PostgREST y
+/// resuelve el `minute` mediante utilidades de `supabase_dynamic`.
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 
@@ -9,8 +14,7 @@ class MatchEvent {
   final int minute;
   final MatchEventEnum type;
   final String? note;
-  /// Desde Supabase; usado para ordenar la cronología igual que en el gestor.
-  final DateTime? createdAt;
+  final double? point;
 
   const MatchEvent({
     required this.id,
@@ -20,44 +24,19 @@ class MatchEvent {
     required this.minute,
     required this.type,
     this.note,
-    this.createdAt,
+    this.point,
   });
-
-  /// Misma lógica de normalización que [canonicalMatchEventTypeKey] (sin depender
-  /// de mayúsculas o del formato de enum en Postgres/PostgREST).
-  static String _enumNameNorm(MatchEventEnum e) {
-    return e
-        .toString()
-        .split('.')
-        .last
-        .toLowerCase()
-        .replaceAll('_', '');
-  }
-
-  static MatchEventEnum _parseTypeField(dynamic rawType) {
-    if (rawType == null) return MatchEventEnum.scoreGoal;
-    final key = canonicalMatchEventTypeKey(rawType);
-    if (key.isEmpty) return MatchEventEnum.scoreGoal;
-    for (final e in MatchEventEnum.values) {
-      if (_enumNameNorm(e) == key) {
-        return e;
-      }
-    }
-    return MatchEventEnum.scoreGoal;
-  }
 
   /// Construye la entidad desde una fila JSON de Supabase (p. ej. evento en vivo).
   factory MatchEvent.fromSupabaseMap(Map<String, dynamic> json) {
     final rawType = json['type'];
-    final MatchEventEnum parsedType = _parseTypeField(rawType);
-
-    DateTime? createdAt;
-    try {
-      final raw = json['created_at'];
-      if (raw != null) {
-        createdAt = DateTime.parse(raw.toString());
-      }
-    } catch (_) {}
+    final String? typeString = rawType?.toString().split('.').last;
+    final MatchEventEnum parsedType = typeString != null
+        ? MatchEventEnum.values.firstWhere(
+            (e) => e.toString().split('.').last == typeString,
+            orElse: () => MatchEventEnum.scoreGoal,
+          )
+        : MatchEventEnum.scoreGoal;
 
     return MatchEvent(
       id: supabaseInt(json['id']) ?? 0,
@@ -67,7 +46,7 @@ class MatchEvent {
       type: parsedType,
       minute: resolveMatchEventMinute(json),
       note: json['note'] as String?,
-      createdAt: createdAt,
+      point: (json['point'] as num?)?.toDouble(),
     );
   }
 }

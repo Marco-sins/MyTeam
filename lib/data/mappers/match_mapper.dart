@@ -1,4 +1,6 @@
 import 'package:football_manager/data/mappers/match_lineup_mapper.dart';
+
+/// Mapeador entre `MatchModel` (BD) y la entidad de dominio `Match`.
 import 'package:football_manager/data/models/match_model.dart';
 import 'package:football_manager/domain/entities/match.dart';
 

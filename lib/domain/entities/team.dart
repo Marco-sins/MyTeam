@@ -1,3 +1,6 @@
+/// Entidad `Team` que contiene nombre, categoría, logo y color (hex).
+///
+/// Usada en vistas y lógica que necesita metadatos del equipo.
 class Team {
   final int id;
   final String name;

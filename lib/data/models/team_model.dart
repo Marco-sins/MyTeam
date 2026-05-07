@@ -1,3 +1,5 @@
+/// Modelo persistible de `Team` usado para mapear filas de la tabla `teams`
+/// a la entidad de dominio. Provee `fromJson` y `toJson`.
 import 'package:football_manager/domain/entities/team.dart';
 
 class TeamModel extends Team {

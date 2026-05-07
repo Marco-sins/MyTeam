@@ -1,3 +1,6 @@
+/// Datasource remoto para operaciones sobre `players`, `player_stats` y
+/// datos relacionados. Implementa las llamadas HTTP/SQL vía Supabase/PostgREST
+/// y encapsula detalles de manejo de errores y compatibilidad de esquema.
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -50,7 +53,10 @@ Future<void> _updatePlayerStatsWithSchemaFallback(
       );
     }
     try {
-      await supabase.from('player_stats').update(data).eq('player_id', playerId);
+      await supabase
+          .from('player_stats')
+          .update(data)
+          .eq('player_id', playerId);
       return;
     } on PostgrestException catch (e) {
       final next = _removeColumnFromPayloadIfSchemaError(e, data);
@@ -82,8 +88,10 @@ Future<void> _insertPlayerStatsWithSchemaFallback(
       );
     }
     try {
-      final statsResponse =
-          await supabase.from('player_stats').insert(data).select();
+      final statsResponse = await supabase
+          .from('player_stats')
+          .insert(data)
+          .select();
       if (statsResponse.isEmpty) {
         throw ServerException(
           message: 'Failed to create player stats',
@@ -147,7 +155,9 @@ class PlayerRemoteDatasource {
       final path =
           '$teamId/${segment}_${DateTime.now().millisecondsSinceEpoch}_$sanitized';
 
-      await _supabase.storage.from(_photoBucket).uploadBinary(
+      await _supabase.storage
+          .from(_photoBucket)
+          .uploadBinary(
             path,
             bytes,
             fileOptions: const FileOptions(cacheControl: '3600'),
@@ -336,8 +346,6 @@ class PlayerRemoteDatasource {
       final playedSets = <int, Set<int>>{};
       final startedSets = <int, Set<int>>{};
       final minutesSum = <int, int>{};
-      final ratingSum = <int, double>{};
-      final ratingCount = <int, int>{};
 
       void markPlayed(int playerId, int matchId) {
         playedSets.putIfAbsent(playerId, () => {}).add(matchId);
@@ -351,17 +359,9 @@ class PlayerRemoteDatasource {
         minutesSum[playerId] = (minutesSum[playerId] ?? 0) + mins;
       }
 
-      void addMatchRatingIfPresent(int playerId, dynamic rawRating) {
-        if (rawRating == null) return;
-        final v = (rawRating is num) ? rawRating.toDouble() : null;
-        if (v == null) return;
-        ratingSum[playerId] = (ratingSum[playerId] ?? 0) + v;
-        ratingCount[playerId] = (ratingCount[playerId] ?? 0) + 1;
-      }
-
       final lineups = await _supabase
           .from('match_lineup')
-          .select('player_id, match_id, minutes_played, is_start, rating')
+          .select('player_id, match_id, minutes_played, is_start')
           .inFilter('match_id', matchIds);
 
       for (final row in lineups as List<dynamic>) {
@@ -372,7 +372,6 @@ class PlayerRemoteDatasource {
         final isStart = (map['is_start'] as bool?) ?? false;
 
         addMinutes(pid, mins);
-        addMatchRatingIfPresent(pid, map['rating']);
         if (mins > 0 || isStart) {
           markPlayed(pid, mid);
         }
@@ -406,19 +405,14 @@ class PlayerRemoteDatasource {
         ...playedSets.keys,
         ...startedSets.keys,
         ...minutesSum.keys,
-        ...ratingCount.keys,
       };
 
       final result = <int, PlayerParticipationTotals>{};
       for (final id in allIds) {
-        final nRatings = ratingCount[id] ?? 0;
-        final double? averageRating =
-            nRatings > 0 ? (ratingSum[id]! / nRatings) : null;
         result[id] = PlayerParticipationTotals(
           matchesPlayed: playedSets[id]?.length ?? 0,
           timesStarted: startedSets[id]?.length ?? 0,
           minutesPlayedSum: minutesSum[id] ?? 0,
-          averageMatchRating: averageRating,
         );
       }
       return result;
@@ -441,15 +435,11 @@ class PlayerRemoteDatasource {
         (playersRes as List<dynamic>).map((row) async {
           final id = (row as Map)['id'] as int;
           final t = totals[id] ?? PlayerParticipationTotals.zero;
-          await _updatePlayerStatsWithSchemaFallback(
-            _supabase,
-            id,
-            {
-              'matches_played': t.matchesPlayed,
-              'times_started': t.timesStarted,
-              'minutes_played': t.minutesPlayedSum,
-            },
-          );
+          await _updatePlayerStatsWithSchemaFallback(_supabase, id, {
+            'matches_played': t.matchesPlayed,
+            'times_started': t.timesStarted,
+            'minutes_played': t.minutesPlayedSum,
+          });
         }),
       );
     } on PostgrestException catch (e) {
@@ -477,12 +467,11 @@ class PlayerRemoteDatasource {
       final assists = <int, int>{};
       final yellows = <int, int>{};
       final reds = <int, int>{};
-      final Map<String, int> yellowsByMatchAndPlayer = {};
 
       if (matchIds.isNotEmpty) {
         final events = await _supabase
             .from('match_events')
-            .select('match_id, type, player_id1, player_id2')
+            .select('type, player_id1, player_id2')
             .inFilter('match_id', matchIds);
 
         for (final row in events as List<dynamic>) {
@@ -490,7 +479,6 @@ class PlayerRemoteDatasource {
           final tail = _matchEventTypeTail(map['type']);
           final p1 = map['player_id1'] as int?;
           final p2 = map['player_id2'] as int?;
-          final matchId = map['match_id'] as int?;
 
           if (tail == 'scoreGoal') {
             if (p1 != null) {
@@ -502,22 +490,12 @@ class PlayerRemoteDatasource {
           } else if (tail == 'yellowCard') {
             if (p1 != null) {
               yellows[p1] = (yellows[p1] ?? 0) + 1;
-              if (matchId != null) {
-                final k = '$matchId,$p1';
-                yellowsByMatchAndPlayer[k] =
-                    (yellowsByMatchAndPlayer[k] ?? 0) + 1;
-              }
             }
           } else if (tail == 'redCard') {
             if (p1 != null) {
               reds[p1] = (reds[p1] ?? 0) + 1;
             }
           }
-        }
-        for (final e in yellowsByMatchAndPlayer.entries) {
-          if (e.value < 2) continue;
-          final playerId = int.parse(e.key.split(',')[1]);
-          reds[playerId] = (reds[playerId] ?? 0) + 1;
         }
       }
 
@@ -529,12 +507,15 @@ class PlayerRemoteDatasource {
       await Future.wait(
         (playersRes as List<dynamic>).map((row) async {
           final id = (row as Map)['id'] as int;
-          await _supabase.from('player_stats').update({
-            'goals': goals[id] ?? 0,
-            'assistences': assists[id] ?? 0,
-            'yellow_cards': yellows[id] ?? 0,
-            'red_cards': reds[id] ?? 0,
-          }).eq('player_id', id);
+          await _supabase
+              .from('player_stats')
+              .update({
+                'goals': goals[id] ?? 0,
+                'assistences': assists[id] ?? 0,
+                'yellow_cards': yellows[id] ?? 0,
+                'red_cards': reds[id] ?? 0,
+              })
+              .eq('player_id', id);
         }),
       );
     } on PostgrestException catch (e) {
@@ -569,28 +550,27 @@ class PlayerRemoteDatasource {
               matchesPlayed: t.matchesPlayed,
               timesStarted: t.timesStarted,
               minutesPlayed: t.minutesPlayedSum,
-              averageMatchRating: t.averageMatchRating,
             ),
           );
         }
-        final model = st is PlayerStatsModel ? st : PlayerStatsModel(
-          id: st.id,
-          playerId: st.playerId,
-          goals: st.goals,
-          assists: st.assists,
-          yellowCards: st.yellowCards,
-          redCards: st.redCards,
-          matchesPlayed: st.matchesPlayed,
-          minutesPlayed: st.minutesPlayed,
-          timesStarted: st.timesStarted,
-          averageMatchRating: st.averageMatchRating,
-        );
+        final model = st is PlayerStatsModel
+            ? st
+            : PlayerStatsModel(
+                id: st.id,
+                playerId: st.playerId,
+                goals: st.goals,
+                assists: st.assists,
+                yellowCards: st.yellowCards,
+                redCards: st.redCards,
+                matchesPlayed: st.matchesPlayed,
+                minutesPlayed: st.minutesPlayed,
+                timesStarted: st.timesStarted,
+              );
         return p.copyWith(
           stats: model.copyWith(
             matchesPlayed: t.matchesPlayed,
             timesStarted: t.timesStarted,
             minutesPlayed: t.minutesPlayedSum,
-            averageMatchRating: t.averageMatchRating,
           ),
         );
       }).toList();

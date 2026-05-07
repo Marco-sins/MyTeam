@@ -211,30 +211,6 @@
   "teamMgmtEditRosterSubtitle": "Ajouter, supprimer et modifier des joueurs",
   "teamMgmtAccessTitle": "Gérer l'accès",
   "teamMgmtAccessSubtitle": "Inviter des administrateurs ou des spectateurs dans l'équipe",
-  "teamMgmtScoringTitle": "Poids de la note",
-  "teamMgmtScoringSubtitle": "Modifiez l'impact de chaque événement sur la note du match",
-  "teamScoringScreenTitle": "Poids de la note de match",
-  "teamScoringSave": "Enregistrer",
-  "teamScoringAddEvent": "Ajouter un événement",
-  "teamScoringAddDialogTitle": "Nouvel événement personnalisé",
-  "teamScoringEventName": "Nom comme dans la note de match",
-  "teamScoringPoints": "Points",
-  "teamScoringUnnamed": "(Sans nom)",
-  "teamScoringInvalidNumber": "Vérifiez les nombres",
-  "teamScoringDuplicateName": "Deux événements ne peuvent pas avoir le même nom",
-  "teamScoringCustomHint": "Doit correspondre au texte de la note (insensible à la casse)",
-  "teamScoringDeleteTooltip": "Retirer de la liste",
-  "teamScoringGoalScorer": "But",
-  "teamScoringGoalAssist": "Passe décisive",
-  "teamScoringEventOwnGoal": "But contre son camp",
-  "teamScoringEventGoalConceded": "But encaissé",
-  "teamScoringParadaIncreible": "Arrêt incroyable",
-  "teamScoringPaseClaveNota": "Passe clé",
-  "teamScoringJugadaClaveNota": "Action clé",
-  "teamScoringTiroNota": "Tir",
-  "teamScoringAmarillaNota": "Carton jaune",
-  "teamScoringRojaNota": "Carton rouge",
-  "teamScoringCantadaNota": "Bourde",
   "teamImportPlayerTitle": "Importer d'une autre équipe",
   "teamImportPlayerSubtitle": "Choisissez une équipe que vous gérez et un joueur. Copie du nom, coordonnées, photo et postes ; les statistiques dans cette équipe repartent de zéro.",
   "teamImportPlayerStatsHint": "Les stats de l'ancienne équipe ne sont pas transférées.",
@@ -348,20 +324,11 @@
   "matchFoulsAndCornersSection": "Fautes et corners",
   "matchFoulsShort": "Fautes",
   "matchCornersShort": "Corners",
-  "matchOffsidesShort": "Hors-jeu",
-  "matchEventOffside": "Hors-jeu",
-  "matchEventRivalOffside": "Hors-jeu adverse",
-  "matchYellowCardsShort": "Cartons jaunes",
-  "matchRedCardsShort": "Cartons rouges",
-  "matchRivalYellowCardNote": "Carton jaune (adversaire)",
-  "matchRivalRedCardNote": "Carton rouge (adversaire)",
   "matchCounterAddTooltip": "Ajouter",
   "matchCounterRemoveTooltip": "Retirer le dernier",
   "matchNoCounterToRemove": "Rien à retirer",
   "matchActionLabelFoul": "Faute",
   "matchFieldAndFormation": "Emplacement et formation",
-  "matchFieldBenchTitle": "Banc",
-  "matchFieldBenchHint": "Maintenez un remplaçant appuyé et déposez-le sur une position (remplacement ou créneau libre).",
   "matchSquadTitle": "Équipe",
   "matchSquadHintSpectator": "Mode spectateur : la liste et le pitch sont en lecture seule.",
   "matchSquadHintCoach": "Appuyez sur un joueur pour le sélectionner ; appuyez sur le terrain pour aligner ou ouvrir des actions.",
@@ -413,8 +380,6 @@
   },
   "matchLiveSubstitutionEnters": "Remplacement · Activé",
   "matchLiveSubstitutionLeaves": "· Désactivé",
-  "matchLiveSubstitutionToFreeSlot": " (place libre / banc)",
-  "matchLiveMinuteSquad": "Composition",
   "matchLivePeriodFallback": "Changement de période ou de statut",
   "matchLiveGoalBy": "Objectif par",
   "matchLiveAssistOpening": "(assister",
@@ -477,14 +442,6 @@
   "attendanceSaveTeamLoadError": "Impossible de charger l'équipe",
   "attendanceSaveInProgress": "Économie…",
   "attendanceSaveSuccess": "Participation enregistrée avec succès",
-  "attendancePlayerDialogAverageMatchRating": "Note moyenne (matchs) : {rating}",
-  "@attendancePlayerDialogAverageMatchRating": {
-    "placeholders": {
-      "rating": {
-        "type": "String"
-      }
-    }
-  },
   "convDatetimeSectionTitle": "Date et heures",
   "convPickDateTooltip": "Choisir la date",
   "tooltipChange": "Changement",
@@ -507,13 +464,7 @@
   "convocationNotesTitle": "Remarques",
   "convocationNotesHint": "Kit, ponctualité, message à l'équipe…",
   "convocationSavedSuccess": "Appel enregistré avec succès",
-  "convocationImageSectionMatchDetails": "Infos du match",
-  "convocationImageLabelTeam": "Équipe",
-  "convocationImageLabelFixture": "Rencontre",
-  "convocationImageLabelCallDateTime": "Date et heure de convocation",
-  "convocationImageLabelMeetingVenue": "Lieu de convocation",
-  "convocationImageLabelMatchVenue": "Lieu du match",
-  "convocationImageVenueHomeInstallations": "Installations du club",
+  "convocationImageSectionMatchDetails": "Détails du match",
   "convocationImageLabelDate": "Date",
   "convocationImageLabelMatchTime": "Heure du coup d'envoi",
   "convocationImageLabelCallTime": "Heure de rendez-vous",
@@ -521,15 +472,6 @@
   "convocationImageSectionSquad": "Joueurs convoqués",
   "convocationImageObservationsTitle": "Remarques",
   "convocationImagePlayerFallback": "Joueur",
-  "convocationImageSectionMatchDetailsSubtitle": "Date, horaires et lieu — lisez tranquillement",
-  "convocationImageLabelMatchKickoff": "COUP D'ENVOI (DÉBUT DU MATCH)",
-  "convocationImageLabelCallArrival": "HEURE DE CONVOCATION (ARRIVÉE)",
-  "convocationImageCallTimeReminder": "Important : arrivez avant cette heure, pas au coup d'envoi.",
-  "convocationImageMapLinkIntro": "Sur le téléphone, ouvrez ce lien pour voir le lieu sur la carte :",
-  "convocationImagePlaceHomeHeadline": "MATCH À DOMICILE",
-  "convocationImagePlaceHomeDetail": "Nous jouons sur notre terrain.",
-  "convocationImagePlaceAwayHeadline": "MATCH À L'EXTÉRIEUR",
-  "convocationImagePlaceAwayNoAddressDetail": "Le club confirmera l'adresse exacte. Demandez à l'entraîneur.",
   "matchSummaryVs": "contre {opponent}",
   "@matchSummaryVs": {
     "placeholders": {
@@ -544,12 +486,8 @@
   "matchScoreAgainstLabel": "Contre",
   "matchStatsScoreFinal": "Score final",
   "matchStatsScoreLive": "Score",
-  "matchStatsTeamNamePlaceholder": "Équipe",
   "matchStatsLoadingSummary": "Chargement du résumé du match…",
-  "matchStatsTabMain": "Principal",
-  "matchStatsTabStats": "Stats",
-  "matchStatsTabEvents": "Événements",
-  "matchStatsSectionField": "Alignement",
+  "matchStatsSectionField": "Présentation finale",
   "matchStatsFormationChip": "Formation : {formation}",
   "@matchStatsFormationChip": {
     "placeholders": {
@@ -558,7 +496,7 @@
       }
     }
   },
-  "matchStatsFieldDispositionHint": "Disposition des onze titulaires selon les positions enregistrées.",
+  "matchStatsFieldDispositionHint": "Disposition basée sur les positions enregistrées à la fin du match.",
   "matchStatsSectionTimeline": "Chronologie",
   "matchStatsTimelineEmpty": "Aucun événement enregistré",
   "matchStatsTimelineEmptyHint": "Les buts, les remplaçants et les cartes apparaîtront ici une fois connectés au match.",
@@ -569,16 +507,6 @@
   "matchStatsStatBadPasses": "Mauvaises passes",
   "matchStatsStatGoodPlays": "Bonnes pièces",
   "matchStatsStatBadPlays": "Mauvaises pièces",
-  "matchStatsStatOwnGoals": "Buts contre son camp",
-  "matchStatsStatGoalsConceded": "Buts encaissés",
-  "matchStatsStatShots": "Tirs",
-  "matchStatsStatSaves": "Arrêts",
-  "matchStatsStatKeyPasses": "Passes décisives",
-  "matchStatsStatBallRecoveries": "Récupérations",
-  "matchStatsStatFouls": "Fautes",
-  "matchStatsStatCantadas": "Grosses erreurs",
-  "matchStatsStatYellowCards": "Cartons jaunes",
-  "matchStatsStatRedCards": "Cartons rouges",
   "matchStatsOurGoalChip": "Objectif pour",
   "matchStatsOwnGoalChip": "But contre son camp",
   "matchListLoading": "Chargement des matchs…",
@@ -601,81 +529,9 @@
   "matchLineupSubstitutes": "Substituts",
   "matchLineupStarterTag": "Démarreur",
   "matchLineupSubstituteTag": "Remplaçant",
-  "matchStatsPlayerDialogScoringSection": "Actions enregistrées",
-  "matchStatsPlayerDialogRatingChip": "Note {rating}",
-  "@matchStatsPlayerDialogRatingChip": {
-    "placeholders": {
-      "rating": { "type": "String" }
-    }
-  },
   "matchFieldSelectPlayerFirst": "Sélectionnez d'abord un joueur dans la liste",
   "matchFieldMaxPlayersExpulsionRule": "On ne peut pas avoir plus de joueurs sur le terrain. Chaque joueur expulsé doit laisser un emplacement libre.",
   "matchConvocationTableEmpty": "Aucun joueur convoqué pour ce match",
   "matchDeletedSuccess": "Correspondance supprimée avec succès",
-  "matchEventLegacyActionRegistered": "Action enregistrée",
-  "matchNotifTimeFirst": "1re mi-temps",
-  "matchNotifTimeHalf": "Mi-temps",
-  "matchNotifTimeSecond": "2e mi-temps",
-  "matchNotifTimeEnd": "Fin du match",
-  "matchNotifPlayerUnknown": "Joueur",
-  "matchNotifGoalByPlayer": "But de {player} ({team})",
-  "@matchNotifGoalByPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifGoalRivalOnly": "But de {opponent}",
-  "@matchNotifGoalRivalOnly": {
-    "placeholders": {
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifOwnGoalByPlayer": "But contre son camp de {player} ({team})",
-  "@matchNotifOwnGoalByPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifCardYellowForTeam": "Carton jaune {player} ({team})",
-  "@matchNotifCardYellowForTeam": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifCardRedForTeam": "Carton rouge {player} ({team})",
-  "@matchNotifCardRedForTeam": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifCardYellowRivalWithPlayer": "Carton jaune {player} ({opponent})",
-  "@matchNotifCardYellowRivalWithPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifCardRedRivalWithPlayer": "Carton rouge {player} ({opponent})",
-  "@matchNotifCardRedRivalWithPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifCardYellowRivalOnly": "Carton jaune ({opponent})",
-  "@matchNotifCardYellowRivalOnly": {
-    "placeholders": {
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifCardRedRivalOnly": "Carton rouge ({opponent})",
-  "@matchNotifCardRedRivalOnly": {
-    "placeholders": {
-      "opponent": { "type": "String" }
-    }
-  }
+  "matchEventLegacyActionRegistered": "Action enregistrée"
 }

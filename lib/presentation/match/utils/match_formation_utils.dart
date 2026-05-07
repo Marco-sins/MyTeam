@@ -155,11 +155,14 @@ abstract final class MatchFormationUtils {
     '3-4-3': [3, 4, 3],
   };
 
+  /// Devuelve el mapa de formaciones segun el numero de huecos.
+  /// Lo hace eligiendo entre opciones de futbol 7 o 11.
   static Map<String, List<int>> optionsForSlotCount(int slotCount) {
     return slotCount <= 7 ? f7Outfield : f11Outfield;
   }
 
   /// Líneas del campo si la clave existe en f7 o f11.
+  /// Lo hace buscando la clave y anteponiendo el portero.
   static List<int>? linesFromKeyOrNull(String? key) {
     if (key == null || key.isEmpty) return null;
     final o7 = f7Outfield[key];
@@ -169,6 +172,8 @@ abstract final class MatchFormationUtils {
     return null;
   }
 
+  /// Devuelve una formacion por defecto segun el total de huecos.
+  /// Lo hace aplicando reglas simples para 7, 11 o fallback general.
   static List<int> defaultLines(int slotCount) {
     if (slotCount <= 0) return [];
     if (slotCount == 7) return [1, 3, 2, 1];
@@ -177,6 +182,7 @@ abstract final class MatchFormationUtils {
   }
 
   /// Huecos totales según la clave guardada (p. ej. `4-4-2` → 11).
+  /// Lo hace sumando las lineas y agregando el portero.
   static int? slotCountForKey(String? key) {
     if (key == null) return null;
     final o7 = f7Outfield[key];
@@ -187,6 +193,7 @@ abstract final class MatchFormationUtils {
   }
 
   /// Huecos [0,1]×[0,1] para F7 si [key] está definida; si no, null (rejilla).
+  /// Lo hace validando la clave y el numero de offsets esperados.
   static List<Offset>? f7SlotCentersOrNull(String? key) {
     if (key == null || key.isEmpty) return null;
     final list = f7NormalizedSlotCenters[key];
@@ -195,6 +202,7 @@ abstract final class MatchFormationUtils {
   }
 
   /// F11 táctico (líneas); si no hay clave o no coincide el número de huecos → null.
+  /// Lo hace consultando la tabla de offsets normalizados.
   static List<Offset>? f11SlotCentersOrNull(String? key) {
     if (key == null || key.isEmpty) return null;
     final list = f11NormalizedSlotCenters[key];
@@ -203,6 +211,7 @@ abstract final class MatchFormationUtils {
   }
 
   /// Posiciones fijas para F7 (7 huecos) o F11 (11 huecos) según [formationKey].
+  /// Lo hace delegando en la tabla adecuada y validando el total.
   static List<Offset>? tacticalSlotCentersOrNull(
     String? formationKey,
     int totalSlots,

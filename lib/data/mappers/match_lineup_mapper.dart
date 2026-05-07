@@ -1,3 +1,5 @@
+/// Mapeador entre el modelo de persistencia `MatchLineupModel` y la entidad
+/// de dominio `MatchLineup`.
 import 'package:football_manager/data/models/match_lineup_model.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
 
@@ -10,7 +12,6 @@ class MatchLineupMapper {
       isStarting: matchLineup.isStarting,
       minutesPlayed: matchLineup.minutesPlayed,
       position: matchLineup.position,
-      initialPosition: matchLineup.initialPosition,
       rating: matchLineup.rating,
     );
   }
@@ -23,7 +24,6 @@ class MatchLineupMapper {
       isStarting: matchLineupModel.isStarting,
       minutesPlayed: matchLineupModel.minutesPlayed,
       position: matchLineupModel.position,
-      initialPosition: matchLineupModel.initialPosition,
       rating: matchLineupModel.rating,
     );
   }

@@ -25,7 +25,7 @@ import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/team/widgets/team_quick_nav_bubble.dart';
 import 'package:football_manager/presentation/team/cubit/team_context_cubit.dart';
 import 'package:football_manager/presentation/team/pages/team_access_page.dart';
-import 'package:football_manager/presentation/team/pages/team_scoring_config_page.dart';
+import 'package:football_manager/presentation/team/team_session_navigation.dart';
 
 class TeamManagementPage extends StatefulWidget {
   const TeamManagementPage({super.key});
@@ -78,15 +78,15 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                 Text(
                   l10n.teamColorSheetTitle,
                   style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   l10n.teamColorSheetHint,
                   style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 ListTile(
@@ -103,16 +103,17 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                   child: GridView.builder(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 1.15,
-                    ),
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 1.15,
+                        ),
                     itemCount: TeamScreenTint.palette.length,
                     itemBuilder: (context, i) {
                       final e = TeamScreenTint.palette[i];
                       final c = TeamScreenTint.accentColor(e.hex);
-                      final selected = _colorHex != null &&
+                      final selected =
+                          _colorHex != null &&
                           _colorHex!.toUpperCase() == e.hex.toUpperCase();
                       return Material(
                         color: Colors.transparent,
@@ -177,7 +178,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
   }
 
   void _onLogoTap() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.image,
       withData: true,
     );
@@ -186,7 +187,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
       final file = result.files.first;
       if (file.bytes != null) {
         final ext = p.extension(file.name);
-        final safeName = 'team_logo_${context.read<TeamContextCubit>().state.id}$ext';
+        final safeName =
+            'team_logo_${context.read<TeamContextCubit>().state.id}$ext';
         final localPath = await LocalImageSaver.saveImageLocally(
           file.bytes!,
           safeName,
@@ -209,10 +211,10 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
       child: Text(
         text,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: scheme.primary,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.3,
-            ),
+          color: scheme.primary,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.3,
+        ),
       ),
     );
   }
@@ -227,8 +229,7 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
     VoidCallback? onTap,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final effectiveIcon = iconColor ??
-        (danger ? scheme.error : scheme.primary);
+    final effectiveIcon = iconColor ?? (danger ? scheme.error : scheme.primary);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -253,16 +254,10 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
       subtitle: subtitle != null
           ? Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: scheme.onSurfaceVariant,
-              ),
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
             )
           : null,
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: scheme.outline,
-      ),
+      trailing: Icon(Icons.chevron_right_rounded, color: scheme.outline),
       onTap: onTap,
     );
   }
@@ -271,7 +266,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
   Widget build(BuildContext context) {
     final team = context.watch<TeamContextCubit>().state;
     final authState = context.watch<AuthCubit>().state;
-    final canDeleteTeam = authState is Authenticated &&
+    final canDeleteTeam =
+        authState is Authenticated &&
         authState.user.teamRoles[team.id] == UserRole.superAdmin;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -300,150 +296,391 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                _sectionTitle(context, l10n.teamMgmtSectionTeamData),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TeamManagementHeaderRow(
-                          nameController: _nameController,
-                          selectedLogoPath: _selectedLogoPath,
-                          logoUrl: team.logoUrl,
-                          onLogoTap: _onLogoTap,
-                        ),
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: AlignmentDirectional.centerStart,
-                          child: Chip(
-                            avatar: Icon(
-                              Icons.category_outlined,
-                              size: 18,
-                              color: scheme.onSecondaryContainer,
-                            ),
-                            label: Text(
-                              team.category,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            backgroundColor: scheme.secondaryContainer
-                                .withValues(alpha: 0.65),
-                            side: BorderSide.none,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 8),
+                  _sectionTitle(context, l10n.teamMgmtSectionTeamData),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TeamManagementHeaderRow(
+                            nameController: _nameController,
+                            selectedLogoPath: _selectedLogoPath,
+                            logoUrl: team.logoUrl,
+                            onLogoTap: _onLogoTap,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Text(
-                              l10n.teamMgmtColorRowLabel,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Chip(
+                              avatar: Icon(
+                                Icons.category_outlined,
+                                size: 18,
+                                color: scheme.onSecondaryContainer,
+                              ),
+                              label: Text(
+                                team.category,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              backgroundColor: scheme.secondaryContainer
+                                  .withValues(alpha: 0.65),
+                              side: BorderSide.none,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
                               ),
                             ),
-                            const Spacer(),
-                            Tooltip(
-                              message: l10n.teamMgmtColorPickTooltip,
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: _openColorPalette,
-                                  borderRadius: BorderRadius.circular(9),
-                                  child: Container(
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      color: TeamScreenTint.accentColor(
-                                        _colorHex,
-                                      ),
-                                      borderRadius: BorderRadius.circular(9),
-                                      border: Border.all(
-                                        color: scheme.outline
-                                            .withValues(alpha: 0.5),
-                                        width: 1.2,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.07),
-                                          blurRadius: 3,
-                                          offset: const Offset(0, 1),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Text(
+                                l10n.teamMgmtColorRowLabel,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const Spacer(),
+                              Tooltip(
+                                message: l10n.teamMgmtColorPickTooltip,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: _openColorPalette,
+                                    borderRadius: BorderRadius.circular(9),
+                                    child: Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: TeamScreenTint.accentColor(
+                                          _colorHex,
                                         ),
-                                      ],
+                                        borderRadius: BorderRadius.circular(9),
+                                        border: Border.all(
+                                          color: scheme.outline.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          width: 1.2,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.07,
+                                            ),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () async {
+                                final authState = context
+                                    .read<AuthCubit>()
+                                    .state;
+                                if (authState is! Authenticated) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        l10n.teamMustLoginSaveChanges,
+                                      ),
+                                      backgroundColor: scheme.error,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                String? newLogoUrl =
+                                    _selectedLogoPath ?? team.logoUrl;
+                                if (_selectedLogoPath != null &&
+                                    !_selectedLogoPath!.startsWith('http')) {
+                                  final repo = context.read<ITeamRepository>();
+                                  final file = File(_selectedLogoPath!);
+                                  final bytes = await file.readAsBytes();
+                                  final fileName =
+                                      'team_logo_${team.id}${p.extension(_selectedLogoPath!)}';
+                                  final result = await repo.uploadLogo(
+                                    bytes,
+                                    fileName,
+                                  );
+                                  result.fold(
+                                    (failure) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            l10n.teamMgmtLogoUploadError(
+                                              failure.message,
+                                            ),
+                                          ),
+                                          backgroundColor: scheme.error,
+                                        ),
+                                      );
+                                    },
+                                    (url) {
+                                      newLogoUrl = url;
+                                    },
+                                  );
+                                }
+
+                                final newName = _nameController.text.trim();
+                                final updatedTeam = Team(
+                                  id: team.id,
+                                  name: newName,
+                                  category: team.category,
+                                  logoUrl: newLogoUrl,
+                                  color: _colorHex,
+                                );
+
+                                final updateTeamUseCase = context
+                                    .read<UpdateTeamUseCase>();
+                                final updateResult = await updateTeamUseCase(
+                                  updatedTeam,
+                                  authState.user,
+                                );
+
+                                if (!mounted) return;
+                                updateResult.fold(
+                                  (failure) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(failure.message),
+                                        backgroundColor: scheme.error,
+                                      ),
+                                    );
+                                  },
+                                  (_) {
+                                    context.read<HomeCubit>().fetchTeams();
+                                    teamContext.setTeam(updatedTeam);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(l10n.teamMgmtSaveSuccess),
+                                        backgroundColor: scheme.primary,
+                                        behavior: SnackBarBehavior.floating,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              icon: const Icon(Icons.save_outlined),
+                              label: Text(l10n.teamSaveDataButton),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  _sectionTitle(context, l10n.teamMgmtSectionRosterAccess),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        _navTile(
+                          context: context,
+                          icon: Icons.groups_2_outlined,
+                          title: l10n.teamMgmtEditRosterTitle,
+                          subtitle: l10n.teamMgmtEditRosterSubtitle,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MultiBlocProvider(
+                                  providers: [
+                                    BlocProvider.value(value: teamContext),
+                                    BlocProvider.value(value: detailCubit),
+                                  ],
+                                  child: TeamRosterPage(team: team),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                          onPressed: () async {
-                            final authState = context.read<AuthCubit>().state;
-                            if (authState is! Authenticated) {
+                        Divider(
+                          height: 1,
+                          color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        _navTile(
+                          context: context,
+                          icon: Icons.lock_open_rounded,
+                          title: l10n.teamMgmtAccessTitle,
+                          subtitle: l10n.teamMgmtAccessSubtitle,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BlocProvider.value(
+                                  value: teamContext,
+                                  child: TeamAccessPage(team: team),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  _sectionTitle(context, l10n.teamMgmtSectionMaintenance),
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        _navTile(
+                          context: context,
+                          icon: Icons.tune_outlined,
+                          title: 'Puntuacion de eventos',
+                          subtitle:
+                              'Crear, modificar y eliminar la puntuacion de eventos de jugador.',
+                          onTap: () =>
+                              TeamSessionNavigation.openPlayerEventScoring(
+                                context,
+                              ),
+                        ),
+                        Divider(
+                          height: 1,
+                          color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        _navTile(
+                          context: context,
+                          icon: Icons.sports_soccer_outlined,
+                          title: l10n.teamMgmtDeleteMatchesTitle,
+                          subtitle: l10n.teamMgmtDeleteMatchesSubtitle,
+                          danger: true,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MultiBlocProvider(
+                                  providers: [
+                                    BlocProvider.value(value: teamContext),
+                                    BlocProvider.value(value: detailCubit),
+                                  ],
+                                  child: MatchDeletePage(team: team),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        Divider(
+                          height: 1,
+                          color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        _navTile(
+                          context: context,
+                          icon: Icons.event_busy_outlined,
+                          title: l10n.teamMgmtDeleteAttendanceTitle,
+                          subtitle: l10n.teamMgmtDeleteAttendanceSubtitle,
+                          danger: true,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MultiBlocProvider(
+                                  providers: [
+                                    BlocProvider.value(value: teamContext),
+                                    BlocProvider.value(value: detailCubit),
+                                  ],
+                                  child: AttendanceDeletePage(team: team),
+                                ),
+                              ),
+                            ).then((result) {
+                              if (result == true && mounted) {
+                                Navigator.of(context).pop(true);
+                              }
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (canDeleteTeam) ...[
+                    _sectionTitle(context, l10n.teamMgmtSectionCritical),
+                    Card(
+                      color: scheme.errorContainer.withValues(alpha: 0.22),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: scheme.error.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: _navTile(
+                          context: context,
+                          icon: Icons.delete_forever_outlined,
+                          title: AppLocalizations.of(
+                            context,
+                          )!.teamDeleteNavTitle,
+                          subtitle: AppLocalizations.of(
+                            context,
+                          )!.teamDeleteNavSubtitle,
+                          danger: true,
+                          onTap: () async {
+                            final authForDelete = context
+                                .read<AuthCubit>()
+                                .state;
+                            if (authForDelete is! Authenticated) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(l10n.teamMustLoginSaveChanges),
+                                  content: Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.teamDeleteNeedLogin,
+                                  ),
                                   backgroundColor: scheme.error,
                                 ),
                               );
                               return;
                             }
 
-                            String? newLogoUrl =
-                                _selectedLogoPath ?? team.logoUrl;
-                            if (_selectedLogoPath != null &&
-                                !_selectedLogoPath!.startsWith('http')) {
-                              final repo = context.read<ITeamRepository>();
-                              final file = File(_selectedLogoPath!);
-                              final bytes = await file.readAsBytes();
-                              final fileName =
-                                  'team_logo_${team.id}${p.extension(_selectedLogoPath!)}';
-                              final result =
-                                  await repo.uploadLogo(bytes, fileName);
-                              result.fold(
-                                (failure) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        l10n.teamMgmtLogoUploadError(
-                                          failure.message,
-                                        ),
-                                      ),
-                                      backgroundColor: scheme.error,
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) {
+                                final dlgL10n = AppLocalizations.of(ctx)!;
+                                return AlertDialog(
+                                  title: Text(dlgL10n.dialogDeleteTeamTitle),
+                                  content: Text(dlgL10n.teamDeleteConfirmBody),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: Text(dlgL10n.actionCancel),
                                     ),
-                                  );
-                                },
-                                (url) {
-                                  newLogoUrl = url;
-                                },
-                              );
-                            }
-
-                            final newName = _nameController.text.trim();
-                            final updatedTeam = Team(
-                              id: team.id,
-                              name: newName,
-                              category: team.category,
-                              logoUrl: newLogoUrl,
-                              color: _colorHex,
+                                    FilledButton(
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: scheme.error,
+                                        foregroundColor: scheme.onError,
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: Text(dlgL10n.actionDelete),
+                                    ),
+                                  ],
+                                );
+                              },
                             );
 
-                            final updateTeamUseCase =
-                                context.read<UpdateTeamUseCase>();
-                            final updateResult = await updateTeamUseCase(
-                              updatedTeam,
-                              authState.user,
+                            if (confirm != true || !mounted) return;
+                            final deleteTeamUseCase = context
+                                .read<DeleteTeamUseCase>();
+                            final result = await deleteTeamUseCase(
+                              team,
+                              authForDelete.user,
                             );
 
                             if (!mounted) return;
-                            updateResult.fold(
+                            result.fold(
                               (failure) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -454,244 +691,27 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                               },
                               (_) {
                                 context.read<HomeCubit>().fetchTeams();
-                                teamContext.setTeam(updatedTeam);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(l10n.teamMgmtSaveSuccess),
+                                    content: Text(
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.teamDeletedSnackbar,
+                                    ),
                                     backgroundColor: scheme.primary,
                                     behavior: SnackBarBehavior.floating,
-                                    duration: const Duration(seconds: 2),
                                   ),
                                 );
+                                Navigator.of(
+                                  context,
+                                ).popUntil((route) => route.isFirst);
                               },
                             );
                           },
-                          icon: const Icon(Icons.save_outlined),
-                          label: Text(l10n.teamSaveDataButton),
-                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              _sectionTitle(context, l10n.teamMgmtSectionRosterAccess),
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    _navTile(
-                      context: context,
-                      icon: Icons.groups_2_outlined,
-                      title: l10n.teamMgmtEditRosterTitle,
-                      subtitle: l10n.teamMgmtEditRosterSubtitle,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => MultiBlocProvider(
-                              providers: [
-                                BlocProvider.value(value: teamContext),
-                                BlocProvider.value(value: detailCubit),
-                              ],
-                              child: TeamRosterPage(team: team),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                    _navTile(
-                      context: context,
-                      icon: Icons.lock_open_rounded,
-                      title: l10n.teamMgmtAccessTitle,
-                      subtitle: l10n.teamMgmtAccessSubtitle,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => BlocProvider.value(
-                              value: teamContext,
-                              child: TeamAccessPage(team: team),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                    _navTile(
-                      context: context,
-                      icon: Icons.tune,
-                      title: l10n.teamMgmtScoringTitle,
-                      subtitle: l10n.teamMgmtScoringSubtitle,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TeamBrandedScope(
-                              team: team,
-                              child: TeamScoringConfigPage(
-                                teamId: team.id,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+                      ),
                     ),
                   ],
-                ),
-              ),
-              _sectionTitle(context, l10n.teamMgmtSectionMaintenance),
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    _navTile(
-                      context: context,
-                      icon: Icons.sports_soccer_outlined,
-                      title: l10n.teamMgmtDeleteMatchesTitle,
-                      subtitle: l10n.teamMgmtDeleteMatchesSubtitle,
-                      danger: true,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => MultiBlocProvider(
-                              providers: [
-                                BlocProvider.value(value: teamContext),
-                                BlocProvider.value(value: detailCubit),
-                              ],
-                              child: MatchDeletePage(team: team),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    Divider(height: 1, color: scheme.outlineVariant.withValues(alpha: 0.5)),
-                    _navTile(
-                      context: context,
-                      icon: Icons.event_busy_outlined,
-                      title: l10n.teamMgmtDeleteAttendanceTitle,
-                      subtitle: l10n.teamMgmtDeleteAttendanceSubtitle,
-                      danger: true,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => MultiBlocProvider(
-                              providers: [
-                                BlocProvider.value(value: teamContext),
-                                BlocProvider.value(value: detailCubit),
-                              ],
-                              child: AttendanceDeletePage(team: team),
-                            ),
-                          ),
-                        ).then((result) {
-                          if (result == true && mounted) {
-                            Navigator.of(context).pop(true);
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              if (canDeleteTeam) ...[
-              _sectionTitle(context, l10n.teamMgmtSectionCritical),
-              Card(
-                color: scheme.errorContainer.withValues(alpha: 0.22),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: scheme.error.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: _navTile(
-                    context: context,
-                    icon: Icons.delete_forever_outlined,
-                    title: AppLocalizations.of(context)!.teamDeleteNavTitle,
-                    subtitle:
-                        AppLocalizations.of(context)!.teamDeleteNavSubtitle,
-                    danger: true,
-                    onTap: () async {
-                      final authForDelete = context.read<AuthCubit>().state;
-                      if (authForDelete is! Authenticated) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppLocalizations.of(context)!.teamDeleteNeedLogin,
-                            ),
-                            backgroundColor: scheme.error,
-                          ),
-                        );
-                        return;
-                      }
-
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) {
-                          final dlgL10n = AppLocalizations.of(ctx)!;
-                          return AlertDialog(
-                            title: Text(dlgL10n.dialogDeleteTeamTitle),
-                            content: Text(dlgL10n.teamDeleteConfirmBody),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(false),
-                                child: Text(dlgL10n.actionCancel),
-                              ),
-                              FilledButton(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: scheme.error,
-                                  foregroundColor: scheme.onError,
-                                ),
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                child: Text(dlgL10n.actionDelete),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-
-                      if (confirm != true || !mounted) return;
-                      final deleteTeamUseCase =
-                          context.read<DeleteTeamUseCase>();
-                      final result = await deleteTeamUseCase(
-                        team,
-                        authForDelete.user,
-                      );
-
-                      if (!mounted) return;
-                      result.fold(
-                        (failure) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(failure.message),
-                              backgroundColor: scheme.error,
-                            ),
-                          );
-                        },
-                        (_) {
-                          context.read<HomeCubit>().fetchTeams();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                AppLocalizations.of(context)!
-                                    .teamDeletedSnackbar,
-                              ),
-                              backgroundColor: scheme.primary,
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                          Navigator.of(context)
-                              .popUntil((route) => route.isFirst);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ),
-              ],
                 ],
               ),
             ),

@@ -1,117 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/domain/entities/player.dart';
-import 'package:football_manager/domain/entities/team_scoring_config.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
-import 'package:football_manager/presentation/match/utils/team_scoring_line_match_save.dart';
-import 'package:football_manager/presentation/team/utils/team_scoring_builtin_label.dart';
 
-String _lineButtonTitle(AppLocalizations l10n, TeamScoringLine line) {
-  if (line.isCustom) {
-    final n = line.name?.trim();
-    if (n == null || n.isEmpty) {
-      return l10n.teamScoringUnnamed;
-    }
-    return n;
-  }
-  return teamScoringBuiltinTitle(l10n, line.id);
-}
-
-/// Acciones posibles según la valoración guardada del equipo ([teamId]).
-Future<MatchPlayerScoringSelection?> showMatchPlayerActionModal(
-  BuildContext context,
-  Player player, {
-  required int teamId,
-}) {
-  return showDialog<MatchPlayerScoringSelection>(
-    context: context,
-    barrierDismissible: true,
-    builder: (ctx) {
-      final l10n = AppLocalizations.of(ctx)!;
-      final storage = ctx.read<TeamScoringConfigStorage>();
-      final saved = storage.load(teamId);
-      var lines = saved?.lines ?? TeamScoringConfig.defaultBuiltInLines();
-      if (lines.isEmpty) {
-        lines = TeamScoringConfig.defaultBuiltInLines();
-      }
-      final config = TeamScoringConfig(lines: lines);
-      final rows = sortedScoringLinesForPlayerModal(
-        scoringLinesForPlayerActionList(
-          List<TeamScoringLine>.from(config.lines),
-        ),
-      );
-
-      return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 620, minWidth: 280),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: PlayerNameText(
-                        player: player,
-                        style: const TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: l10n.dialogClose,
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: [
-                    ...rows.expand((line) {
-                      final kind = teamScoringLineToSaveKind(line);
-                      if (kind == null) {
-                        return <Widget>[];
-                      }
-                      final label = _lineButtonTitle(l10n, line);
-                      final isNeg = scoringLineUsesNegativeColor(line);
-                      final textColor = isNeg ? Colors.red : Colors.green;
-                      return <Widget>[
-                        MatchPlayerActionButton(
-                          label: label,
-                          textColor: textColor,
-                          onTap: () {
-                            final sel = MatchPlayerScoringSelection(
-                              confirmLabel: label,
-                              kind: kind,
-                            );
-                            Navigator.of(ctx).pop(sel);
-                          },
-                        ),
-                      ];
-                    }),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
+/// Tipos de acciones que se pueden registrar para un jugador
+/// desde el gestor de partido.
+enum MatchPlayerActionType {
+  goal,
+  goodPass,
+  goodPlay,
+  goodSave,
+  shot,
+  ballRecovery,
+  yellowCard,
+  redCard,
+  badPass,
+  badPlay,
+  foul,
+  offside,
+  cantada,
 }
 
 class MatchPlayerActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final Color? textColor;
+
+  /// Crea un boton de accion con estilo y color opcional.
   const MatchPlayerActionButton({
     super.key,
     required this.label,
@@ -119,10 +34,8 @@ class MatchPlayerActionButton extends StatelessWidget {
     this.textColor,
   });
 
-  final String label;
-  final VoidCallback onTap;
-  final Color? textColor;
-
+  /// Construye el boton con alineacion a la izquierda.
+  /// Lo hace con ElevatedButton y padding.
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -146,4 +59,150 @@ class MatchPlayerActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Muestra un modal con acciones disponibles para el jugador.
+/// Lo hace con un Dialog y devuelve la accion seleccionada.
+Future<MatchPlayerActionType?> showMatchPlayerActionModal(
+  BuildContext context,
+  Player player,
+) {
+  return showDialog<MatchPlayerActionType>(
+    context: context,
+    barrierDismissible: true,
+    builder: (ctx) {
+      final l10n = AppLocalizations.of(ctx)!;
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 620, minWidth: 280),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: PlayerNameText(
+                        player: player,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: l10n.dialogClose,
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelGoal,
+                        textColor: Colors.green,
+                        onTap: () =>
+                            Navigator.of(ctx).pop(MatchPlayerActionType.goal),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelGoodPass,
+                        textColor: Colors.green,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.goodPass),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelGoodPlay,
+                        textColor: Colors.green,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.goodPlay),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelGoodSave,
+                        textColor: Colors.green,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.goodSave),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelShot,
+                        textColor: Colors.green,
+                        onTap: () =>
+                            Navigator.of(ctx).pop(MatchPlayerActionType.shot),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelBallRecovery,
+                        textColor: Colors.green,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.ballRecovery),
+                      ),
+                      const SizedBox(height: 8),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelYellowCard,
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.yellowCard),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelRedCard,
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.redCard),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelBadPass,
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.badPass),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelBadPlay,
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.badPlay),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelFoul,
+                        textColor: Colors.red,
+                        onTap: () =>
+                            Navigator.of(ctx).pop(MatchPlayerActionType.foul),
+                      ),
+                      MatchPlayerActionButton(
+                        label: 'Fuera de juego',
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.offside),
+                      ),
+                      MatchPlayerActionButton(
+                        label: l10n.matchActionLabelCantada,
+                        textColor: Colors.red,
+                        onTap: () => Navigator.of(
+                          ctx,
+                        ).pop(MatchPlayerActionType.cantada),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }

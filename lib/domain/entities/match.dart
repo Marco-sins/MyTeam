@@ -1,6 +1,7 @@
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
 
+/// Entidad `Match` con metadatos del partido, marcador, fecha y alineaciones.
 class Match {
   final int id;
   final int teamId;

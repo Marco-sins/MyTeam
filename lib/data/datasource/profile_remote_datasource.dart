@@ -1,3 +1,6 @@
+/// Datasource remoto para `profiles` (perfiles de usuario).
+///
+/// Provee consultas de perfiles por id, búsqueda y cargas auxiliares.
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';

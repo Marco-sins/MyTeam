@@ -1,3 +1,7 @@
+/// Repositorio para operaciones sobre `matches`.
+///
+/// Implementa `IMatchRepository` y encapsula la interacción con la fuente
+/// remota [MatchRemoteDatasource], devolviendo `Either<Failure, T>`.
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
@@ -165,14 +169,6 @@ class MatchRepository implements IMatchRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> lockInitialLineupPositions(int matchId) {
-    return runRepositoryGuard(() async {
-      await _remoteDatasource.lockInitialLineupPositions(matchId);
-      return unit;
-    });
-  }
-
-  @override
   Future<Either<Failure, Unit>> updateMatchLineupStarters({
     required int matchId,
     required List<int> starterPlayerIds,
@@ -192,7 +188,7 @@ class MatchRepository implements IMatchRepository {
 
   @override
   Future<Either<Failure, List<({int playerId, int positionIndex})>>>
-      getMatchLineupPositions(int matchId) {
+  getMatchLineupPositions(int matchId) {
     return runRepositoryGuard(
       () => _remoteDatasource.getLineupPositions(matchId),
     );

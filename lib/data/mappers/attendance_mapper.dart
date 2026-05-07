@@ -1,3 +1,4 @@
+/// Mapeador entre la fila `attendance` y la entidad de dominio `Attendance`.
 import 'package:football_manager/data/models/attendance_model.dart';
 import 'package:football_manager/domain/entities/attendance.dart';
 

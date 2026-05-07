@@ -1,3 +1,4 @@
+/// Caso de uso para borrar un evento de partido por id (valida permisos).
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
@@ -18,10 +19,14 @@ class DeleteMatchEventUseCase {
     final teamRole = user.teamRoles[teamId];
     if (teamRole == null || !teamRole.hasAdminPrivileges) {
       return Left(
-        PermissionFailure('You do not have permission to delete this match event.'),
+        PermissionFailure(
+          'You do not have permission to delete this match event.',
+        ),
       );
     }
-    final response = await _matchEventRepository.deleteMatchEvent(matchEvent.id);
+    final response = await _matchEventRepository.deleteMatchEvent(
+      matchEvent.id,
+    );
     if (response.isLeft()) {
       return response;
     }

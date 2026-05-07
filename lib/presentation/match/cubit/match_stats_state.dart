@@ -1,6 +1,10 @@
 part of 'match_stats_cubit.dart';
 
+/// Estado inmutable con los datos listos para la pantalla de estadisticas.
+/// Se construye desde el cubit y se compara por valor con [Equatable].
 class MatchStatsState extends Equatable {
+  /// Crea un estado completo con todos los campos obligatorios.
+  /// Lo hace asignando cada propiedad para mantener inmutabilidad.
   const MatchStatsState({
     required this.isLoading,
     required this.error,
@@ -14,10 +18,10 @@ class MatchStatsState extends Equatable {
     required this.formationLabel,
     required this.fieldPositionPlayers,
     required this.sentOffPlayerIds,
-    this.eventAggregates,
-    required this.allEventMaps,
   });
 
+  /// Estado inicial sin datos cargados ni errores.
+  /// Lo hace usando colecciones vacias y banderas por defecto.
   const MatchStatsState.initial()
     : isLoading = false,
       error = null,
@@ -30,9 +34,7 @@ class MatchStatsState extends Equatable {
       formationLines = const [],
       formationLabel = null,
       fieldPositionPlayers = const [],
-      sentOffPlayerIds = const {},
-      eventAggregates = null,
-      allEventMaps = const [];
+      sentOffPlayerIds = const {};
 
   final bool isLoading;
   final String? error;
@@ -42,22 +44,19 @@ class MatchStatsState extends Equatable {
   final List<Player> substitutePlayers;
   final Map<int, bool> isStarterById;
   final Map<int, double> playerRatings;
+
   /// Filas del campo (portero + líneas), p. ej. [1,4,4,2]. Vacío = no hay dibujo.
   final List<int> formationLines;
+
   /// Clave de formación guardada (`4-4-2`, …) o null si se infirió por posiciones.
   final String? formationLabel;
-  /// Titulares en el diagrama: alineación **inicial** ([MatchLineup.initialPosition]) en
-  /// partidos finalizados; [sentOffPlayerIds] se aplica en la UI de lectura.
+
+  /// Jugadores por hueco al final del partido (expulsados fuera del campo).
   final List<Player?> fieldPositionPlayers;
   final Set<int> sentOffPlayerIds;
 
-  /// Conteos de tiros, faltas, córners y tarjetas (misma fuente que el gestor en vivo).
-  final MatchEventAggregates? eventAggregates;
-
-  /// Todos los eventos del partido (misma base que [calculatePlayerRating]), no el listado
-  /// de cronología filtrada.
-  final List<Map<String, dynamic>> allEventMaps;
-
+  /// Crea una copia con cambios puntuales.
+  /// Lo hace reusando los valores actuales cuando el parametro es null.
   MatchStatsState copyWith({
     bool? isLoading,
     String? error,
@@ -71,8 +70,6 @@ class MatchStatsState extends Equatable {
     String? formationLabel,
     List<Player?>? fieldPositionPlayers,
     Set<int>? sentOffPlayerIds,
-    MatchEventAggregates? eventAggregates,
-    List<Map<String, dynamic>>? allEventMaps,
   }) {
     return MatchStatsState(
       isLoading: isLoading ?? this.isLoading,
@@ -87,11 +84,11 @@ class MatchStatsState extends Equatable {
       formationLabel: formationLabel ?? this.formationLabel,
       fieldPositionPlayers: fieldPositionPlayers ?? this.fieldPositionPlayers,
       sentOffPlayerIds: sentOffPlayerIds ?? this.sentOffPlayerIds,
-      eventAggregates: eventAggregates ?? this.eventAggregates,
-      allEventMaps: allEventMaps ?? this.allEventMaps,
     );
   }
 
+  /// Lista de props para comparacion por valor.
+  /// Lo hace exponiendo todas las propiedades relevantes del estado.
   @override
   List<Object?> get props => [
     isLoading,
@@ -106,7 +103,5 @@ class MatchStatsState extends Equatable {
     formationLabel,
     fieldPositionPlayers,
     sentOffPlayerIds,
-    eventAggregates,
-    allEventMaps,
   ];
 }

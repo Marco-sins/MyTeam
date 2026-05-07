@@ -1,4 +1,6 @@
 import 'package:football_manager/domain/entities/enum/user_role.dart';
+
+/// Modelo persistente para invitaciones (`invitations`).
 import 'package:football_manager/domain/entities/invitation.dart';
 
 class InvitationModel extends Invitation {

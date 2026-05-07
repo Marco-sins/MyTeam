@@ -4,6 +4,7 @@ import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
 
 class MatchLineupSection extends StatelessWidget {
+  /// Crea la seccion de titulares y suplentes.
   const MatchLineupSection({
     super.key,
     required this.startingPlayers,
@@ -19,6 +20,8 @@ class MatchLineupSection extends StatelessWidget {
   final void Function(Player) onPlayerTap;
   final bool showRatings;
 
+  /// Construye la seccion con grupos y filas de jugadores.
+  /// Lo hace listando titulares y suplentes si existen.
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -28,7 +31,7 @@ class MatchLineupSection extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -56,7 +59,6 @@ class MatchLineupSection extends StatelessWidget {
               _MatchLineupPlayerRow(
                 player: p,
                 label: l10n.matchLineupStarterTag,
-                isStarter: true,
                 rating: playerRatings[p.id],
                 showRating: showRatings,
                 onTap: () => onPlayerTap(p),
@@ -76,7 +78,6 @@ class MatchLineupSection extends StatelessWidget {
               _MatchLineupPlayerRow(
                 player: p,
                 label: l10n.matchLineupSubstituteTag,
-                isStarter: false,
                 rating: playerRatings[p.id],
                 showRating: showRatings,
                 onTap: () => onPlayerTap(p),
@@ -89,10 +90,10 @@ class MatchLineupSection extends StatelessWidget {
 }
 
 class _MatchLineupPlayerRow extends StatelessWidget {
+  /// Crea la fila de jugador con rating y etiqueta.
   const _MatchLineupPlayerRow({
     required this.player,
     required this.label,
-    required this.isStarter,
     required this.onTap,
     this.rating,
     this.showRating = true,
@@ -100,17 +101,19 @@ class _MatchLineupPlayerRow extends StatelessWidget {
 
   final Player player;
   final String label;
-  final bool isStarter;
   final VoidCallback onTap;
   final double? rating;
   final bool showRating;
 
+  /// Construye la fila con dorsal, nombre, rating y chip.
+  /// Lo hace calculando el color segun la puntuacion.
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final value = (rating ?? 5.0).clamp(0.0, 10.0);
 
+    // Calcula el color del rating por rango.
     Color ratingColor(double v) {
       if (v <= 5.0) {
         final t = v / 5.0;
@@ -176,7 +179,7 @@ class _MatchLineupPlayerRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  color: isStarter
+                  color: label == 'Titular'
                       ? scheme.primaryContainer.withValues(alpha: 0.85)
                       : scheme.secondaryContainer.withValues(alpha: 0.65),
                 ),
@@ -184,7 +187,7 @@ class _MatchLineupPlayerRow extends StatelessWidget {
                   label,
                   style: textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: isStarter
+                    color: label == 'Titular'
                         ? scheme.onPrimaryContainer
                         : scheme.onSecondaryContainer,
                   ),

@@ -1,3 +1,5 @@
+/// Modelo para la tabla `attendance` con serialización a la entidad de dominio
+/// `Attendance`.
 import 'package:football_manager/domain/entities/attendance.dart';
 
 class AttendanceModel extends Attendance {

@@ -1,6 +1,11 @@
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/data/models/player_stats_model.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
+
+/// Modelo de persistencia para `Player`.
+///
+/// Contiene serialización hacia/desde la forma en que la BD expone columnas
+/// (dorsal, nombre, posición, foto, etc.).
 import 'package:football_manager/domain/entities/player.dart';
 
 class PlayerModel extends Player {

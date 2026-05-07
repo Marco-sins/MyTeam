@@ -1,3 +1,4 @@
+/// Representa una asistencia registrada para un jugador en una fecha.
 class Attendance {
   final int id;
   final int teamId;

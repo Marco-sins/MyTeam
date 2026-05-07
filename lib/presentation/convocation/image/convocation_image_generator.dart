@@ -11,16 +11,17 @@ import 'convocation_image_body.dart';
 import 'convocation_image_header.dart';
 import 'convocation_image_theme.dart';
 
-String _formatCallDateTime(DateTime date, TimeOfDay callTime) {
-  final d =
-      '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  final t =
-      '${callTime.hour.toString().padLeft(2, '0')}:${callTime.minute.toString().padLeft(2, '0')}';
-  return '$d - $t';
+String _formatDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  final year = date.year.toString();
+  return '$day/$month/$year';
 }
 
-String _formatTimeShort(TimeOfDay time) {
-  return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+String _formatTimeOfDay(TimeOfDay time) {
+  final hour = time.hour.toString().padLeft(2, '0');
+  final minute = time.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }
 
 Future<ui.Image?> _decodeTeamLogo(Team team) async {
@@ -84,7 +85,7 @@ void _drawTeamLogoWatermark(
   );
   final src = Rect.fromLTWH(0, 0, iw, ih);
 
-  const watermarkAlpha = 0.12;
+  const watermarkAlpha = 0.14;
   final paint = Paint()
     ..isAntiAlias = true
     ..filterQuality = FilterQuality.medium
@@ -106,7 +107,6 @@ Future<File?> generateConvocationImage({
   required TimeOfDay matchTime,
   required TimeOfDay callTime,
   required String rivalName,
-  required String fixtureLine,
   String? awayLocation,
   String? notes,
   required List<Player> selectedPlayers,
@@ -119,33 +119,10 @@ Future<File?> generateConvocationImage({
     final sortedPlayers = List<Player>.from(selectedPlayers)
       ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
 
-    final callDateTimeStr = _formatCallDateTime(matchDate, callTime);
-    final matchTimeStr = _formatTimeShort(matchTime);
-
-    String? mapUrl;
-    if (!isHome && awayLocation != null && awayLocation.trim().isNotEmpty) {
-      mapUrl =
-          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation.trim())}';
-    }
-
-    final venues = convocationVenueStrings(
-      copy: imageCopy,
-      isHome: isHome,
-      awayLocation: awayLocation,
-      mapUrl: mapUrl,
-    );
-
     final totalHeight = estimateConvocationCanvasHeight(
-      copy: imageCopy,
       playerCount: sortedPlayers.length,
+      awayLocation: awayLocation,
       notes: notes,
-      teamName: team.name,
-      fixtureLine: fixtureLine,
-      callDateTimeStr: callDateTimeStr,
-      matchTimeStr: matchTimeStr,
-      meetingVenue: venues.meeting,
-      matchVenue: venues.matchVenue,
-      mapExtra: venues.mapExtra,
     );
     final canvasH = totalHeight.roundToDouble();
 
@@ -187,7 +164,7 @@ Future<File?> generateConvocationImage({
     canvas.drawRRect(
       rrect,
       Paint()
-        ..color = palette.outlineVariant.withValues(alpha: 0.45)
+        ..color = palette.outlineVariant.withValues(alpha: 0.55)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
@@ -205,16 +182,25 @@ Future<File?> generateConvocationImage({
       rivalName: rivalName,
     );
 
+    final dateStr = _formatDate(matchDate);
+    final matchTimeStr = _formatTimeOfDay(matchTime);
+    final callTimeStr = _formatTimeOfDay(callTime);
+
+    String? mapUrl;
+    if (awayLocation != null && awayLocation.trim().isNotEmpty) {
+      mapUrl =
+          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(awayLocation.trim())}';
+    }
+
     drawConvocationBody(
       canvas: canvas,
       overlayRect: overlayRect,
       palette: palette,
       startY: headerBottomY,
       copy: imageCopy,
-      teamName: team.name,
-      fixtureLine: fixtureLine,
-      callDateTimeStr: callDateTimeStr,
+      dateStr: dateStr,
       matchTimeStr: matchTimeStr,
+      callTimeStr: callTimeStr,
       mapUrl: mapUrl,
       awayLocation: awayLocation,
       isHome: isHome,

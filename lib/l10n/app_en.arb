@@ -211,30 +211,6 @@
   "teamMgmtEditRosterSubtitle": "Add, remove and edit players",
   "teamMgmtAccessTitle": "Manage access",
   "teamMgmtAccessSubtitle": "Invite admins or spectators to the team",
-  "teamMgmtScoringTitle": "Rating weights",
-  "teamMgmtScoringSubtitle": "Change how much each event adds to the match rating",
-  "teamScoringScreenTitle": "Match rating weights",
-  "teamScoringSave": "Save",
-  "teamScoringAddEvent": "Add event",
-  "teamScoringAddDialogTitle": "New custom event",
-  "teamScoringEventName": "Name as in match note",
-  "teamScoringPoints": "Points",
-  "teamScoringUnnamed": "(Unnamed)",
-  "teamScoringInvalidNumber": "Check the numbers entered",
-  "teamScoringDuplicateName": "Two events cannot have the same name",
-  "teamScoringCustomHint": "Must match the event note text (case-insensitive)",
-  "teamScoringDeleteTooltip": "Remove from list",
-  "teamScoringGoalScorer": "Goal",
-  "teamScoringGoalAssist": "Assist",
-  "teamScoringEventOwnGoal": "Own goal",
-  "teamScoringEventGoalConceded": "Goal conceded",
-  "teamScoringParadaIncreible": "Great save (incredible)",
-  "teamScoringPaseClaveNota": "Key pass",
-  "teamScoringJugadaClaveNota": "Key play",
-  "teamScoringTiroNota": "Shot",
-  "teamScoringAmarillaNota": "Yellow card",
-  "teamScoringRojaNota": "Red card",
-  "teamScoringCantadaNota": "Howler",
   "teamImportPlayerTitle": "Import from another team",
   "teamImportPlayerSubtitle": "Choose a team you manage and a player. Name, contact details, photo and positions are copied; statistics for this team are new (zeroed).",
   "teamImportPlayerStatsHint": "Old team stats are not transferred.",
@@ -348,20 +324,11 @@
   "matchFoulsAndCornersSection": "Fouls and corners",
   "matchFoulsShort": "Fouls",
   "matchCornersShort": "Corners",
-  "matchOffsidesShort": "Offsides",
-  "matchEventOffside": "Offside",
-  "matchEventRivalOffside": "Rival offside",
-  "matchYellowCardsShort": "Yellow cards",
-  "matchRedCardsShort": "Red cards",
-  "matchRivalYellowCardNote": "Yellow card (opponent)",
-  "matchRivalRedCardNote": "Red card (opponent)",
   "matchCounterAddTooltip": "Add one",
   "matchCounterRemoveTooltip": "Remove last",
   "matchNoCounterToRemove": "Nothing to remove",
   "matchActionLabelFoul": "Foul",
   "matchFieldAndFormation": "Pitch and formation",
-  "matchFieldBenchTitle": "Bench",
-  "matchFieldBenchHint": "Long-press a substitute and drop them on a position (sub or open slot).",
   "matchSquadTitle": "Squad",
   "matchSquadHintSpectator": "Spectator mode: list and pitch are view-only.",
   "matchSquadHintCoach": "Tap a player to select; tap the pitch to line up or open actions.",
@@ -413,8 +380,6 @@
   },
   "matchLiveSubstitutionEnters": "Substitution · On ",
   "matchLiveSubstitutionLeaves": " · Off ",
-  "matchLiveSubstitutionToFreeSlot": " (open slot / bench)",
-  "matchLiveMinuteSquad": "Lineup",
   "matchLivePeriodFallback": "Period or status change",
   "matchLiveGoalBy": "Goal by ",
   "matchLiveAssistOpening": " (assist ",
@@ -477,14 +442,6 @@
   "attendanceSaveTeamLoadError": "Could not load the team squad",
   "attendanceSaveInProgress": "Saving…",
   "attendanceSaveSuccess": "Attendance saved successfully",
-  "attendancePlayerDialogAverageMatchRating": "Match average rating: {rating}",
-  "@attendancePlayerDialogAverageMatchRating": {
-    "placeholders": {
-      "rating": {
-        "type": "String"
-      }
-    }
-  },
   "convDatetimeSectionTitle": "Date and times",
   "convPickDateTooltip": "Pick date",
   "tooltipChange": "Change",
@@ -508,12 +465,6 @@
   "convocationNotesHint": "Kit, punctuality, message to the squad…",
   "convocationSavedSuccess": "Call-up saved successfully",
   "convocationImageSectionMatchDetails": "Match details",
-  "convocationImageLabelTeam": "Team",
-  "convocationImageLabelFixture": "Fixture",
-  "convocationImageLabelCallDateTime": "Call date and time",
-  "convocationImageLabelMeetingVenue": "Meeting point",
-  "convocationImageLabelMatchVenue": "Match venue",
-  "convocationImageVenueHomeInstallations": "Club facilities",
   "convocationImageLabelDate": "Date",
   "convocationImageLabelMatchTime": "Kick-off time",
   "convocationImageLabelCallTime": "Meet-up time",
@@ -521,15 +472,6 @@
   "convocationImageSectionSquad": "Called-up players",
   "convocationImageObservationsTitle": "Notes",
   "convocationImagePlayerFallback": "Player",
-  "convocationImageSectionMatchDetailsSubtitle": "Date, times and venue — take your time reading",
-  "convocationImageLabelMatchKickoff": "KICK-OFF TIME (MATCH START)",
-  "convocationImageLabelCallArrival": "MEET-UP TIME (ARRIVAL)",
-  "convocationImageCallTimeReminder": "Important: arrive before this time, not when the match starts.",
-  "convocationImageMapLinkIntro": "On your phone you can open this link to see the place on the map:",
-  "convocationImagePlaceHomeHeadline": "HOME MATCH",
-  "convocationImagePlaceHomeDetail": "We play on our home ground.",
-  "convocationImagePlaceAwayHeadline": "AWAY MATCH",
-  "convocationImagePlaceAwayNoAddressDetail": "The club will confirm the exact address. Ask your coach.",
   "matchSummaryVs": "vs {opponent}",
   "@matchSummaryVs": {
     "placeholders": {
@@ -544,12 +486,8 @@
   "matchScoreAgainstLabel": "Against",
   "matchStatsScoreFinal": "Final score",
   "matchStatsScoreLive": "Score",
-  "matchStatsTeamNamePlaceholder": "Team",
   "matchStatsLoadingSummary": "Loading match summary…",
-  "matchStatsTabMain": "Main",
-  "matchStatsTabStats": "Stats",
-  "matchStatsTabEvents": "Events",
-  "matchStatsSectionField": "Lineup",
+  "matchStatsSectionField": "Final pitch",
   "matchStatsFormationChip": "Formation: {formation}",
   "@matchStatsFormationChip": {
     "placeholders": {
@@ -558,7 +496,7 @@
       }
     }
   },
-  "matchStatsFieldDispositionHint": "Starting eleven layout from saved positions in the lineup.",
+  "matchStatsFieldDispositionHint": "Layout based on positions saved when the match ended.",
   "matchStatsSectionTimeline": "Timeline",
   "matchStatsTimelineEmpty": "No events recorded",
   "matchStatsTimelineEmptyHint": "Goals, subs and cards will appear here once logged in the match.",
@@ -569,16 +507,6 @@
   "matchStatsStatBadPasses": "Poor passes",
   "matchStatsStatGoodPlays": "Good plays",
   "matchStatsStatBadPlays": "Poor plays",
-  "matchStatsStatOwnGoals": "Own goals",
-  "matchStatsStatGoalsConceded": "Goals conceded",
-  "matchStatsStatShots": "Shots",
-  "matchStatsStatSaves": "Saves",
-  "matchStatsStatKeyPasses": "Key passes",
-  "matchStatsStatBallRecoveries": "Ball recoveries",
-  "matchStatsStatFouls": "Fouls",
-  "matchStatsStatCantadas": "Blunders",
-  "matchStatsStatYellowCards": "Yellow cards",
-  "matchStatsStatRedCards": "Red cards",
   "matchStatsOurGoalChip": "Goal for",
   "matchStatsOwnGoalChip": "Own goal",
   "matchListLoading": "Loading matches…",
@@ -601,81 +529,9 @@
   "matchLineupSubstitutes": "Substitutes",
   "matchLineupStarterTag": "Starter",
   "matchLineupSubstituteTag": "Substitute",
-  "matchStatsPlayerDialogScoringSection": "Logged actions",
-  "matchStatsPlayerDialogRatingChip": "Rating {rating}",
-  "@matchStatsPlayerDialogRatingChip": {
-    "placeholders": {
-      "rating": { "type": "String" }
-    }
-  },
   "matchFieldSelectPlayerFirst": "Select a player in the list first",
   "matchFieldMaxPlayersExpulsionRule": "You cannot have more players on the pitch. Each sent-off player must leave a free slot.",
   "matchConvocationTableEmpty": "No players called up for this match",
   "matchDeletedSuccess": "Match deleted successfully",
-  "matchEventLegacyActionRegistered": "Logged action",
-  "matchNotifTimeFirst": "First half",
-  "matchNotifTimeHalf": "Half-time",
-  "matchNotifTimeSecond": "Second half",
-  "matchNotifTimeEnd": "Full time",
-  "matchNotifPlayerUnknown": "Player",
-  "matchNotifGoalByPlayer": "Goal by {player} ({team})",
-  "@matchNotifGoalByPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifGoalRivalOnly": "Goal by {opponent}",
-  "@matchNotifGoalRivalOnly": {
-    "placeholders": {
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifOwnGoalByPlayer": "Own goal by {player} ({team})",
-  "@matchNotifOwnGoalByPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifCardYellowForTeam": "Yellow card {player} ({team})",
-  "@matchNotifCardYellowForTeam": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifCardRedForTeam": "Red card {player} ({team})",
-  "@matchNotifCardRedForTeam": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "team": { "type": "String" }
-    }
-  },
-  "matchNotifCardYellowRivalWithPlayer": "Yellow card {player} ({opponent})",
-  "@matchNotifCardYellowRivalWithPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifCardRedRivalWithPlayer": "Red card {player} ({opponent})",
-  "@matchNotifCardRedRivalWithPlayer": {
-    "placeholders": {
-      "player": { "type": "String" },
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifCardYellowRivalOnly": "Yellow card ({opponent})",
-  "@matchNotifCardYellowRivalOnly": {
-    "placeholders": {
-      "opponent": { "type": "String" }
-    }
-  },
-  "matchNotifCardRedRivalOnly": "Red card ({opponent})",
-  "@matchNotifCardRedRivalOnly": {
-    "placeholders": {
-      "opponent": { "type": "String" }
-    }
-  }
+  "matchEventLegacyActionRegistered": "Logged action"
 }

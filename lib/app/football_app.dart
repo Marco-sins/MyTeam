@@ -1,21 +1,15 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:football_manager/core/auth/supabase_auth_session_bridge.dart';
 import 'package:football_manager/core/constants/app_branding.dart';
-import 'package:football_manager/core/navigation/app_navigator_key.dart';
-import 'package:football_manager/core/notifications/match_event_app_notification_coordinator.dart';
-import 'package:football_manager/core/notifications/match_notif_app_lifecycle.dart';
-import 'package:football_manager/core/push/push_notification_service.dart';
 import 'package:football_manager/core/di/injection_container.dart';
-import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/core/locale/locale_cubit.dart';
 import 'package:football_manager/core/theme/app_responsive.dart';
 import 'package:football_manager/core/theme/app_theme.dart';
 import 'package:football_manager/domain/repositories/i_match_spectator_realtime.dart';
 import 'package:football_manager/domain/repositories/i_team_repository.dart';
+import 'package:football_manager/domain/repositories/player_event_scoring_repository.dart';
 import 'package:football_manager/domain/usecase/attendance/create_attendance_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_day_use_case.dart';
 import 'package:football_manager/domain/usecase/attendance/delete_attendance_use_case.dart';
@@ -43,11 +37,9 @@ import 'package:football_manager/domain/usecase/match/finish_match_use_case.dart
 import 'package:football_manager/domain/usecase/match/get_match_by_id_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_match_lineups_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match/get_matches_by_team_use_case.dart';
-import 'package:football_manager/domain/usecase/match/lock_initial_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/persist_match_lineup_positions_use_case.dart';
 import 'package:football_manager/domain/usecase/match/start_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/delete_match_event_use_case.dart';
-import 'package:football_manager/domain/usecase/match_event/get_first_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_formation_note_by_match_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_latest_match_event_by_db_type_use_case.dart';
 import 'package:football_manager/domain/usecase/match_event/get_match_event_aggregates_from_events_use_case.dart';
@@ -79,6 +71,7 @@ import 'package:football_manager/presentation/auth/pages/login_page.dart';
 import 'package:football_manager/presentation/create_team/cubit/create_team_cubit.dart';
 import 'package:football_manager/presentation/home/cubit/home_cubit.dart';
 import 'package:football_manager/presentation/home/pages/home_page.dart';
+import 'package:football_manager/presentation/match/cubit/player_event_rating_settings_cubit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Raíz de la UI: localización, inyección de casos de uso vía [RepositoryProvider]
@@ -135,9 +128,6 @@ class FootballApp extends StatelessWidget {
               RepositoryProvider.value(
                 value: sl<GetLatestFormationNoteByMatchUseCase>(),
               ),
-              RepositoryProvider.value(
-                value: sl<GetFirstFormationNoteByMatchUseCase>(),
-              ),
               RepositoryProvider.value(value: sl<GetMatchByIdUseCase>()),
               RepositoryProvider.value(
                 value: sl<GetMatchEventAggregatesFromEventsUseCase>(),
@@ -170,9 +160,6 @@ class FootballApp extends StatelessWidget {
                 value: sl<PersistMatchLineupPositionsUseCase>(),
               ),
               RepositoryProvider.value(
-                value: sl<LockInitialLineupPositionsUseCase>(),
-              ),
-              RepositoryProvider.value(
                 value: sl<ApplyMatchLineupStartersUseCase>(),
               ),
               RepositoryProvider.value(
@@ -197,9 +184,6 @@ class FootballApp extends StatelessWidget {
               RepositoryProvider<ITeamRepository>.value(
                 value: sl<ITeamRepository>(),
               ),
-              RepositoryProvider<TeamScoringConfigStorage>.value(
-                value: sl<TeamScoringConfigStorage>(),
-              ),
             ],
             child: MultiBlocProvider(
               providers: [
@@ -211,6 +195,11 @@ class FootballApp extends StatelessWidget {
                     getUserSessionUseCase: sl<GetUserSessionUseCase>(),
                   )..checkUserSession(),
                 ),
+                BlocProvider(
+                  create: (_) => PlayerEventRatingSettingsCubit(
+                    sl<PlayerEventScoringRepository>(),
+                  ),
+                ),
                 BlocProvider(create: (_) => HomeCubit(sl<GetTeamsUseCase>())),
                 BlocProvider(
                   create: (_) => CreateTeamCubit(
@@ -220,64 +209,31 @@ class FootballApp extends StatelessWidget {
                 ),
               ],
               child: SupabaseAuthSessionBridge(
-                child: BlocListener<AuthCubit, AuthState>(
-                  listenWhen: (previous, current) {
-                    if (current is Authenticated) return true;
-                    if (previous is Authenticated && current is AuthLoading) {
-                      return true;
-                    }
-                    return false;
-                  },
-                  listener: (context, state) {
-                    if (state is Authenticated) {
-                      unawaited(
-                        MatchEventAppNotificationCoordinator.instance.start(),
-                      );
-                      unawaited(
-                        PushNotificationService.instance
-                            .registerTokenForCurrentUser(),
-                      );
-                    } else {
-                      unawaited(
-                        MatchEventAppNotificationCoordinator.instance.stop(),
-                      );
-                      unawaited(
-                        PushNotificationService.instance
-                            .deleteTokenForCurrentUser(),
-                      );
-                    }
-                  },
-                  child: MaterialApp(
-                    navigatorKey: appNavigatorKey,
-                    title: AppBranding.displayName,
-                    debugShowCheckedModeBanner: false,
-                    theme: AppTheme.light(),
-                    builder: (context, child) {
-                      return MatchNotifAppLifecycle(
-                        child: AppResponsive.materialAppBuilder(context, child),
-                      );
+                child: MaterialApp(
+                  title: AppBranding.displayName,
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.light(),
+                  builder: AppResponsive.materialAppBuilder,
+                  locale: locale,
+                  localizationsDelegates: const [
+                    AppLocalizations.delegate,
+                    GlobalMaterialLocalizations.delegate,
+                    GlobalWidgetsLocalizations.delegate,
+                    GlobalCupertinoLocalizations.delegate,
+                  ],
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  home: BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      if (state is AuthLoading) {
+                        return const Scaffold(
+                          body: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      if (state is Authenticated) {
+                        return const HomePage();
+                      }
+                      return const LoginPage();
                     },
-                    locale: locale,
-                    localizationsDelegates: const [
-                      AppLocalizations.delegate,
-                      GlobalMaterialLocalizations.delegate,
-                      GlobalWidgetsLocalizations.delegate,
-                      GlobalCupertinoLocalizations.delegate,
-                    ],
-                    supportedLocales: AppLocalizations.supportedLocales,
-                    home: BlocBuilder<AuthCubit, AuthState>(
-                      builder: (context, state) {
-                        if (state is AuthLoading) {
-                          return const Scaffold(
-                            body: Center(child: CircularProgressIndicator()),
-                          );
-                        }
-                        if (state is Authenticated) {
-                          return const HomePage();
-                        }
-                        return const LoginPage();
-                      },
-                    ),
                   ),
                 ),
               ),

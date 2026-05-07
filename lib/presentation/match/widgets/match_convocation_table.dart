@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:football_manager/domain/entities/player.dart';
 import 'package:football_manager/l10n/app_localizations.dart';
 import 'package:football_manager/presentation/common/widgets/player_name_text.dart';
-import 'package:football_manager/presentation/match/utils/match_player_discipline_highlight.dart';
 
+/// Tabla de convocatoria con estado de asignacion y rating.
+/// Renderiza lista o columna segun el modo de scroll.
 class MatchConvocationTable extends StatelessWidget {
   final bool loading;
   final String? error;
@@ -11,6 +12,7 @@ class MatchConvocationTable extends StatelessWidget {
   final List<Player?> positionPlayers;
   final Player? selectedPlayer;
   final Set<int> sentOffPlayerIds;
+  final Set<int> yellowCardPlayerIds;
   final Map<int, double> playerRatings;
 
   /// Minutos disputados por [Player.id] (solo gestores; null = no mostrar).
@@ -21,9 +23,7 @@ class MatchConvocationTable extends StatelessWidget {
   final void Function(Player player, bool isSentOff) onPlayerTap;
   final bool readOnly;
 
-  /// Fondo / banda de tarjeta (amarilla o roja) en cada fila de la convocatoria.
-  final MatchPlayerDisciplineHighlight Function(int playerId) playerDiscipline;
-
+  /// Crea la tabla con datos de convocatoria y handlers.
   const MatchConvocationTable({
     super.key,
     required this.loading,
@@ -32,14 +32,16 @@ class MatchConvocationTable extends StatelessWidget {
     required this.positionPlayers,
     required this.selectedPlayer,
     required this.sentOffPlayerIds,
+    required this.yellowCardPlayerIds,
     required this.playerRatings,
     this.minutesPlayedByPlayerId,
     this.scrollingChild = false,
     this.readOnly = false,
     required this.onPlayerTap,
-    required this.playerDiscipline,
   });
 
+  /// Construye la tabla con estados de carga, error o lista.
+  /// Lo hace eligiendo entre columna o ListView.
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -109,6 +111,8 @@ class MatchConvocationTable extends StatelessWidget {
     );
   }
 
+  /// Construye una fila de jugador con indicadores y acciones.
+  /// Lo hace calculando estado asignado/expulsado/seleccionado.
   Widget _buildPlayerRow(BuildContext context, Player player) {
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
@@ -120,10 +124,37 @@ class MatchConvocationTable extends StatelessWidget {
     final isAssigned = assignedIndex != -1;
     final isSelected = selectedPlayer?.id == player.id;
     final isSentOff = sentOffPlayerIds.contains(player.id);
+    final hasYellow = yellowCardPlayerIds.contains(player.id);
     final minutesPlayed = minutesPlayedByPlayerId?[player.id];
-    final d = playerDiscipline(player.id);
+    final rating = playerRatings[player.id] ?? 5.0;
+    final rowBg = isSentOff
+        ? scheme.errorContainer.withValues(alpha: 0.4)
+        : hasYellow
+        ? Colors.amber.withValues(alpha: 0.25)
+        : null;
+    final rowRadius = BorderRadius.circular(12);
+    final circleBorder = scheme.outlineVariant.withValues(alpha: 0.6);
+    final circleFill = isSentOff
+        ? scheme.error
+        : hasYellow
+        ? Colors.amber
+        : isAssigned
+        ? scheme.primary
+        : Colors.transparent;
+    final showTick = isAssigned && !isSentOff && !hasYellow;
+    final tickColor = scheme.onPrimary;
 
-    final row = Padding(
+    Color ratingColor(double value) {
+      if (value <= 5.0) {
+        final t = value / 5.0;
+        return Color.lerp(Colors.red, Colors.yellow, t)!;
+      }
+      final t = (value - 5.0) / 5.0;
+      return Color.lerp(Colors.yellow, Colors.blue, t)!;
+    }
+
+    final row = Container(
+      decoration: BoxDecoration(color: rowBg, borderRadius: rowRadius),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,21 +208,51 @@ class MatchConvocationTable extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (!readOnly) _buildRatingCircle(context, player),
-                _buildPlayingFieldIndicator(
-                  scheme: scheme,
-                  isOnField: isAssigned,
-                  isSentOff: isSentOff,
+                Tooltip(
+                  message: 'Media: ${rating.toStringAsFixed(1)}',
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    margin: const EdgeInsets.only(right: 6),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: ratingColor(rating.clamp(0.0, 10.0)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      rating.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 ),
                 if (!readOnly && isSelected)
                   Padding(
-                    padding: const EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.only(right: 6),
                     child: Icon(
                       Icons.touch_app,
                       color: scheme.tertiary,
-                      size: 22,
+                      size: 20,
                     ),
                   ),
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: circleFill,
+                    border: Border.all(
+                      color: isSentOff || hasYellow ? circleFill : circleBorder,
+                      width: 2,
+                    ),
+                  ),
+                  child: showTick
+                      ? Icon(Icons.check, size: 16, color: tickColor)
+                      : null,
+                ),
               ],
             ),
           ),
@@ -199,120 +260,13 @@ class MatchConvocationTable extends StatelessWidget {
       ),
     );
 
-    final isDark = theme.brightness == Brightness.dark;
-    final yellowRowFill = Color.alphaBlend(
-      const Color(0xFFFFC107).withValues(alpha: isDark ? 0.14 : 0.22),
-      scheme.surface,
-    );
-    final decorated = d == MatchPlayerDisciplineHighlight.none
-        ? row
-        : DecoratedBox(
-            decoration: BoxDecoration(
-              color: d == MatchPlayerDisciplineHighlight.red
-                  ? scheme.errorContainer.withValues(
-                      alpha: isDark ? 0.48 : 0.38,
-                    )
-                  : yellowRowFill,
-              border: Border(
-                left: BorderSide(
-                  width: 4,
-                  color: d == MatchPlayerDisciplineHighlight.red
-                      ? intenseDisciplineRed(scheme)
-                      : const Color(0xFFF9A825),
-                ),
-              ),
-            ),
-            child: row,
-          );
-
     if (readOnly) {
-      return decorated;
+      return row;
     }
 
     return Material(
       type: MaterialType.transparency,
-      child: InkWell(
-        onTap: () => onPlayerTap(player, isSentOff),
-        child: decorated,
-      ),
+      child: InkWell(onTap: () => onPlayerTap(player, isSentOff), child: row),
     );
-  }
-
-  static const double _kPlayingOnFieldSize = 22;
-
-  /// Expulsado: círculo rojo con [Icons.style] (tarjeta, como en la cronología).
-  Widget _buildPlayingFieldIndicator({
-    required ColorScheme scheme,
-    required bool isOnField,
-    required bool isSentOff,
-  }) {
-    if (isSentOff) {
-      return Container(
-        width: _kPlayingOnFieldSize,
-        height: _kPlayingOnFieldSize,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: intenseDisciplineRed(scheme),
-        ),
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.style,
-          size: 14,
-          color: Color(0xFF1A0404),
-        ),
-      );
-    }
-    if (isOnField) {
-      return Icon(
-        Icons.check_circle,
-        color: scheme.primary,
-        size: _kPlayingOnFieldSize,
-      );
-    }
-    return SizedBox(
-      width: _kPlayingOnFieldSize,
-      height: _kPlayingOnFieldSize,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.9),
-            width: 2,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRatingCircle(BuildContext context, Player player) {
-    final scheme = Theme.of(context).colorScheme;
-    final rating = playerRatings[player.id] ?? 5.0;
-    final color = _ratingColor(rating);
-    return Container(
-      width: 34,
-      height: 34,
-      margin: const EdgeInsets.only(right: 6),
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      alignment: Alignment.center,
-      child: Text(
-        rating.toStringAsFixed(1),
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: scheme.onSurface,
-        ),
-      ),
-    );
-  }
-
-  Color _ratingColor(double rating) {
-    final value = rating.clamp(0.0, 10.0);
-    if (value <= 5.0) {
-      final t = value / 5.0;
-      return Color.lerp(Colors.red, Colors.amber, t)!;
-    } else {
-      final t = (value - 5.0) / 5.0;
-      return Color.lerp(Colors.amber, Colors.blue, t)!;
-    }
   }
 }

@@ -441,81 +441,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'Invita amministratori o spettatori nella squadra';
 
   @override
-  String get teamMgmtScoringTitle => 'Pesi della valutazione';
-
-  @override
-  String get teamMgmtScoringSubtitle =>
-      'Modifica quanto ogni evento aggiunge al voto della partita';
-
-  @override
-  String get teamScoringScreenTitle => 'Pesi voto partita';
-
-  @override
-  String get teamScoringSave => 'Salva';
-
-  @override
-  String get teamScoringAddEvent => 'Aggiungi evento';
-
-  @override
-  String get teamScoringAddDialogTitle => 'Nuovo evento personalizzato';
-
-  @override
-  String get teamScoringEventName => 'Nome come nella nota';
-
-  @override
-  String get teamScoringPoints => 'Punti';
-
-  @override
-  String get teamScoringUnnamed => '(Senza nome)';
-
-  @override
-  String get teamScoringInvalidNumber => 'Controlla i numeri';
-
-  @override
-  String get teamScoringDuplicateName =>
-      'Due eventi non possono avere lo stesso nome';
-
-  @override
-  String get teamScoringCustomHint =>
-      'Deve coincidere con il testo della nota (senza distinzione maiuscole)';
-
-  @override
-  String get teamScoringDeleteTooltip => 'Rimuovi dall\'elenco';
-
-  @override
-  String get teamScoringGoalScorer => 'Gol';
-
-  @override
-  String get teamScoringGoalAssist => 'Assist';
-
-  @override
-  String get teamScoringEventOwnGoal => 'Autogol';
-
-  @override
-  String get teamScoringEventGoalConceded => 'Gol subito';
-
-  @override
-  String get teamScoringParadaIncreible => 'Parata incredibile';
-
-  @override
-  String get teamScoringPaseClaveNota => 'Passaggio chiave';
-
-  @override
-  String get teamScoringJugadaClaveNota => 'Azione chiave';
-
-  @override
-  String get teamScoringTiroNota => 'Tiro';
-
-  @override
-  String get teamScoringAmarillaNota => 'Cartellino giallo';
-
-  @override
-  String get teamScoringRojaNota => 'Cartellino rosso';
-
-  @override
-  String get teamScoringCantadaNota => 'Pasticcio';
-
-  @override
   String get teamImportPlayerTitle => 'Importa da un\'altra squadra';
 
   @override
@@ -811,27 +736,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchCornersShort => 'Calci d\'angolo';
 
   @override
-  String get matchOffsidesShort => 'Fuorigioco';
-
-  @override
-  String get matchEventOffside => 'Fuorigioco';
-
-  @override
-  String get matchEventRivalOffside => 'Fuorigioco avversario';
-
-  @override
-  String get matchYellowCardsShort => 'Cartellini gialli';
-
-  @override
-  String get matchRedCardsShort => 'Cartellini rossi';
-
-  @override
-  String get matchRivalYellowCardNote => 'Cartellino giallo (avversario)';
-
-  @override
-  String get matchRivalRedCardNote => 'Cartellino rosso (avversario)';
-
-  @override
   String get matchCounterAddTooltip => 'Aggiungi';
 
   @override
@@ -845,13 +749,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchFieldAndFormation => 'Passo e formazione';
-
-  @override
-  String get matchFieldBenchTitle => 'Panchina';
-
-  @override
-  String get matchFieldBenchHint =>
-      'Tieni premuto una riserva e rilasciala su una posizione (sostituzione o slot libero).';
 
   @override
   String get matchSquadTitle => 'Squadra';
@@ -978,12 +875,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchLiveSubstitutionLeaves => '· Spento';
-
-  @override
-  String get matchLiveSubstitutionToFreeSlot => ' (posto libero / panchina)';
-
-  @override
-  String get matchLiveMinuteSquad => 'Formazione';
 
   @override
   String get matchLivePeriodFallback => 'Modifica del periodo o dello stato';
@@ -1128,11 +1019,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get attendanceSaveSuccess => 'Partecipazione salvata correttamente';
 
   @override
-  String attendancePlayerDialogAverageMatchRating(String rating) {
-    return 'Voto medio (partite): $rating';
-  }
-
-  @override
   String get convDatetimeSectionTitle => 'Data e orari';
 
   @override
@@ -1184,25 +1070,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get convocationSavedSuccess => 'Chiamata salvata con successo';
 
   @override
-  String get convocationImageSectionMatchDetails => 'Dati della partita';
-
-  @override
-  String get convocationImageLabelTeam => 'Squadra';
-
-  @override
-  String get convocationImageLabelFixture => 'Partita';
-
-  @override
-  String get convocationImageLabelCallDateTime => 'Data e ora di convocazione';
-
-  @override
-  String get convocationImageLabelMeetingVenue => 'Luogo della convocazione';
-
-  @override
-  String get convocationImageLabelMatchVenue => 'Luogo della partita';
-
-  @override
-  String get convocationImageVenueHomeInstallations => 'Strutture del club';
+  String get convocationImageSectionMatchDetails => 'Dettagli della partita';
 
   @override
   String get convocationImageLabelDate => 'Data';
@@ -1224,39 +1092,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get convocationImagePlayerFallback => 'Giocatore';
-
-  @override
-  String get convocationImageSectionMatchDetailsSubtitle =>
-      'Data, orari e luogo — leggi con calma';
-
-  @override
-  String get convocationImageLabelMatchKickoff =>
-      'ORARIO DI INIZIO (INIZIO PARTITA)';
-
-  @override
-  String get convocationImageLabelCallArrival =>
-      'ORARIO DI CONVOCAZIONA (ARRIVO)';
-
-  @override
-  String get convocationImageCallTimeReminder =>
-      'Importante: arriva prima di quest\'ora, non all\'inizio della partita.';
-
-  @override
-  String get convocationImageMapLinkIntro =>
-      'Dal telefono puoi aprire questo link per vedere il luogo sulla mappa:';
-
-  @override
-  String get convocationImagePlaceHomeHeadline => 'PARTITA IN CASA';
-
-  @override
-  String get convocationImagePlaceHomeDetail => 'Giochiamo in casa nostra.';
-
-  @override
-  String get convocationImagePlaceAwayHeadline => 'PARTITA IN TRASFERTA';
-
-  @override
-  String get convocationImagePlaceAwayNoAddressDetail =>
-      'Il club confermerà l\'indirizzo esatto. Chiedi all\'allenatore.';
 
   @override
   String matchSummaryVs(String opponent) {
@@ -1282,22 +1117,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchStatsScoreLive => 'Punto';
 
   @override
-  String get matchStatsTeamNamePlaceholder => 'Squadra';
-
-  @override
   String get matchStatsLoadingSummary => 'Caricamento riepilogo partita…';
 
   @override
-  String get matchStatsTabMain => 'Principale';
-
-  @override
-  String get matchStatsTabStats => 'Statistiche';
-
-  @override
-  String get matchStatsTabEvents => 'Eventi';
-
-  @override
-  String get matchStatsSectionField => 'Formazione';
+  String get matchStatsSectionField => 'Tiro finale';
 
   @override
   String matchStatsFormationChip(String formation) {
@@ -1306,7 +1129,7 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchStatsFieldDispositionHint =>
-      'Schema dei titolari in base alle posizioni salvate in formazione.';
+      'Layout basato sulle posizioni salvate al termine della partita.';
 
   @override
   String get matchStatsSectionTimeline => 'Cronologia';
@@ -1338,36 +1161,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchStatsStatBadPlays => 'Commedie scadenti';
-
-  @override
-  String get matchStatsStatOwnGoals => 'Autogol';
-
-  @override
-  String get matchStatsStatGoalsConceded => 'Gol subiti';
-
-  @override
-  String get matchStatsStatShots => 'Tiri';
-
-  @override
-  String get matchStatsStatSaves => 'Parate';
-
-  @override
-  String get matchStatsStatKeyPasses => 'Passaggi chiave';
-
-  @override
-  String get matchStatsStatBallRecoveries => 'Recuperi palla';
-
-  @override
-  String get matchStatsStatFouls => 'Falli';
-
-  @override
-  String get matchStatsStatCantadas => 'Errori grossi';
-
-  @override
-  String get matchStatsStatYellowCards => 'Ammonizioni';
-
-  @override
-  String get matchStatsStatRedCards => 'Espulsioni';
 
   @override
   String get matchStatsOurGoalChip => 'Obiettivo per';
@@ -1419,14 +1212,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get matchLineupSubstituteTag => 'Sostituire';
 
   @override
-  String get matchStatsPlayerDialogScoringSection => 'Azioni registrate';
-
-  @override
-  String matchStatsPlayerDialogRatingChip(String rating) {
-    return 'Voto $rating';
-  }
-
-  @override
   String get matchFieldSelectPlayerFirst =>
       'Seleziona prima un giocatore nell\'elenco';
 
@@ -1443,64 +1228,4 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchEventLegacyActionRegistered => 'Azione registrata';
-
-  @override
-  String get matchNotifTimeFirst => 'Primo tempo';
-
-  @override
-  String get matchNotifTimeHalf => 'Intervallo';
-
-  @override
-  String get matchNotifTimeSecond => 'Secondo tempo';
-
-  @override
-  String get matchNotifTimeEnd => 'Fine partita';
-
-  @override
-  String get matchNotifPlayerUnknown => 'Giocatore';
-
-  @override
-  String matchNotifGoalByPlayer(String player, String team) {
-    return 'Gol di $player ($team)';
-  }
-
-  @override
-  String matchNotifGoalRivalOnly(String opponent) {
-    return 'Gol di $opponent';
-  }
-
-  @override
-  String matchNotifOwnGoalByPlayer(String player, String team) {
-    return 'Autogol di $player ($team)';
-  }
-
-  @override
-  String matchNotifCardYellowForTeam(String player, String team) {
-    return 'Cartellino giallo $player ($team)';
-  }
-
-  @override
-  String matchNotifCardRedForTeam(String player, String team) {
-    return 'Cartellino rosso $player ($team)';
-  }
-
-  @override
-  String matchNotifCardYellowRivalWithPlayer(String player, String opponent) {
-    return 'Cartellino giallo $player ($opponent)';
-  }
-
-  @override
-  String matchNotifCardRedRivalWithPlayer(String player, String opponent) {
-    return 'Cartellino rosso $player ($opponent)';
-  }
-
-  @override
-  String matchNotifCardYellowRivalOnly(String opponent) {
-    return 'Cartellino giallo ($opponent)';
-  }
-
-  @override
-  String matchNotifCardRedRivalOnly(String opponent) {
-    return 'Cartellino rosso ($opponent)';
-  }
 }

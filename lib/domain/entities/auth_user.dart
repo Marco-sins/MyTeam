@@ -1,5 +1,6 @@
 import 'package:football_manager/domain/entities/enum/user_role.dart';
 
+/// Representa al usuario autenticado y sus roles por equipo.
 class AuthUser {
   final String id;
   final String email;

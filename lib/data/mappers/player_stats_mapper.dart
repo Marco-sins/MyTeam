@@ -1,3 +1,4 @@
+/// Mapeador para `player_stats` entre filas de BD y objetos de dominio.
 import 'package:football_manager/data/models/player_stats_model.dart';
 import 'package:football_manager/domain/entities/player_stats.dart';
 
@@ -13,7 +14,6 @@ class PlayerStatsMapper {
       matchesPlayed: playerStats.matchesPlayed,
       minutesPlayed: playerStats.minutesPlayed,
       timesStarted: playerStats.timesStarted,
-      averageMatchRating: playerStats.averageMatchRating,
     );
   }
 
@@ -28,7 +28,6 @@ class PlayerStatsMapper {
       matchesPlayed: playerStatsModel.matchesPlayed,
       minutesPlayed: playerStatsModel.minutesPlayed,
       timesStarted: playerStatsModel.timesStarted,
-      averageMatchRating: playerStatsModel.averageMatchRating,
     );
   }
 }

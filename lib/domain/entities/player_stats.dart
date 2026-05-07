@@ -1,3 +1,5 @@
+/// Estadísticas acumuladas de un jugador (goles, asistencias, tarjetas,
+/// minutos, partidos jugados). Se utiliza para mostrar resúmenes y rankings.
 class PlayerStats {
   final int id;
   final int playerId;
@@ -9,10 +11,6 @@ class PlayerStats {
   final int minutesPlayed;
   final int timesStarted;
 
-  /// Media de notas (una fila alineación por partido) en partidos finalizados.
-  /// No se persiste en `player_stats`; se calcula al cargar la plantilla por equipo.
-  final double? averageMatchRating;
-
   const PlayerStats({
     this.id = 0,
     this.playerId = 0,
@@ -23,6 +21,5 @@ class PlayerStats {
     this.matchesPlayed = 0,
     this.minutesPlayed = 0,
     this.timesStarted = 0,
-    this.averageMatchRating,
   });
 }
