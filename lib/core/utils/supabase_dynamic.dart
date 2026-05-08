@@ -11,6 +11,7 @@
 ///
 /// Usar estas utilidades siempre que se parseen filas devueltas por la API
 /// para mantener comportamiento consistente en todo el código.
+library;
 
 /// Respuesta de `.select()` / `.insert()` / etc.: a veces es `null` en el cliente;
 /// nunca usar [Iterable.isEmpty] directamente sobre el valor crudo.

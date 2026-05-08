@@ -1,6 +1,8 @@
 /// Modelo de `player_stats` con mapeo a la entidad de dominio.
 ///
 /// Contiene campos serializables usados para calcular valoraciones y totales.
+library;
+
 import 'package:football_manager/domain/entities/player_stats.dart';
 
 class PlayerStatsModel extends PlayerStats {

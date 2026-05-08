@@ -1,4 +1,6 @@
 /// Caso de uso para borrar un evento de partido por id (valida permisos).
+library;
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';

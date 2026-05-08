@@ -3,6 +3,8 @@
 ///
 /// Incluye una fábrica `fromSupabaseMap` que normaliza filas de PostgREST y
 /// resuelve el `minute` mediante utilidades de `supabase_dynamic`.
+library;
+
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 

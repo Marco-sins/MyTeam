@@ -18,6 +18,7 @@ class MatchStatsState extends Equatable {
     required this.formationLabel,
     required this.fieldPositionPlayers,
     required this.sentOffPlayerIds,
+    required this.yellowCardsByPlayerId,
   });
 
   /// Estado inicial sin datos cargados ni errores.
@@ -34,7 +35,8 @@ class MatchStatsState extends Equatable {
       formationLines = const [],
       formationLabel = null,
       fieldPositionPlayers = const [],
-      sentOffPlayerIds = const {};
+      sentOffPlayerIds = const {},
+      yellowCardsByPlayerId = const {};
 
   final bool isLoading;
   final String? error;
@@ -55,6 +57,9 @@ class MatchStatsState extends Equatable {
   final List<Player?> fieldPositionPlayers;
   final Set<int> sentOffPlayerIds;
 
+  /// Cantidad de tarjetas amarillas por jugador (para detectar dobles).
+  final Map<int, int> yellowCardsByPlayerId;
+
   /// Crea una copia con cambios puntuales.
   /// Lo hace reusando los valores actuales cuando el parametro es null.
   MatchStatsState copyWith({
@@ -70,6 +75,7 @@ class MatchStatsState extends Equatable {
     String? formationLabel,
     List<Player?>? fieldPositionPlayers,
     Set<int>? sentOffPlayerIds,
+    Map<int, int>? yellowCardsByPlayerId,
   }) {
     return MatchStatsState(
       isLoading: isLoading ?? this.isLoading,
@@ -84,6 +90,8 @@ class MatchStatsState extends Equatable {
       formationLabel: formationLabel ?? this.formationLabel,
       fieldPositionPlayers: fieldPositionPlayers ?? this.fieldPositionPlayers,
       sentOffPlayerIds: sentOffPlayerIds ?? this.sentOffPlayerIds,
+      yellowCardsByPlayerId:
+          yellowCardsByPlayerId ?? this.yellowCardsByPlayerId,
     );
   }
 
@@ -103,5 +111,6 @@ class MatchStatsState extends Equatable {
     formationLabel,
     fieldPositionPlayers,
     sentOffPlayerIds,
+    yellowCardsByPlayerId,
   ];
 }

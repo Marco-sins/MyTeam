@@ -1,4 +1,6 @@
 /// Modelo de persistencia para perfiles de usuario (`profiles`).
+library;
+
 import 'package:football_manager/domain/entities/profile.dart';
 
 class ProfileModel extends Profile {

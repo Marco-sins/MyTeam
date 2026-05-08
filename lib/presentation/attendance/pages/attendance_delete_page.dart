@@ -197,7 +197,7 @@ class _AttendanceDeletePageState extends State<AttendanceDeletePage> {
                                             'Asistencia del día eliminada correctamente',
                                           ),
                                           backgroundColor: Colors.green,
-                                          duration: const Duration(seconds: 4),
+                                          duration: Duration(seconds: 4),
                                         ),
                                       );
 

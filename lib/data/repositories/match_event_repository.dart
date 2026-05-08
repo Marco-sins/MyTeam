@@ -1,6 +1,8 @@
 /// Repositorio que implementa `IMatchEventRepository` usando
 /// [MatchEventRemoteDatasource]. Traduce resultados y excepciones a tipos
 /// de `Either<Failure, T>` consumidos por la capa de dominio.
+library;
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';

@@ -95,6 +95,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
   // Jugadores expulsados (roja o doble amarilla).
   final Set<int> _sentOffPlayerIds = {};
+  // Minuto de expulsión por jugador: una vez registrado no se recalcula.
+  final Map<int, int> _expulsionMinuteByPlayer = {};
 
   /// Tiros a puerta (eventos `shot` / `rivalShot` / `scoreGoal`), derivados de [match_events].
   int _shotsOur = 0;
@@ -127,6 +129,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   int _elapsedSeconds = 0;
   _MatchPhase _phase = _MatchPhase.notStarted;
   bool _isTimerRunning = false;
+
+  // Último cambio local de jugadores en campo, para suavizar refrescos realtime.
+  DateTime? _lastLocalLineupChangeAt;
 
   IMatchSpectatorRealtime? _spectatorRealtime;
   Timer? _spectatorRealtimeDebounce;
@@ -172,6 +177,38 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         ? null
         : _minutesCutoffForCurrentStatus(events);
 
+    // Obtener minutos de expulsión por jugador. Empezamos por los minutos
+    // ya registrados localmente para evitar recálculos posteriores.
+    final expulsionMinuteByPlayer = Map<int, int>.from(
+      _expulsionMinuteByPlayer,
+    );
+    final expulsedIds = _getExpulsedPlayerIds();
+
+    final sortedEvents = List<MatchEvent>.from(events);
+    sortMatchEventsByTime(sortedEvents);
+
+    for (final e in sortedEvents) {
+      final pid = e.playerId1;
+      if (pid == null || !expulsedIds.contains(pid)) continue;
+
+      if (e.type == MatchEventEnum.redCard) {
+        final minute = e.minute;
+        expulsionMinuteByPlayer.putIfAbsent(pid, () => minute);
+        _expulsionMinuteByPlayer.putIfAbsent(pid, () => minute);
+      } else if (e.type == MatchEventEnum.yellowCard) {
+        final nextYellowCount = (_countYellowCardsForPlayer(
+          sortedEvents,
+          pid,
+          e.minute,
+        ));
+        if (nextYellowCount >= 2) {
+          final minute = e.minute;
+          expulsionMinuteByPlayer.putIfAbsent(pid, () => minute);
+          _expulsionMinuteByPlayer.putIfAbsent(pid, () => minute);
+        }
+      }
+    }
+
     final starterById = <int, bool>{};
     for (final l in _match.lineups) {
       starterById[l.playerId] = l.isStarting;
@@ -180,14 +217,60 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     final map = <int, int>{};
     for (final p in _convokedPlayers) {
       final isStarter = starterById[p.id] ?? false;
+
+      // Si el jugador está expulsado, usar su minuto de expulsión como límite.
+      final playerEndMinute = expulsionMinuteByPlayer[p.id] ?? endOverride;
+
       map[p.id] = minutesPlayedForPlayer(
         events: events,
         playerId: p.id,
         isStarter: isStarter,
-        overrideMatchEndMinute: endOverride,
+        overrideMatchEndMinute: playerEndMinute,
       );
     }
     return map;
+  }
+
+  /// Registra en `_expulsionMinuteByPlayer` los minutos de expulsión detectados
+  /// en una lista de filas de eventos (rows). No sobreescribe minutos ya guardados.
+  void _recordExpulsionMinutesFromRows(List<Map<String, dynamic>> rows) {
+    final events = rows
+        .map((m) => MatchEvent.fromSupabaseMap(Map<String, dynamic>.from(m)))
+        .toList();
+    sortMatchEventsByTime(events);
+
+    final yellowCounts = <int, int>{};
+    for (final e in events) {
+      final pid = e.playerId1;
+      if (pid == null) continue;
+      if (e.type == MatchEventEnum.redCard) {
+        _expulsionMinuteByPlayer.putIfAbsent(pid, () => e.minute);
+        continue;
+      }
+      if (e.type == MatchEventEnum.yellowCard) {
+        final next = (yellowCounts[pid] ?? 0) + 1;
+        yellowCounts[pid] = next;
+        if (next >= 2) {
+          _expulsionMinuteByPlayer.putIfAbsent(pid, () => e.minute);
+        }
+      }
+    }
+  }
+
+  /// Cuenta tarjetas amarillas de un jugador hasta un minuto específico.
+  int _countYellowCardsForPlayer(
+    List<MatchEvent> sortedEvents,
+    int playerId,
+    int upToMinute,
+  ) {
+    int count = 0;
+    for (final e in sortedEvents) {
+      if (e.minute > upToMinute) break;
+      if (e.playerId1 == playerId && e.type == MatchEventEnum.yellowCard) {
+        count++;
+      }
+    }
+    return count;
   }
 
   /// Minuto de corte para el cálculo de minutos jugados.
@@ -211,6 +294,63 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
 
     return maxMinute;
+  }
+
+  /// Detecta jugadores expulsados (roja o segunda amarilla) en los eventos.
+  /// Retorna un set con los IDs de jugadores expulsados.
+  Set<int> _getExpulsedPlayerIds() {
+    final expulsedIds = <int>{};
+    final yellowCounts = <int, int>{};
+
+    final sortedEvents = List<MatchEvent>.from(
+      _liveEvents
+          .map((m) => MatchEvent.fromSupabaseMap(Map<String, dynamic>.from(m)))
+          .toList(),
+    );
+    sortMatchEventsByTime(sortedEvents);
+
+    for (final e in sortedEvents) {
+      final pid = e.playerId1;
+      if (pid == null) continue;
+
+      if (e.type == MatchEventEnum.redCard) {
+        expulsedIds.add(pid);
+      } else if (e.type == MatchEventEnum.yellowCard) {
+        final count = (yellowCounts[pid] ?? 0) + 1;
+        yellowCounts[pid] = count;
+        if (count >= 2) {
+          expulsedIds.add(pid);
+        }
+      }
+    }
+
+    return expulsedIds;
+  }
+
+  /// Remueve jugadores expulsados del campo y persiste posiciones.
+  /// Los expulsados no pueden seguir jugando: se les quita la posición
+  /// para que el campo muestre un jugador menos.
+  void _removeExpulsedPlayersFromField([Set<int>? expulsedIds]) {
+    final expelled = expulsedIds ?? _effectiveSentOffPlayerIds();
+    if (expelled.isEmpty) return;
+
+    final hasExpulsed = _positionPlayers.any(
+      (p) => p != null && expelled.contains(p.id),
+    );
+    if (!hasExpulsed) return;
+
+    setState(() {
+      for (int i = 0; i < _positionPlayers.length; i++) {
+        final p = _positionPlayers[i];
+        if (p != null && expelled.contains(p.id)) {
+          _positionPlayers[i] = null;
+        }
+      }
+    });
+
+    // Guardar cambios de posiciones localmente y en BD.
+    _saveCurrentLineup();
+    unawaited(_persistCurrentPositionsToMatchLineup());
   }
 
   /// Inicializa estado, formaciones y suscripciones necesarias.
@@ -666,8 +806,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// Devuelve el numero actual de jugadores en el campo.
   /// Lo hace contando posiciones no nulas.
   int _currentPlayersOnField() {
+    final sentOff = _effectiveSentOffPlayerIds();
     return _positionPlayers
-        .where((p) => p != null && !_sentOffPlayerIds.contains(p.id))
+        .where((p) => p != null && !sentOff.contains(p.id))
         .length;
   }
 
@@ -675,7 +816,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// Lo hace restando expulsados al total de huecos.
   int _maxPlayersOnField() {
     final totalPositions = _positionPlayers.length;
-    final expelledCount = _sentOffPlayerIds.length;
+    final expelledCount = _effectiveSentOffPlayerIds().length;
     final maxAllowed = totalPositions - expelledCount;
     return maxAllowed < 0 ? 0 : maxAllowed;
   }
@@ -1119,8 +1260,15 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     if (!mounted) return;
     await _loadLastFormationFromEvents();
     if (!mounted) return;
-    await _loadPositionsFromEvents();
-    if (!mounted) return;
+    final canReloadPositions =
+        _isExternal ||
+        _lastLocalLineupChangeAt == null ||
+        DateTime.now().difference(_lastLocalLineupChangeAt!) >
+            const Duration(milliseconds: 1500);
+    if (canReloadPositions) {
+      await _loadPositionsFromEvents();
+      if (!mounted) return;
+    }
     await _loadDisciplineStateFromEvents();
     if (!mounted) return;
     if (_isExternal) {
@@ -1133,9 +1281,22 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   Future<void> _loadLiveEvents() async {
     final rows = await _queryLiveEventsFiltered();
     if (rows == null || !mounted) return;
+    final derivedSentOff = _deriveSentOffFromRows(rows);
+    // Registrar minutos de expulsión detectados en estos rows (no sobreescribe).
+    _recordExpulsionMinutesFromRows(rows);
     setState(() {
       _liveEvents = rows;
+      _sentOffPlayerIds
+        ..clear()
+        ..addAll(derivedSentOff);
+      if (_selectedPlayer != null &&
+          derivedSentOff.contains(_selectedPlayer!.id)) {
+        _selectedPlayer = null;
+      }
     });
+
+    // Garantiza que toda expulsión deja hueco vacío inmediatamente.
+    _removeExpulsedPlayersFromField(_effectiveSentOffPlayerIds());
   }
 
   /// PostgREST puede devolver enteros como [num]; evita fallos de `as int?` en el build.
@@ -1223,6 +1384,45 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
+  /// Deriva los ids expulsados a partir de los eventos en memoria [_liveEvents].
+  /// Esto sirve como fallback cuando la consulta remota falla o tarda.
+  Set<int> _deriveSentOffFromLiveEvents() {
+    return _deriveSentOffFromRows(_liveEvents);
+  }
+
+  Set<int> _deriveSentOffFromRows(List<Map<String, dynamic>> rows) {
+    final sentOff = <int>{};
+    final yellowCounts = <int, int>{};
+    for (final row in rows) {
+      final key = _canonicalEventTypeKey(row['type']);
+      final pid = _dynToInt(row['player_id1']);
+      if (pid == null) continue;
+      if (key == 'redcard') {
+        sentOff.add(pid);
+        continue;
+      }
+      if (key == 'yellowcard') {
+        final next = (yellowCounts[pid] ?? 0) + 1;
+        yellowCounts[pid] = next;
+        if (next >= 2) sentOff.add(pid);
+      }
+    }
+    return sentOff;
+  }
+
+  Set<int> _effectiveSentOffPlayerIds() {
+    final effective = <int>{
+      ..._sentOffPlayerIds,
+      ..._deriveSentOffFromLiveEvents(),
+    };
+    if (_convokedPlayers.isEmpty) {
+      return effective;
+    }
+    final convokedIds = _convokedPlayers.map((p) => p.id).toSet();
+    effective.removeWhere((id) => !convokedIds.contains(id));
+    return effective;
+  }
+
   /// Un solo [setState] tras registrar acción de jugador (menos parpadeo / scroll).
   /// Lo hace agrupando consultas y actualizando el estado una sola vez.
   Future<void> _refreshAfterPlayerAction({
@@ -1270,6 +1470,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       return;
     }
 
+    // Registrar minutos de expulsión detectados en la carga live.
+    _recordExpulsionMinutesFromRows(live);
+
     setState(() {
       if (agg != null) {
         _match = Match(
@@ -1294,15 +1497,20 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       _playerRatings = ratings;
       _liveEvents = live;
       if (sentOff != null) {
+        final effective = <int>{...sentOff, ..._deriveSentOffFromRows(live)};
         _sentOffPlayerIds
           ..clear()
-          ..addAll(sentOff);
+          ..addAll(effective);
         if (_selectedPlayer != null &&
             _sentOffPlayerIds.contains(_selectedPlayer!.id)) {
           _selectedPlayer = null;
         }
       }
     });
+    // Quitar automáticamente del campo a los expulsados.
+    if (sentOff != null) {
+      _removeExpulsedPlayersFromField(_effectiveSentOffPlayerIds());
+    }
 
     if (needsDiscipline &&
         mounted &&
@@ -1845,18 +2053,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   Future<void> _saveSubstitutionEvent({
     required Player playerIn,
     Player? playerOut,
+    bool refreshLiveEventsAfterSave = true,
   }) async {
     try {
-      // Si ambos jugadores ya están en el campo, es un intercambio de posición
-      // y no debe registrarse como sustitución durante el juego (para no cortar minutos).
-      if (playerOut != null) {
-        final inOnField = _positionPlayers.any((p) => p?.id == playerIn.id);
-        final outOnField = _positionPlayers.any((p) => p?.id == playerOut.id);
-        if (inOnField && outOnField && _phase != _MatchPhase.notStarted) {
-          return;
-        }
-      }
-
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
         return;
@@ -1864,6 +2063,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
       final minute = _currentMatchMinute();
+      final l10n = AppLocalizations.of(context)!;
+
+      // No se permite registrar una sustitución donde el jugador que sale
+      // ya ha sido expulsado: la expulsión implica que no puede volver.
+      if (playerOut != null && _sentOffPlayerIds.contains(playerOut.id)) {
+        _showSnack(l10n.matchPlayerSentOffCannotReturn, error: true);
+        return;
+      }
 
       final inNumber = playerIn.number?.toString() ?? '-';
       final outNumber = playerOut?.number?.toString() ?? '-';
@@ -1886,9 +2093,28 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       );
 
       await saveMatchEventUseCase(event, authState.user, widget.team.id);
-      if (mounted) await _loadLiveEvents();
+      if (refreshLiveEventsAfterSave && mounted) {
+        await _loadLiveEvents();
+      }
     } catch (e) {
       debugPrint('Error saving substitution event: $e');
+    }
+  }
+
+  Future<void> _commitLineupChangeSideEffects({
+    required bool logSubstitutionEvent,
+    Player? substitutionIn,
+    Player? substitutionOut,
+  }) async {
+    _saveCurrentLineup();
+    await _persistCurrentPositionsToMatchLineup();
+
+    if (logSubstitutionEvent && substitutionIn != null) {
+      await _saveSubstitutionEvent(
+        playerIn: substitutionIn,
+        playerOut: substitutionOut,
+        refreshLiveEventsAfterSave: false,
+      );
     }
   }
 
@@ -2080,17 +2306,23 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   Future<void> _loadDisciplineStateFromEvents() async {
     final sentOff = await _querySentOffIdsFromEvents();
     if (sentOff == null || !mounted) return;
+    final effective = <int>{...sentOff, ..._deriveSentOffFromLiveEvents()};
+
+    // Registrar minutos de expulsión detectados en los eventos ya cargados.
+    _recordExpulsionMinutesFromRows(_liveEvents);
 
     setState(() {
       _sentOffPlayerIds
         ..clear()
-        ..addAll(sentOff);
+        ..addAll(effective);
 
       if (_selectedPlayer != null &&
           _sentOffPlayerIds.contains(_selectedPlayer!.id)) {
         _selectedPlayer = null;
       }
     });
+    // Quitar automáticamente del campo a los expulsados.
+    _removeExpulsedPlayersFromField(effective);
   }
 
   /// Texto del boton principal segun la fase del partido.
@@ -2785,7 +3017,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                     )..load(),
                   ),
                 ],
-                child: MatchStatsPage(match: finishedMatch),
+                child: MatchStatsPage(
+                  match: finishedMatch,
+                  ourTeamName: context.read<TeamContextCubit>().state.name,
+                ),
               ),
             ),
           );
@@ -2811,6 +3046,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         if (_canonicalEventTypeKey(row['type']) == 'yellowcard')
           _dynToInt(row['player_id1']) ?? -1,
     }..remove(-1);
+    final effectiveSentOff = _effectiveSentOffPlayerIds();
     int countByKey(String key) {
       var total = 0;
       for (final row in _liveEvents) {
@@ -3192,27 +3428,41 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                         formationLayoutKey: _selectedFormation,
                         positionPlayers: _positionPlayers,
                         selectedPlayer: _selectedPlayer,
-                        sentOffPlayerIds: _sentOffPlayerIds,
+                        sentOffPlayerIds: effectiveSentOff,
                         currentPlayersOnField: _currentPlayersOnField,
                         maxPlayersOnField: _maxPlayersOnField,
                         showSnack: _showSnack,
-                        onPositionsChanged: (newPositions) {
-                          setState(() {
-                            _positionPlayers = newPositions;
-                            _selectedPlayer = null;
-                          });
-                          _persistCurrentPositionsToMatchLineup();
-                        },
-                        onSubstitutionRequested: (playerIn, playerOut) {
-                          _saveSubstitutionEvent(
-                            playerIn: playerIn,
-                            playerOut: playerOut,
-                          );
-                        },
+                        onLineupChanged:
+                            (
+                              newPositions, {
+                              required logSubstitutionEvent,
+                              substitutionIn,
+                              substitutionOut,
+                            }) {
+                              setState(() {
+                                _positionPlayers = newPositions;
+                                _selectedPlayer = null;
+                                _lastLocalLineupChangeAt = DateTime.now();
+                              });
+                              unawaited(
+                                _commitLineupChangeSideEffects(
+                                  logSubstitutionEvent: logSubstitutionEvent,
+                                  substitutionIn: substitutionIn,
+                                  substitutionOut: substitutionOut,
+                                ),
+                              );
+                            },
                         onPlayerActionRequested: _onPlayerActionRequested,
                         readOnly: isExternal,
-                        recordSwapAsSubstitution:
-                            _phase == _MatchPhase.notStarted,
+                        playerDiscipline: (playerId) {
+                          if (effectiveSentOff.contains(playerId)) {
+                            return MatchPlayerDisciplineHighlight.red;
+                          }
+                          if (yellowCardPlayerIds.contains(playerId)) {
+                            return MatchPlayerDisciplineHighlight.yellow;
+                          }
+                          return MatchPlayerDisciplineHighlight.none;
+                        },
                       ),
                     ),
                   ),
@@ -3280,7 +3530,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                   convokedPlayers: _convokedPlayers,
                   positionPlayers: _positionPlayers,
                   selectedPlayer: _selectedPlayer,
-                  sentOffPlayerIds: _sentOffPlayerIds,
+                  sentOffPlayerIds: effectiveSentOff,
                   yellowCardPlayerIds: yellowCardPlayerIds,
                   playerRatings: _playerRatings,
                   minutesPlayedByPlayerId: _canSeeConvokedMinutesPlayed
@@ -3330,20 +3580,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
             cornersRival: _cornersRival,
             offsidesOur: offsidesOur,
             offsidesRival: offsidesRival,
-            yellowCardsOur: yellowCardsOur,
-            yellowCardsRival: yellowCardsRival,
-            redCardsOur: redCardsOur,
-            redCardsRival: redCardsRival,
+            yellowOur: yellowCardsOur,
+            yellowRival: yellowCardsRival,
+            redOur: redCardsOur,
+            redRival: redCardsRival,
             l10n: l10n,
-            onRemoveShot: isExternal
-                ? null
-                : () => _removeLastOfType(MatchEventEnum.shot),
-            onAddShot: isExternal
-                ? null
-                : () => _saveManualCounterEvent(
-                    type: MatchEventEnum.shot,
-                    note: l10n.matchActionLabelShot,
-                  ),
             onRemoveRivalShot: isExternal
                 ? null
                 : () => _removeLastOfType(MatchEventEnum.rivalShot),

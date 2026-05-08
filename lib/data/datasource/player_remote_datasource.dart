@@ -1,6 +1,8 @@
 /// Datasource remoto para operaciones sobre `players`, `player_stats` y
 /// datos relacionados. Implementa las llamadas HTTP/SQL vía Supabase/PostgREST
 /// y encapsula detalles de manejo de errores y compatibilidad de esquema.
+library;
+
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';

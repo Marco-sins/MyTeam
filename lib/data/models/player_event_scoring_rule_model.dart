@@ -1,5 +1,7 @@
 /// Modelo persistible de PlayerEventScoringRule usado para mapear filas de la tabla
 /// `player_event` a la entidad de dominio.
+library;
+
 import 'package:football_manager/domain/entities/player_event_scoring_rule.dart';
 
 class PlayerEventScoringRuleModel extends PlayerEventScoringRule {
@@ -44,6 +46,7 @@ class PlayerEventScoringRuleModel extends PlayerEventScoringRule {
     return map;
   }
 
+  @override
   PlayerEventScoringRuleModel copyWith({
     String? id,
     int? teamId,

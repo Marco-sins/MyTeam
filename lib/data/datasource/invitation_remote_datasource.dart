@@ -1,6 +1,8 @@
 /// Datasource para la tabla `invitations` y operaciones de invitación.
 ///
 /// Contiene creación, aceptación, rechazo y listados por email.
+library;
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';

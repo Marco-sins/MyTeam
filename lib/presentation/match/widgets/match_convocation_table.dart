@@ -134,14 +134,17 @@ class MatchConvocationTable extends StatelessWidget {
         : null;
     final rowRadius = BorderRadius.circular(12);
     final circleBorder = scheme.outlineVariant.withValues(alpha: 0.6);
+
+    // El círculo muestra el color del equipo solo cuando el jugador está
+    // asignado y no expulsado. La amarilla solo colorea la fila, no el círculo.
     final circleFill = isSentOff
         ? scheme.error
-        : hasYellow
-        ? Colors.amber
         : isAssigned
         ? scheme.primary
         : Colors.transparent;
-    final showTick = isAssigned && !isSentOff && !hasYellow;
+
+    // Mostrar el tick cuando el jugador está asignado y no expulsado.
+    final showTick = isAssigned && !isSentOff;
     final tickColor = scheme.onPrimary;
 
     Color ratingColor(double value) {
@@ -245,7 +248,11 @@ class MatchConvocationTable extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: circleFill,
                     border: Border.all(
-                      color: isSentOff || hasYellow ? circleFill : circleBorder,
+                      color: isSentOff
+                          ? scheme.error
+                          : isAssigned
+                          ? scheme.primary
+                          : circleBorder,
                       width: 2,
                     ),
                   ),

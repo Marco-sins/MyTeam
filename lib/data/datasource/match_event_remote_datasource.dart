@@ -3,6 +3,8 @@
 /// Provee lecturas (timeline, filas para cálculos de valoración), inserciones
 /// y actualizaciones de eventos de partido. Normaliza y persiste el campo
 /// `type` tal y como la app lo espera.
+library;
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';
@@ -238,13 +240,13 @@ class MatchEventRemoteDatasource {
       for (final row in supabaseResponseAsList(result)) {
         final raw = row['type'];
         if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
+        final typeString = canonicalMatchEventTypeKey(raw);
         final p1 = supabaseInt(row['player_id1']);
         if (p1 == null) continue;
 
-        if (typeString == 'redCard') {
+        if (typeString == 'redcard') {
           sentOff.add(p1);
-        } else if (typeString == 'yellowCard') {
+        } else if (typeString == 'yellowcard') {
           final current = yellowCounts[p1] ?? 0;
           final next = current + 1;
           yellowCounts[p1] = next;

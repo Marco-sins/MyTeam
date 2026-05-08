@@ -1,5 +1,7 @@
 /// Mapeador entre el modelo de persistencia `MatchLineupModel` y la entidad
 /// de dominio `MatchLineup`.
+library;
+
 import 'package:football_manager/data/models/match_lineup_model.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
 

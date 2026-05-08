@@ -1,4 +1,6 @@
 /// Implementación del repositorio para reglas de puntuación de eventos.
+library;
+
 import 'package:dartz/dartz.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';

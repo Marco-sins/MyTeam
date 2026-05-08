@@ -2,6 +2,8 @@
 ///
 /// Contiene las operaciones CRUD y consultas específicas de partido usando
 /// el cliente Supabase. Traduce errores de PostgREST a excepciones locales.
+library;
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';

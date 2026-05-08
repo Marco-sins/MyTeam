@@ -216,7 +216,7 @@ class _PlayerEventScoringPageState extends State<PlayerEventScoringPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedKey,
+                      initialValue: selectedKey,
                       decoration: const InputDecoration(labelText: 'Evento'),
                       items: availableKeys
                           .map(

@@ -1,4 +1,6 @@
 /// Interface del repositorio para manejar reglas de puntuación de eventos.
+library;
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/domain/entities/player_event_scoring_rule.dart';

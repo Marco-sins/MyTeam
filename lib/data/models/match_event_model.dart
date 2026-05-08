@@ -2,6 +2,8 @@
 ///
 /// Extiende la entidad de dominio `MatchEvent` y aporta `fromJson`/`toJson`
 /// para la interacción con Supabase/PostgREST.
+library;
+
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/core/utils/supabase_dynamic.dart';

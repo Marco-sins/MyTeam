@@ -1,6 +1,20 @@
 import 'package:football_manager/domain/entities/enum/match_event_enum.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 
+/// Extrae el tiempo total de un minuto que incluye tiempo de descuento.
+/// Ejemplo: Si el minuto es 47 y regulatoriamente es 45 minutos (senior),
+/// el tiempo de descuento es 2 minutos. Pero para calcular minutos jugados,
+/// simplemente usamos el valor de minute como está.
+///
+/// Si la entrada es un minuto como "45", devuelve 45.
+/// Si es un minuto en segundapart con descuento ya sumado (ej. 47 para 45+2),
+/// devuelve 47 tal cual.
+int getTotalMatchMinutesIncludingStoppage(int minute) {
+  // El minute recibido ya incluye el tiempo de descuento si el reloj ha pasado
+  // la duración reglamentaria. Simplemente devolvemos el valor tal cual.
+  return minute;
+}
+
 /// Orden estable: minuto y, a igualdad, id del evento.
 void sortMatchEventsByTime(List<MatchEvent> events) {
   events.sort((a, b) {

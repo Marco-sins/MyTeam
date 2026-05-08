@@ -1,4 +1,6 @@
 /// Repositorio para la gestión de invitaciones (create/accept/reject).
+library;
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';

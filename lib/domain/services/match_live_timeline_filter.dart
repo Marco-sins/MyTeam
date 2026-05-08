@@ -90,6 +90,30 @@ class MatchLiveTimelineFilter {
     return false;
   }
 
+  static DateTime? resolveFirstHalfKickoffFromEventMaps(
+    List<Map<String, dynamic>> events,
+  ) {
+    DateTime? best;
+    for (final e in events) {
+      if (canonicalMatchEventTypeKey(e['type']) != 'statuschange') continue;
+      final note = e['note'] as String?;
+      if (note == null) continue;
+      final lower = note.trim().toLowerCase();
+      final isFirstHalfStart =
+          lower.contains('inicio') &&
+          lower.contains('1') &&
+          lower.contains('parte');
+      if (!isFirstHalfStart) continue;
+      final createdAt = e['created_at'];
+      if (createdAt is DateTime) {
+        if (best == null || createdAt.isBefore(best)) {
+          best = createdAt;
+        }
+      }
+    }
+    return best;
+  }
+
   static DateTime? resolveSecondHalfStart(List<MatchLiveTimelineRow> rows) {
     DateTime? best;
     for (final r in rows) {

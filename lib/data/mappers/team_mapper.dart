@@ -1,4 +1,6 @@
 /// Mapeador entre `TeamModel` y la entidad de dominio `Team`.
+library;
+
 import 'package:football_manager/data/models/team_model.dart';
 import 'package:football_manager/domain/entities/team.dart';
 

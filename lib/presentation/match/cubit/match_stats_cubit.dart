@@ -55,7 +55,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
   /// Calcula los ids expulsados a partir de los eventos.
   /// Cuenta rojas y dobles amarillas recorriendo la lista.
   Set<int> _sentOffPlayerIdsFromEvents(List<Map<String, dynamic>> events) {
-    final yellowCounts = <int, int>{};
+    final yellowCounts = _yellowCardCountsByPlayerId(events);
     final sentOff = <int>{};
     for (final event in events) {
       final rawType = event['type'];
@@ -66,14 +66,29 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
       if (typeString == 'redCard') {
         sentOff.add(p1);
       } else if (typeString == 'yellowCard') {
-        final next = (yellowCounts[p1] ?? 0) + 1;
-        yellowCounts[p1] = next;
-        if (next >= 2) {
+        final count = yellowCounts[p1] ?? 0;
+        if (count >= 2) {
           sentOff.add(p1);
         }
       }
     }
     return sentOff;
+  }
+
+  /// Calcula el conteo de tarjetas amarillas por jugador.
+  Map<int, int> _yellowCardCountsByPlayerId(List<Map<String, dynamic>> events) {
+    final yellowCounts = <int, int>{};
+    for (final event in events) {
+      final rawType = event['type'];
+      if (rawType == null) continue;
+      final typeString = rawType.toString().split('.').last;
+      final p1 = event['player_id1'] as int?;
+      if (p1 == null) continue;
+      if (typeString == 'yellowCard') {
+        yellowCounts[p1] = (yellowCounts[p1] ?? 0) + 1;
+      }
+    }
+    return yellowCounts;
   }
 
   /// Carga estadisticas del partido y emite el estado completo.
@@ -137,6 +152,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
       }
 
       final sentOff = _sentOffPlayerIdsFromEvents(eventMaps);
+      final yellowCounts = _yellowCardCountsByPlayerId(eventMaps);
 
       var formationLines = <int>[];
       String? formationLabel;
@@ -196,6 +212,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
             formationLabel: formationLabel,
             fieldPositionPlayers: fieldPositionPlayers,
             sentOffPlayerIds: sentOff,
+            yellowCardsByPlayerId: yellowCounts,
           ),
         );
       }

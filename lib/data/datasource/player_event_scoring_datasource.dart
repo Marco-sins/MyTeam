@@ -1,4 +1,6 @@
 /// Data source para acceder a las reglas de puntuación de eventos desde Supabase.
+library;
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/data/models/player_event_scoring_rule_model.dart';
 

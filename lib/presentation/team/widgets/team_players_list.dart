@@ -31,9 +31,7 @@ class TeamPlayersList extends StatelessWidget {
         }
         if (state is TeamDetailLoaded) {
           if (state.players.isEmpty) {
-            return Center(
-              child: Text(l10n.convocationEmptyRoster),
-            );
+            return Center(child: Text(l10n.convocationEmptyRoster));
           }
           final players = List.of(state.players)
             ..sort((a, b) => (a.number ?? 0).compareTo(b.number ?? 0));
@@ -172,7 +170,7 @@ class TeamPlayersList extends StatelessWidget {
                               const SnackBar(
                                 content: Text('Jugador borrado correctamente'),
                                 backgroundColor: Colors.green,
-                                duration: const Duration(seconds: 4),
+                                duration: Duration(seconds: 4),
                               ),
                             );
                             context.read<TeamDetailCubit>().loadTeam(team.id);

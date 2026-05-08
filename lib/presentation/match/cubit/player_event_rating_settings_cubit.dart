@@ -71,9 +71,7 @@ class PlayerEventRatingSettingsCubit
 
   /// Migra datos desde SharedPreferences a la BD.
   Future<void> migrateFromLocalStorage(int teamId) async {
-    if (_currentTeamId == null) {
-      _currentTeamId = teamId;
-    }
+    _currentTeamId ??= teamId;
 
     final result = await _repository.migrateFromLocalStorage(teamId);
 

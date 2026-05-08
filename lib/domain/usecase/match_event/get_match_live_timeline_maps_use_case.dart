@@ -1,5 +1,7 @@
 /// Caso de uso que obtiene las filas crudas de la cronología en vivo del partido
 /// (ordenadas) y las transforma para consumo de la UI.
+library;
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/domain/repositories/i_match_event_repository.dart';

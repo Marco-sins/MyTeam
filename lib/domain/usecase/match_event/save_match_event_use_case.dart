@@ -1,6 +1,8 @@
 /// Caso de uso para guardar un evento de partido.
 ///
 /// Valida permisos del usuario y delega en `IMatchEventRepository`.
+library;
+
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/core/errors/failure/failure.dart';
 import 'package:football_manager/core/errors/failure/permission_failure.dart';
