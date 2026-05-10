@@ -2857,7 +2857,9 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
     final s = context.layoutScale;
-    final pagePad = AppResponsive.pageHorizontalPadding(context);
+    // Use a smaller horizontal page padding for match screens so the
+    // content occupies more width. Keep scaled units consistent.
+    final pagePad = 8 * s;
     final screenW = MediaQuery.sizeOf(context).width;
     const tabListPad = EdgeInsets.fromLTRB(16, 12, 16, 28);
     final pageScrollPad = EdgeInsets.fromLTRB(pagePad, 12 * s, pagePad, 24 * s);

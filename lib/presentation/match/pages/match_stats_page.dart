@@ -646,7 +646,9 @@ class MatchStatsPage extends StatelessWidget {
 
                 final eventAggs = state.eventAggregates;
                 final s = context.layoutScale;
-                final pagePad = AppResponsive.pageHorizontalPadding(context);
+                // Use a smaller horizontal page padding for match screens so the
+                // content occupies more width. Keep scaled units consistent.
+                final pagePad = 8 * s;
                 final pageScrollPad = EdgeInsets.fromLTRB(
                   pagePad,
                   12 * s,

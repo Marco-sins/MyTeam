@@ -89,10 +89,26 @@ void _drawTeamLogoWatermark(
     ..isAntiAlias = true
     ..filterQuality = FilterQuality.medium
     ..colorFilter = const ColorFilter.matrix([
-      1, 0, 0, 0, 0,
-      0, 1, 0, 0, 0,
-      0, 0, 1, 0, 0,
-      0, 0, 0, watermarkAlpha, 0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      watermarkAlpha,
+      0,
     ]);
 
   canvas.drawImageRect(logo, src, dest, paint);
@@ -135,6 +151,10 @@ Future<File?> generateConvocationImage({
       mapUrl: mapUrl,
     );
 
+    // Prepare palette from team color before measuring canvas height so
+    // measurements use the actual team palette.
+    final palette = ConvocationImagePalette.fromTeamColor(team.color);
+
     final totalHeight = estimateConvocationCanvasHeight(
       copy: imageCopy,
       playerCount: sortedPlayers.length,
@@ -146,10 +166,9 @@ Future<File?> generateConvocationImage({
       meetingVenue: venues.meeting,
       matchVenue: venues.matchVenue,
       mapExtra: venues.mapExtra,
+      palette: palette,
     );
     final canvasH = totalHeight.roundToDouble();
-
-    final palette = ConvocationImagePalette.fromTeamColor(team.color);
 
     teamLogo = await _decodeTeamLogo(team);
 
@@ -162,10 +181,7 @@ Future<File?> generateConvocationImage({
     final rect = Rect.fromLTWH(0, 0, size.toDouble(), canvasH);
     final bgPaint = Paint()
       ..shader = LinearGradient(
-        colors: [
-          palette.pitch,
-          palette.pitchBright,
-        ],
+        colors: [palette.pitch, palette.pitchBright],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(rect);

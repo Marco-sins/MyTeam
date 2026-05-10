@@ -56,37 +56,33 @@ const double _kObsGapBeforeBox = 12;
 const double _kObsBoxPadH = 22;
 const double _kObsBoxPadV = 22;
 const double _kObsBoxRadius = 14;
-const double _kObsNotesFontSize = 21;
+const double _kObsNotesFontSize = 20;
 const double _kObsNotesLineHeight = 1.45;
 const int _kObsNotesMaxLines = 64;
 const double _kObsBottomMargin = 36;
 
-const double _sideInset = 26;
-const double _kLabelColW = 278;
+const double _sideInset = 20;
+// Narrower label column for a more minimal, compact match-details block.
+const double _kLabelColW = 180;
 const double _kRowPadV = 12;
 const double _kAfterSectionTitle = 18;
 const double _kBetweenBlocks = 14;
 
-({String meeting, String matchVenue, String? mapExtra}) convocationVenueStrings({
+({String meeting, String matchVenue, String? mapExtra})
+convocationVenueStrings({
   required ConvocationImageCopy copy,
   required bool isHome,
   required String? awayLocation,
   required String? mapUrl,
 }) {
+  // Show exactly what is provided in the location field, no defaults.
   if (isHome) {
-    final block =
-        '${copy.placeHomeHeadline}\n${copy.venueHomeInstallations}';
-    return (meeting: block, matchVenue: block, mapExtra: null);
+    // For home: empty unless explicitly provided by the user elsewhere.
+    return (meeting: '', matchVenue: '', mapExtra: null);
   }
   final addr = awayLocation?.trim() ?? '';
-  if (addr.isEmpty) {
-    final block =
-        '${copy.placeAwayHeadline}\n${copy.placeAwayNoAddressDetail}';
-    return (meeting: block, matchVenue: block, mapExtra: null);
-  }
-  final block = '${copy.placeAwayHeadline}\n$addr';
-  final extra = mapUrl != null ? '${copy.mapLinkIntro}\n$mapUrl' : null;
-  return (meeting: block, matchVenue: block, mapExtra: extra);
+  // For away: show the address as-is, no extra headers or footers.
+  return (meeting: addr, matchVenue: addr, mapExtra: null);
 }
 
 void _drawObservationsSectionHeader(
@@ -139,50 +135,54 @@ ui.Paragraph _layoutObservationsParagraph(
         )
         ..pushStyle(ui.TextStyle(color: palette.onSurfaceVariant))
         ..addText(text);
-  return measurePara.build()
-    ..layout(ui.ParagraphConstraints(width: width));
+  return measurePara.build()..layout(ui.ParagraphConstraints(width: width));
 }
 
 ui.Paragraph _layoutLabelPara(String label, double w, Color color) {
-  final p = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      maxLines: 6,
-      height: 1.25,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: color))
-    ..addText(label);
+  // Use same font/size as values to satisfy "misma letra" requirement.
+  final p =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            maxLines: 6,
+            height: 1.15,
+          ),
+        )
+        ..pushStyle(ui.TextStyle(color: color))
+        ..addText(label);
   return p.build()..layout(ui.ParagraphConstraints(width: w));
 }
 
 ui.Paragraph _layoutValuePara(String value, double w, Color color) {
-  final p = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 20,
-      fontWeight: FontWeight.w800,
-      maxLines: 16,
-      height: 1.22,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: color))
-    ..addText(value);
+  // Match label font to value font: same size and weight for a uniform look.
+  final p =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            maxLines: 16,
+            height: 1.18,
+          ),
+        )
+        ..pushStyle(ui.TextStyle(color: color))
+        ..addText(value);
   return p.build()..layout(ui.ParagraphConstraints(width: w));
 }
 
 ui.Paragraph? _layoutFootnotePara(String? text, double w, Color color) {
   if (text == null || text.isEmpty) return null;
-  final p = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
-      maxLines: 8,
-      height: 1.35,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: color))
-    ..addText(text);
+  final p =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            maxLines: 8,
+            height: 1.35,
+          ),
+        )
+        ..pushStyle(ui.TextStyle(color: color))
+        ..addText(text);
   return p.build()..layout(ui.ParagraphConstraints(width: w));
 }
 
@@ -222,52 +222,62 @@ double _measureMatchDetailsBlockHeight({
   const dividerH = 1.0;
   var h = _kAfterSectionTitle;
 
-  h += _rowHeightForKeyValue(
-    label: copy.labelTeam,
-    value: teamName,
-    footnote: null,
-    extraBelow: null,
-    valueColumnW: valueColumnW,
-    labelColor: palette.onSurfaceVariant,
-    valueColor: palette.onSurface,
-    footColor: palette.onSurfaceVariant,
-  ) +
+  // Only show minimal match details: fecha, hora de partido, hora de convocatoria, lugar
+  // callDateTimeStr comes in format 'dd/mm/yyyy - HH:MM' — extract date and time.
+  final split = callDateTimeStr.split(' - ');
+  final dateOnly = split.isNotEmpty ? split[0] : callDateTimeStr;
+  final callTimeOnly = split.length > 1 ? split[1] : '';
+
+  h +=
+      _rowHeightForKeyValue(
+        label: 'Fecha',
+        value: dateOnly,
+        footnote: null,
+        extraBelow: null,
+        valueColumnW: valueColumnW,
+        labelColor: palette.onSurfaceVariant,
+        valueColor: palette.onSurface,
+        footColor: palette.onSurfaceVariant,
+      ) +
       dividerH;
 
-  h += _rowHeightForKeyValue(
-    label: copy.labelFixture,
-    value: fixtureLine,
-    footnote: null,
-    extraBelow: null,
-    valueColumnW: valueColumnW,
-    labelColor: palette.onSurfaceVariant,
-    valueColor: palette.onSurface,
-    footColor: palette.onSurfaceVariant,
-  ) +
+  h +=
+      _rowHeightForKeyValue(
+        label: copy.labelMatchKickoff,
+        value: matchTimeStr,
+        footnote: null,
+        extraBelow: null,
+        valueColumnW: valueColumnW,
+        labelColor: palette.onSurfaceVariant,
+        valueColor: palette.onSurface,
+        footColor: palette.onSurfaceVariant,
+      ) +
       dividerH;
 
-  h += _rowHeightForKeyValue(
-    label: copy.labelCallDateTime,
-    value: callDateTimeStr,
-    footnote: copy.callTimeReminder,
-    extraBelow: null,
-    valueColumnW: valueColumnW,
-    labelColor: palette.onSurfaceVariant,
-    valueColor: palette.onSurface,
-    footColor: palette.onSurfaceVariant,
-  ) +
+  h +=
+      _rowHeightForKeyValue(
+        label: copy.labelCallDateTime,
+        value: callTimeOnly,
+        footnote: null,
+        extraBelow: null,
+        valueColumnW: valueColumnW,
+        labelColor: palette.onSurfaceVariant,
+        valueColor: palette.onSurface,
+        footColor: palette.onSurfaceVariant,
+      ) +
       dividerH;
 
-  h += _rowHeightForKeyValue(
-    label: copy.labelMatchKickoff,
-    value: matchTimeStr,
-    footnote: null,
-    extraBelow: null,
-    valueColumnW: valueColumnW,
-    labelColor: palette.onSurfaceVariant,
-    valueColor: palette.onSurface,
-    footColor: palette.onSurfaceVariant,
-  ) +
+  h +=
+      _rowHeightForKeyValue(
+        label: copy.labelMatchKickoff,
+        value: matchTimeStr,
+        footnote: null,
+        extraBelow: null,
+        valueColumnW: valueColumnW,
+        labelColor: palette.onSurfaceVariant,
+        valueColor: palette.onSurface,
+        footColor: palette.onSurfaceVariant,
+      ) +
       dividerH;
 
   h += _rowHeightForKeyValue(
@@ -279,34 +289,23 @@ double _measureMatchDetailsBlockHeight({
     labelColor: palette.onSurfaceVariant,
     valueColor: palette.onSurface,
     footColor: palette.onSurfaceVariant,
-  ) +
-      dividerH;
-
-  h += _rowHeightForKeyValue(
-    label: copy.labelMatchVenue,
-    value: matchVenue,
-    footnote: null,
-    extraBelow: mapExtra,
-    valueColumnW: valueColumnW,
-    labelColor: palette.onSurfaceVariant,
-    valueColor: palette.onSurface,
-    footColor: palette.onSurfaceVariant,
   );
 
   return h;
 }
 
 double _sectionTitleHeight(double width, String title, Color color) {
-  final p = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 20,
-      fontWeight: FontWeight.w900,
-      maxLines: 2,
-      height: 1.15,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: color))
-    ..addText(title);
+  final p =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            maxLines: 2,
+            height: 1.15,
+          ),
+        )
+        ..pushStyle(ui.TextStyle(color: color))
+        ..addText(title);
   final para = p.build()..layout(ui.ParagraphConstraints(width: width));
   return para.height;
 }
@@ -323,6 +322,7 @@ double estimateConvocationCanvasHeight({
   required String meetingVenue,
   required String matchVenue,
   required String? mapExtra,
+  required ConvocationImagePalette palette,
 }) {
   final m = ConvocationImageTheme.overlayMargin;
   final startY =
@@ -335,10 +335,11 @@ double estimateConvocationCanvasHeight({
 
   var y = startY;
   y += 22;
-  y += _sectionTitleHeight(
+  y +=
+      _sectionTitleHeight(
         innerW - 56,
         copy.sectionMatchDetails,
-        ConvocationImagePalette.classic.onSurface,
+        palette.onSurface,
       ) +
       8 +
       _kAfterSectionTitle;
@@ -352,7 +353,7 @@ double estimateConvocationCanvasHeight({
     meetingVenue: meetingVenue,
     matchVenue: matchVenue,
     mapExtra: mapExtra,
-    palette: ConvocationImagePalette.classic,
+    palette: palette,
     valueColumnW: valueColumnW,
   );
 
@@ -365,11 +366,7 @@ double estimateConvocationCanvasHeight({
   if (t.isNotEmpty) {
     final overlayContentW = innerW - 56;
     final notesLayoutW = overlayContentW - 2 * _kObsBoxPadH;
-    final p = _layoutObservationsParagraph(
-      t,
-      notesLayoutW,
-      ConvocationImagePalette.classic,
-    );
+    final p = _layoutObservationsParagraph(t, notesLayoutW, palette);
     y +=
         22 +
         26 +
@@ -413,7 +410,11 @@ double _drawKeyValueRow(
   final lp = _layoutLabelPara(label, _kLabelColW, palette.onSurfaceVariant);
   final vp = _layoutValuePara(value, valueColW, palette.onSurface);
   final fp = _layoutFootnotePara(footnote, valueColW, palette.onSurfaceVariant);
-  final ep = _layoutFootnotePara(extraBelow, valueColW, palette.onSurfaceVariant);
+  final ep = _layoutFootnotePara(
+    extraBelow,
+    valueColW,
+    palette.onSurfaceVariant,
+  );
 
   final valueColH =
       vp.height +
@@ -473,16 +474,17 @@ void drawConvocationBody({
   y += 22;
 
   final titleW = overlayRect.width - 56;
-  final titlePara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 20,
-      fontWeight: FontWeight.w900,
-      maxLines: 2,
-      height: 1.15,
-    ),
-  )
-    ..pushStyle(ui.TextStyle(color: palette.onSurface))
-    ..addText(copy.sectionMatchDetails);
+  final titlePara =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            maxLines: 2,
+            height: 1.15,
+          ),
+        )
+        ..pushStyle(ui.TextStyle(color: palette.onSurface))
+        ..addText(copy.sectionMatchDetails);
   final tp = titlePara.build()..layout(ui.ParagraphConstraints(width: titleW));
   canvas.drawParagraph(tp, Offset(overlayRect.left + 28, y));
   y += tp.height + 8 + _kAfterSectionTitle;
@@ -494,13 +496,26 @@ void drawConvocationBody({
     mapUrl: mapUrl,
   );
 
+  // Only show minimal details: fecha, hora de partido, hora de convocatoria, lugar
+  final split = callDateTimeStr.split(' - ');
+  final dateOnly = split.isNotEmpty ? split[0] : callDateTimeStr;
+  final callTimeOnly = split.length > 1 ? split[1] : '';
+
+  // Helper: format text to "minúscula con primera mayúscula"
+  String fmt(String s) {
+    final t = (s.trim());
+    if (t.isEmpty) return '';
+    final lower = t.toLowerCase();
+    return lower[0].toUpperCase() + lower.substring(1);
+  }
+
   y = _drawKeyValueRow(
     canvas,
     overlayRect,
     palette,
     y,
-    copy.labelTeam,
-    teamName,
+    'Fecha',
+    fmt(dateOnly),
     drawDividerBelow: true,
   );
 
@@ -509,8 +524,8 @@ void drawConvocationBody({
     overlayRect,
     palette,
     y,
-    copy.labelFixture,
-    fixtureLine,
+    fmt(copy.labelMatchKickoff),
+    fmt(matchTimeStr),
     drawDividerBelow: true,
   );
 
@@ -519,9 +534,8 @@ void drawConvocationBody({
     overlayRect,
     palette,
     y,
-    copy.labelCallDateTime,
-    callDateTimeStr,
-    footnote: copy.callTimeReminder,
+    fmt(copy.labelCallDateTime),
+    fmt(callTimeOnly),
     drawDividerBelow: true,
   );
 
@@ -530,29 +544,8 @@ void drawConvocationBody({
     overlayRect,
     palette,
     y,
-    copy.labelMatchKickoff,
-    matchTimeStr,
-    drawDividerBelow: true,
-  );
-
-  y = _drawKeyValueRow(
-    canvas,
-    overlayRect,
-    palette,
-    y,
-    copy.labelMeetingVenue,
-    venues.meeting,
-    drawDividerBelow: true,
-  );
-
-  y = _drawKeyValueRow(
-    canvas,
-    overlayRect,
-    palette,
-    y,
-    copy.labelMatchVenue,
-    venues.matchVenue,
-    extraBelow: venues.mapExtra,
+    fmt(copy.labelMeetingVenue),
+    fmt(venues.meeting),
     drawDividerBelow: false,
   );
 
@@ -593,17 +586,22 @@ void drawConvocationBody({
     final boxLeft = overlayRect.left + 28;
     final boxWidth = overlayRect.width - 56;
     final textWidth = boxWidth - 2 * _kObsBoxPadH;
-    final measured =
-        _layoutObservationsParagraph(trimmedNotes, textWidth, palette);
+    final measured = _layoutObservationsParagraph(
+      trimmedNotes,
+      textWidth,
+      palette,
+    );
     final boxHeight = 2 * _kObsBoxPadV + measured.height;
 
     final boxRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(boxLeft, y, boxWidth, boxHeight),
       const Radius.circular(_kObsBoxRadius),
     );
+    // Highlight observations using the team's secondary container color
+    // for stronger emphasis and better contrast with the body.
     canvas.drawRRect(
       boxRect,
-      Paint()..color = palette.surface.withValues(alpha: 0.98),
+      Paint()..color = palette.secondaryContainer.withValues(alpha: 0.95),
     );
     canvas.drawRRect(
       boxRect,
@@ -652,10 +650,7 @@ void _drawSectionTitle(
   final paragraph = builder.build()
     ..layout(ui.ParagraphConstraints(width: overlayRect.width - 84));
 
-  canvas.drawParagraph(
-    paragraph,
-    Offset(overlayRect.left + 32 + barW + 12, y),
-  );
+  canvas.drawParagraph(paragraph, Offset(overlayRect.left + 32 + barW + 12, y));
 }
 
 double _drawPlayerRow(
@@ -676,8 +671,7 @@ double _drawPlayerRow(
   if (alternate) {
     canvas.drawRRect(
       rowRect,
-      Paint()
-          ..color = palette.surfaceContainer.withValues(alpha: 0.35),
+      Paint()..color = palette.surfaceContainer.withValues(alpha: 0.35),
     );
   }
 
@@ -729,19 +723,14 @@ double _drawPlayerRow(
 
   final nameX = badgeLeft + badgeSize + 14;
   final nameParts = playerNamePartsMatchShort(p);
-  final givenName =
-      nameParts.given.isEmpty ? copy.playerFallbackName : nameParts.given;
+  final givenName = nameParts.given.isEmpty
+      ? copy.playerFallbackName
+      : nameParts.given;
   final namePara = ui.ParagraphBuilder(
-    ui.ParagraphStyle(
-      fontSize: 17,
-      maxLines: 1,
-    ),
+    ui.ParagraphStyle(fontSize: 17, maxLines: 1),
   );
   namePara.pushStyle(
-    ui.TextStyle(
-      color: palette.onSurface,
-      fontWeight: FontWeight.w800,
-    ),
+    ui.TextStyle(color: palette.onSurface, fontWeight: FontWeight.w800),
   );
   namePara.addText(givenName);
   namePara.pop();

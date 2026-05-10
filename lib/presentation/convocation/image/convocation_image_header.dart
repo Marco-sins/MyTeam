@@ -28,11 +28,12 @@ double drawConvocationHeader({
   final headerPaint = Paint()
     ..shader = LinearGradient(
       colors: [
+        // Más oscuro arriba, más claro abajo (vertical)
         palette.pitch,
-        Color.lerp(palette.pitch, palette.pitchBright, 0.35)!,
+        palette.pitchBright,
       ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
     ).createShader(headerRRect.outerRect);
   canvas.drawRRect(headerRRect, headerPaint);
 
@@ -60,78 +61,36 @@ double drawConvocationHeader({
   );
 
   double y = overlayRect.top + 20;
-
   final homeTeamName = isHome ? team.name : rivalName;
   final awayTeamName = isHome ? rivalName : team.name;
 
-  void drawText(
-    String text,
-    double dy, {
-    required double fontSize,
-    FontWeight fontWeight = FontWeight.normal,
-    Color color = Colors.white,
-    TextAlign align = TextAlign.left,
-    double? letterSpacing,
-    double? height,
-  }) {
-    final builder =
-        ui.ParagraphBuilder(
-            ui.ParagraphStyle(
-              textAlign: align,
-              fontSize: fontSize,
-              fontWeight: fontWeight,
-              maxLines: 4,
-              height: height,
-            ),
-          )
-          ..pushStyle(
-            ui.TextStyle(color: color, letterSpacing: letterSpacing),
-          )
-          ..addText(text);
-
-    final paragraph = builder.build();
-    const maxWidth = 980.0;
-    paragraph.layout(const ui.ParagraphConstraints(width: maxWidth));
-
-    double dx;
-    if (align == TextAlign.center) {
-      dx =
-          overlayRect.left +
-          (overlayRect.width - paragraph.maxIntrinsicWidth) / 2;
-    } else if (align == TextAlign.right) {
-      dx = overlayRect.right - paragraph.maxIntrinsicWidth - 32;
-    } else {
-      dx = overlayRect.left + 28;
-    }
-
-    canvas.drawParagraph(paragraph, Offset(dx, dy));
-  }
-
-  drawText(
-    'CONVOCATORIA',
-    y,
-    fontSize: 12,
-    fontWeight: FontWeight.w800,
-    color: Colors.white.withValues(alpha: 0.88),
-    align: TextAlign.center,
-    letterSpacing: 2.4,
-    height: 1.0,
+  // Draw "CONVOCATORIA" in the top-left corner, single line, no wrapping.
+  final convocBuilder =
+      ui.ParagraphBuilder(
+          ui.ParagraphStyle(
+            textAlign: TextAlign.left,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            maxLines: 1,
+            height: 1.0,
+          ),
+        )
+        ..pushStyle(
+          ui.TextStyle(
+            color: Colors.white.withValues(alpha: 0.88),
+            letterSpacing: 2.4,
+          ),
+        )
+        ..addText('CONVOCATORIA');
+  final convocPara = convocBuilder.build()
+    ..layout(const ui.ParagraphConstraints(width: 400));
+  canvas.drawParagraph(
+    convocPara,
+    Offset(overlayRect.left + 28, overlayRect.top + 12),
   );
 
-  y += 22;
-
-  drawText(
-    'Partido entre',
-    y,
-    fontSize: 13,
-    fontWeight: FontWeight.w600,
-    color: Colors.white.withValues(alpha: 0.78),
-    align: TextAlign.center,
-    letterSpacing: 0.6,
-    height: 1.2,
-  );
-
-  y += 18;
+  // Skip the "Partido entre" label: we only show the centered teams below.
+  y += 36;
 
   ui.Paragraph buildParagraph(
     String text,
@@ -222,10 +181,7 @@ double drawConvocationHeader({
   );
 
   void paintChip(RRect r) {
-    canvas.drawRRect(
-      r,
-      Paint()..color = Colors.black.withValues(alpha: 0.12),
-    );
+    canvas.drawRRect(r, Paint()..color = Colors.black.withValues(alpha: 0.12));
     canvas.drawRRect(
       r,
       Paint()
@@ -250,12 +206,7 @@ double drawConvocationHeader({
               height: 1.05,
             ),
           )
-          ..pushStyle(
-            ui.TextStyle(
-              color: Colors.white,
-              letterSpacing: 0.9,
-            ),
-          )
+          ..pushStyle(ui.TextStyle(color: Colors.white, letterSpacing: 0.9))
           ..addText(text);
     final paragraph = builder.build()
       ..layout(ui.ParagraphConstraints(width: inner.width));
