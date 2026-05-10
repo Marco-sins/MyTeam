@@ -4,7 +4,6 @@ import 'package:football_manager/app/football_app.dart';
 import 'package:football_manager/core/di/injection_container.dart';
 import 'package:football_manager/core/notifications/match_realtime_local_notifications.dart';
 import 'package:football_manager/core/push/push_notification_service.dart';
-import 'package:football_manager/core/di/injection_container.dart' show sl;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

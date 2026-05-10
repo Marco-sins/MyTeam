@@ -127,9 +127,7 @@ class MatchStatsPage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final rawType = event['type'];
     final typeKey = canonicalMatchEventTypeKey(rawType);
-    final minute = resolveMatchEventMinute(
-      Map<String, dynamic>.from(event),
-    );
+    final minute = resolveMatchEventMinute(Map<String, dynamic>.from(event));
     final int? playerId1 = supabaseInt(event['player_id1']);
     final int? playerId2 = supabaseInt(event['player_id2']);
 
@@ -518,8 +516,7 @@ class MatchStatsPage extends StatelessWidget {
     final authState = context.read<AuthCubit>().state;
     var isExternal = false;
     if (authState is Authenticated) {
-      isExternal =
-          authState.user.teamRoles[match.teamId] == UserRole.external;
+      isExternal = authState.user.teamRoles[match.teamId] == UserRole.external;
     }
 
     final page = Builder(
@@ -609,15 +606,16 @@ class MatchStatsPage extends StatelessWidget {
                     (state.startingPlayers.isNotEmpty ||
                         state.substitutePlayers.isNotEmpty);
 
-                final firstKick = MatchLiveTimelineFilter.resolveFirstHalfKickoffFromEventMaps(
-                  state.events,
-                );
+                final firstKick =
+                    MatchLiveTimelineFilter.resolveFirstHalfKickoffFromEventMaps(
+                      state.events,
+                    );
                 final eventTiles = <Widget>[];
                 for (final e in state.events) {
                   if (!MatchLiveTimelineFilter.shouldIncludeChronologyMap(
-                        e,
-                        firstHalfKickoff: firstKick,
-                      )) {
+                    e,
+                    firstHalfKickoff: firstKick,
+                  )) {
                     continue;
                   }
                   final tile = _eventTile(context, state, e);
@@ -658,254 +656,265 @@ class MatchStatsPage extends StatelessWidget {
                 const tabListPad = EdgeInsets.fromLTRB(16, 12, 16, 28);
 
                 final principalSections = <Widget>[
-                    _MatchSummaryCard(
-                      dateText: dateText,
-                      statusLabel: _matchStatusLabel(l10n, match.status),
-                      scoreSubtitle: scoreSubtitle,
-                      scheme: scheme,
-                      textTheme: textTheme,
-                      homeTeamName: homeTeamName,
-                      awayTeamName: awayTeamName,
-                      homeGoals: homeGoals,
-                      awayGoals: awayGoals,
-                      homeVenueLabel: l10n.matchVenueHome,
-                      awayVenueLabel: l10n.matchVenueAway,
-                    ),
-                    if (match.status == MatchStatus.finished &&
-                        state.formationLines.isNotEmpty) ...[
-                      const SizedBox(height: 20),
-                      _MatchSectionTitle(
-                        icon: Icons.grid_on_rounded,
-                        title: l10n.matchStatsSectionField,
-                        scheme: scheme,
-                        textTheme: textTheme,
-                      ),
-                      const SizedBox(height: 10),
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (state.formationLabel != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Chip(
-                                      avatar: Icon(
-                                        Icons.grid_view_rounded,
-                                        size: 18,
-                                        color: scheme.primary,
-                                      ),
-                                      label: Text(
-                                        l10n.matchStatsFormationChip(
-                                          state.formationLabel!,
-                                        ),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: scheme.onSurface,
-                                        ),
-                                      ),
-                                      padding: EdgeInsets.zero,
-                                      visualDensity: VisualDensity.compact,
-                                      backgroundColor: scheme.secondaryContainer
-                                          .withValues(alpha: 0.55),
-                                      side: BorderSide.none,
-                                    ),
-                                  ),
-                                )
-                              else
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: Text(
-                                    l10n.matchStatsFieldDispositionHint,
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                      height: 1.35,
-                                    ),
-                                  ),
-                                ),
-                              Center(
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.sizeOf(context).width - 32,
-                                  ),
-                                  child: MatchFieldWithFormation(
-                                    formationLines: state.formationLines,
-                                    formationLayoutKey: state.formationLabel,
-                                    positionPlayers: state.fieldPositionPlayers,
-                                    benchPlayers: state.substitutePlayers,
-                                    selectedPlayer: null,
-                                    sentOffPlayerIds: state.sentOffPlayerIds,
-                                    currentPlayersOnField: () => state
-                                        .fieldPositionPlayers
-                                        .where((p) => p != null)
-                                        .length,
-                                    maxPlayersOnField: () =>
-                                        state.fieldPositionPlayers.length,
-                                    showSnack: (_, {bool error = false}) {},
-                                    onLineupChanged: (_, {required bool logSubstitutionEvent, Player? substitutionIn, Player? substitutionOut}) {},
-                                    onPlayerActionRequested: (_) {},
-                                    readOnly: true,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (showLineupSection) ...[
-                      const SizedBox(height: 20),
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
-                          child: MatchLineupSection(
-                            startingPlayers: state.startingPlayers,
-                            substitutePlayers: state.substitutePlayers,
-                            playerRatings: state.playerRatings,
-                            showRatings: !isExternal,
-                            onPlayerTap: (player) {
-                              if (isExternal) return;
-                              _showPlayerMatchStats(context, match, state, player);
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-    ];
-                final statsSections = <Widget>[
-                    if (match.status == MatchStatus.finished &&
-                        eventAggs != null) ...[
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: MatchLiveStatsPanel(
-                          layoutScale: context.layoutScale,
-                          readOnly: true,
-                          shotsOur: eventAggs.shotsOur,
-                          shotsRival: eventAggs.shotsRival,
-                          foulsOur: eventAggs.foulsOur,
-                          foulsRival: eventAggs.foulsRival,
-                          cornersOur: eventAggs.cornersOur,
-                          cornersRival: eventAggs.cornersRival,
-                          offsidesOur: eventAggs.offsidesOur,
-                          offsidesRival: eventAggs.offsidesRival,
-                          yellowOur: eventAggs.yellowOur,
-                          yellowRival: eventAggs.yellowRival,
-                          redOur: eventAggs.redOur,
-                          redRival: eventAggs.redRival,
-                          l10n: l10n,
-                        ),
-                      ),
-                    ] else
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 32,
-                            horizontal: 20,
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.stacked_bar_chart,
-                                size: 48,
-                                color: scheme.outline.withValues(alpha: 0.75),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                l10n.matchStatsTimelineEmpty,
-                                textAlign: TextAlign.center,
-                                style: textTheme.bodyLarge?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                l10n.matchStatsTimelineEmptyHint,
-                                textAlign: TextAlign.center,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-    ];
-                final eventsSections = <Widget>[
+                  _MatchSummaryCard(
+                    dateText: dateText,
+                    statusLabel: _matchStatusLabel(l10n, match.status),
+                    scoreSubtitle: scoreSubtitle,
+                    scheme: scheme,
+                    textTheme: textTheme,
+                    homeTeamName: homeTeamName,
+                    awayTeamName: awayTeamName,
+                    homeGoals: homeGoals,
+                    awayGoals: awayGoals,
+                    homeVenueLabel: l10n.matchVenueHome,
+                    awayVenueLabel: l10n.matchVenueAway,
+                  ),
+                  if (match.status == MatchStatus.finished &&
+                      state.formationLines.isNotEmpty) ...[
+                    const SizedBox(height: 20),
                     _MatchSectionTitle(
-                      icon: Icons.timeline_rounded,
-                      title: l10n.matchStatsSectionTimeline,
+                      icon: Icons.grid_on_rounded,
+                      title: l10n.matchStatsSectionField,
                       scheme: scheme,
                       textTheme: textTheme,
                     ),
                     const SizedBox(height: 10),
-                    if (eventTiles.isEmpty)
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 32,
-                            horizontal: 20,
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.event_note_outlined,
-                                size: 48,
-                                color: scheme.outline.withValues(alpha: 0.85),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                l10n.matchStatsTimelineEmpty,
-                                style: textTheme.bodyLarge?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                l10n.matchStatsTimelineEmptyHint,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                  height: 1.35,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    else
-                      Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              for (var i = 0; i < eventTiles.length; i++) ...[
-                                if (i > 0)
-                                  Divider(
-                                    height: 20,
-                                    thickness: 1,
-                                    color: scheme.outlineVariant.withValues(
-                                      alpha: 0.35,
+                    Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 14, 12, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (state.formationLabel != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Chip(
+                                    avatar: Icon(
+                                      Icons.grid_view_rounded,
+                                      size: 18,
+                                      color: scheme.primary,
                                     ),
+                                    label: Text(
+                                      l10n.matchStatsFormationChip(
+                                        state.formationLabel!,
+                                      ),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: scheme.onSurface,
+                                      ),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    visualDensity: VisualDensity.compact,
+                                    backgroundColor: scheme.secondaryContainer
+                                        .withValues(alpha: 0.55),
+                                    side: BorderSide.none,
                                   ),
-                                eventTiles[i],
-                              ],
-                            ],
-                          ),
+                                ),
+                              )
+                            else
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Text(
+                                  l10n.matchStatsFieldDispositionHint,
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.sizeOf(context).width - 32,
+                                ),
+                                child: MatchFieldWithFormation(
+                                  formationLines: state.formationLines,
+                                  formationLayoutKey: state.formationLabel,
+                                  positionPlayers: state.fieldPositionPlayers,
+                                  benchPlayers: state.substitutePlayers,
+                                  selectedPlayer: null,
+                                  sentOffPlayerIds: state.sentOffPlayerIds,
+                                  currentPlayersOnField: () => state
+                                      .fieldPositionPlayers
+                                      .where((p) => p != null)
+                                      .length,
+                                  maxPlayersOnField: () =>
+                                      state.fieldPositionPlayers.length,
+                                  showSnack: (_, {bool error = false}) {},
+                                  onLineupChanged:
+                                      (
+                                        _, {
+                                        required bool logSubstitutionEvent,
+                                        Player? substitutionIn,
+                                        Player? substitutionOut,
+                                      }) {},
+                                  onPlayerActionRequested: (_) {},
+                                  readOnly: true,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-    ];
+                    ),
+                  ],
+                  if (showLineupSection) ...[
+                    const SizedBox(height: 20),
+                    Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+                        child: MatchLineupSection(
+                          startingPlayers: state.startingPlayers,
+                          substitutePlayers: state.substitutePlayers,
+                          playerRatings: state.playerRatings,
+                          showRatings: !isExternal,
+                          onPlayerTap: (player) {
+                            if (isExternal) return;
+                            _showPlayerMatchStats(
+                              context,
+                              match,
+                              state,
+                              player,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ];
+                final statsSections = <Widget>[
+                  if (match.status == MatchStatus.finished &&
+                      eventAggs != null) ...[
+                    Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: MatchLiveStatsPanel(
+                        layoutScale: context.layoutScale,
+                        readOnly: true,
+                        shotsOur: eventAggs.shotsOur,
+                        shotsRival: eventAggs.shotsRival,
+                        foulsOur: eventAggs.foulsOur,
+                        foulsRival: eventAggs.foulsRival,
+                        cornersOur: eventAggs.cornersOur,
+                        cornersRival: eventAggs.cornersRival,
+                        offsidesOur: eventAggs.offsidesOur,
+                        offsidesRival: eventAggs.offsidesRival,
+                        yellowOur: eventAggs.yellowOur,
+                        yellowRival: eventAggs.yellowRival,
+                        redOur: eventAggs.redOur,
+                        redRival: eventAggs.redRival,
+                        l10n: l10n,
+                      ),
+                    ),
+                  ] else
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 32,
+                          horizontal: 20,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.stacked_bar_chart,
+                              size: 48,
+                              color: scheme.outline.withValues(alpha: 0.75),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              l10n.matchStatsTimelineEmpty,
+                              textAlign: TextAlign.center,
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              l10n.matchStatsTimelineEmptyHint,
+                              textAlign: TextAlign.center,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ];
+                final eventsSections = <Widget>[
+                  _MatchSectionTitle(
+                    icon: Icons.timeline_rounded,
+                    title: l10n.matchStatsSectionTimeline,
+                    scheme: scheme,
+                    textTheme: textTheme,
+                  ),
+                  const SizedBox(height: 10),
+                  if (eventTiles.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 32,
+                          horizontal: 20,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.event_note_outlined,
+                              size: 48,
+                              color: scheme.outline.withValues(alpha: 0.85),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              l10n.matchStatsTimelineEmpty,
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              l10n.matchStatsTimelineEmptyHint,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                height: 1.35,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Card(
+                      clipBehavior: Clip.antiAlias,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (var i = 0; i < eventTiles.length; i++) ...[
+                              if (i > 0)
+                                Divider(
+                                  height: 20,
+                                  thickness: 1,
+                                  color: scheme.outlineVariant.withValues(
+                                    alpha: 0.35,
+                                  ),
+                                ),
+                              eventTiles[i],
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                ];
                 return MatchManagerSyncedTabs(
                   pageScrollPad: pageScrollPad,
                   tabListPad: tabListPad,
@@ -1184,7 +1193,8 @@ Future<void> _showPlayerMatchStats(
   final l10n = AppLocalizations.of(context)!;
   final mediaSize = MediaQuery.sizeOf(context);
 
-  var lines = context.read<TeamScoringConfigStorage>().load(match.teamId)?.lines ??
+  var lines =
+      context.read<TeamScoringConfigStorage>().load(match.teamId)?.lines ??
       TeamScoringConfig.defaultBuiltInLines();
   if (lines.isEmpty) {
     lines = TeamScoringConfig.defaultBuiltInLines();
@@ -1195,9 +1205,7 @@ Future<void> _showPlayerMatchStats(
     state.allEventMaps,
     teamScoring: teamScoring,
   );
-  final mergedLineById = {
-    for (final l in teamScoring.lines) l.id: l,
-  };
+  final mergedLineById = {for (final l in teamScoring.lines) l.id: l};
   for (final def in TeamScoringConfig.defaultBuiltInLines()) {
     mergedLineById.putIfAbsent(def.id, () => def);
   }
@@ -1253,7 +1261,8 @@ Future<void> _showPlayerMatchStats(
   final bool isStarter = state.isStarterById[player.id] ?? false;
   final double? mediaRating = state.playerRatings[player.id];
   final authState = context.read<AuthCubit>().state;
-  final showRatingChip = authState is Authenticated &&
+  final showRatingChip =
+      authState is Authenticated &&
       authState.user.teamRoles[match.teamId] != UserRole.external &&
       mediaRating != null;
 
@@ -1315,17 +1324,13 @@ class _PlayerMatchStatsDialog extends StatelessWidget {
     final minutesValue = '$minutesPlayed\u2032';
     final double? matchRating = mediaRating;
     final ratingText = matchRating != null
-        ? l10n.matchStatsPlayerDialogRatingChip(
-            matchRating.toStringAsFixed(1),
-          )
+        ? l10n.matchStatsPlayerDialogRatingChip(matchRating.toStringAsFixed(1))
         : null;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: scheme.outlineVariant.withValues(alpha: 0.45),
-        ),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.45)),
       ),
       backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
@@ -1349,8 +1354,7 @@ class _PlayerMatchStatsDialog extends StatelessWidget {
                       scheme.primaryContainer,
                       scheme.surface,
                       0.35,
-                    )!
-                        .withValues(alpha: 0.95),
+                    )!.withValues(alpha: 0.95),
                     scheme.surface,
                   ],
                 ),
@@ -1415,9 +1419,7 @@ class _PlayerMatchStatsDialog extends StatelessWidget {
                                 ),
                                 borderRadius: BorderRadius.circular(999),
                                 border: Border.all(
-                                  color: scheme.tertiary.withValues(
-                                    alpha: 0.2,
-                                  ),
+                                  color: scheme.tertiary.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Padding(
@@ -1458,16 +1460,18 @@ class _PlayerMatchStatsDialog extends StatelessWidget {
                             children: [
                               DecoratedBox(
                                 decoration: BoxDecoration(
-                                  color: (isStarter
-                                          ? scheme.primaryContainer
-                                          : scheme.secondaryContainer)
-                                      .withValues(alpha: 0.95),
+                                  color:
+                                      (isStarter
+                                              ? scheme.primaryContainer
+                                              : scheme.secondaryContainer)
+                                          .withValues(alpha: 0.95),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: (isStarter
-                                            ? scheme.onPrimaryContainer
-                                            : scheme.onSecondaryContainer)
-                                        .withValues(alpha: 0.12),
+                                    color:
+                                        (isStarter
+                                                ? scheme.onPrimaryContainer
+                                                : scheme.onSecondaryContainer)
+                                            .withValues(alpha: 0.12),
                                   ),
                                 ),
                                 child: Padding(
@@ -1506,8 +1510,9 @@ class _PlayerMatchStatsDialog extends StatelessWidget {
                               ),
                               DecoratedBox(
                                 decoration: BoxDecoration(
-                                  color: scheme.secondaryContainer
-                                      .withValues(alpha: 0.95),
+                                  color: scheme.secondaryContainer.withValues(
+                                    alpha: 0.95,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
                                     color: scheme.onSecondaryContainer
@@ -1565,9 +1570,7 @@ class _PlayerMatchStatsDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: maxContentHeight,
-                      ),
+                      constraints: BoxConstraints(maxHeight: maxContentHeight),
                       child: ListView.separated(
                         shrinkWrap: true,
                         physics: const BouncingScrollPhysics(),
@@ -1663,6 +1666,9 @@ class _PlayerStatsStatRow extends StatelessWidget {
 
 int _calculateMinutesPlayed(MatchStatsState state, Player player) {
   final int playerId = player.id;
+  final initialOnFieldPlayerIds = state.startingPlayers
+      .map((p) => p.id)
+      .toSet();
 
   final List<Map<String, dynamic>> sortedEvents =
       List<Map<String, dynamic>>.from(state.allEventMaps);
@@ -1702,6 +1708,9 @@ int _calculateMinutesPlayed(MatchStatsState state, Player player) {
     events: asEvents,
     playerId: playerId,
     isStarter: isStarter,
+    initialOnFieldPlayerIds: initialOnFieldPlayerIds.isEmpty
+        ? null
+        : initialOnFieldPlayerIds,
     overrideMatchEndMinute: matchEndMinute,
     preSorted: true,
   );

@@ -21,15 +21,28 @@ class PushNotificationService {
   /// Llama al iniciar app (main) y tras login exitoso.
   Future<void> initializePluginBinding() async {
     if (kIsWeb) return;
+    final targetPlatform = defaultTargetPlatform;
+    final isSupportedPlatform =
+        targetPlatform == TargetPlatform.android ||
+        targetPlatform == TargetPlatform.iOS ||
+        targetPlatform == TargetPlatform.macOS;
+    if (!isSupportedPlatform) {
+      debugPrint(
+        'Push: FCM no está disponible en ${targetPlatform.name}; esta plataforma seguirá sin notificaciones push.',
+      );
+      return;
+    }
     if (!isFirebaseOptionsConfigured) {
       debugPrint(
-        'Push: configura Firebase (flutterfire configure) y reemplaza lib/firebase_options.dart',
+        'Push: Firebase no está configurado para ${targetPlatform.name}; ejecuta flutterfire configure y reemplaza lib/firebase_options.dart',
       );
       return;
     }
     if (_initialized) return;
     try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     } catch (e) {
       debugPrint('Push: Firebase.initializeApp falló: $e');
       return;
@@ -37,17 +50,22 @@ class PushNotificationService {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
     if (Platform.isIOS || Platform.isMacOS) {
-      await FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
     } else {
       await FirebaseMessaging.instance.requestPermission();
     }
 
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
     }
 
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -91,7 +109,9 @@ class PushNotificationService {
         if (Platform.isIOS) {
           return;
         }
-        final id = (message.messageId?.hashCode ?? message.hashCode).abs() % 0x7fffffff;
+        final id =
+            (message.messageId?.hashCode ?? message.hashCode).abs() %
+            0x7fffffff;
         await MatchRealtimeLocalNotifications.instance.show(
           id: id,
           title: hasTitle ? n.title!.trim() : 'Aviso',
@@ -113,7 +133,8 @@ class PushNotificationService {
     if (title == null && body == null) {
       return;
     }
-    final id = (message.messageId?.hashCode ?? message.hashCode).abs() % 0x7fffffff;
+    final id =
+        (message.messageId?.hashCode ?? message.hashCode).abs() % 0x7fffffff;
     await MatchRealtimeLocalNotifications.instance.show(
       id: id,
       title: (title != null && title.isNotEmpty) ? title : 'Aviso',
@@ -148,18 +169,17 @@ class PushNotificationService {
     }
 
     try {
-      await Supabase.instance.client.from('fcm_tokens').upsert(
-        {
-          'user_id': user.id,
-          'token': token,
-          'platform': platform,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'user_id,token',
-      );
+      await Supabase.instance.client.from('fcm_tokens').upsert({
+        'user_id': user.id,
+        'token': token,
+        'platform': platform,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'user_id,token');
       _lastSyncedToken = token;
     } catch (e) {
-      debugPrint('Push: no se pudo guardar fcm token (¿migración aplicada en Supabase?): $e');
+      debugPrint(
+        'Push: no se pudo guardar fcm token (¿migración aplicada en Supabase?): $e',
+      );
     }
   }
 

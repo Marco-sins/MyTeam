@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:gotrue/gotrue.dart' show User;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/config/auth_redirect_urls.dart';
 import 'package:football_manager/core/errors/exception/auth_server_exception.dart';

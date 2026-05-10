@@ -68,7 +68,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             'Te hemos enviado un correo para restablecer tu contraseña.',
           ),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
+          duration: Duration(seconds: 4),
         ),
       );
       Navigator.of(context).pop();

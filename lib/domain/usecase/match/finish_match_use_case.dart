@@ -78,6 +78,10 @@ class FinishMatchUseCase {
       return lineupsResult.map<void>((_) {});
     }
     final List<MatchLineup> lineups = lineupsResult.getOrElse(() => []);
+    final initialOnFieldPlayerIds = lineups
+        .where((l) => l.isStarting)
+        .map((l) => l.playerId)
+        .toSet();
 
     MatchLineup? lineupFor(int playerId) {
       for (final l in lineups) {
@@ -108,6 +112,9 @@ class FinishMatchUseCase {
         events: matchEvents,
         playerId: playerId,
         isStarter: isStarter,
+        initialOnFieldPlayerIds: initialOnFieldPlayerIds.isEmpty
+            ? null
+            : initialOnFieldPlayerIds,
       );
 
       final eventStats = _getPlayerStats(matchEvents, playerId);
@@ -125,11 +132,12 @@ class FinishMatchUseCase {
       }
 
       if (row != null) {
-        final lineupWrite = await _matchRepository.updateMatchLineupMinutesPlayed(
-          matchId: match.id,
-          playerId: playerId,
-          minutesPlayed: minutesThisMatch,
-        );
+        final lineupWrite = await _matchRepository
+            .updateMatchLineupMinutesPlayed(
+              matchId: match.id,
+              playerId: playerId,
+              minutesPlayed: minutesThisMatch,
+            );
         if (lineupWrite.isLeft()) {
           return lineupWrite;
         }

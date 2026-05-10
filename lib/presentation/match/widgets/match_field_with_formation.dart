@@ -58,12 +58,13 @@ double _grassY(Rect grass, double ny) {
 
 /// [logSubstitutionEvent]: si es true, el padre debe persistir y registrar
 /// sustitución en [match_events] (entra [substitutionIn], sale [substitutionOut]).
-typedef MatchFieldLineupCommit = void Function(
-  List<Player?> newPositions, {
-  required bool logSubstitutionEvent,
-  Player? substitutionIn,
-  Player? substitutionOut,
-});
+typedef MatchFieldLineupCommit =
+    void Function(
+      List<Player?> newPositions, {
+      required bool logSubstitutionEvent,
+      Player? substitutionIn,
+      Player? substitutionOut,
+    });
 
 void _placePlayerInFieldSlot({
   required int index,
@@ -82,10 +83,7 @@ void _placePlayerInFieldSlot({
     return;
   }
   if (sentOffPlayerIds.contains(playerIn.id)) {
-    showSnack(
-      l10n.matchPlayerSentOffCannotReturn,
-      error: true,
-    );
+    showSnack(l10n.matchPlayerSentOffCannotReturn, error: true);
     return;
   }
   final existingIndex = positionPlayers.indexWhere(
@@ -109,10 +107,7 @@ void _placePlayerInFieldSlot({
   if (existingIndex == -1 &&
       assignedAtIndex == null &&
       currentPlayersOnField() >= maxPlayersOnField()) {
-    showSnack(
-      l10n.matchFieldMaxPlayersExpulsionRule,
-      error: true,
-    );
+    showSnack(l10n.matchFieldMaxPlayersExpulsionRule, error: true);
     return;
   }
   if (existingIndex != -1) {
@@ -336,8 +331,7 @@ class MatchFieldWithFormation extends StatelessWidget {
                       }
                       final atTarget = positionPlayers[index];
                       if (atTarget == null &&
-                          currentPlayersOnField() >=
-                              maxPlayersOnField()) {
+                          currentPlayersOnField() >= maxPlayersOnField()) {
                         return false;
                       }
                       return true;
@@ -372,7 +366,9 @@ class MatchFieldWithFormation extends StatelessWidget {
                       }
                       onLineupChanged(
                         newPositions,
-                        logSubstitutionEvent: false,
+                        logSubstitutionEvent: atTarget != null,
+                        substitutionIn: atTarget != null ? moved : null,
+                        substitutionOut: atTarget != null ? atTarget : null,
                       );
                       return;
                     }
@@ -536,13 +532,11 @@ class MatchFieldWithFormation extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           l10n.matchFieldBenchHint,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            height: 1.25,
-                          ),
+                                color: scheme.onSurfaceVariant,
+                                height: 1.25,
+                              ),
                         ),
                         const SizedBox(height: 8),
                       ] else
@@ -590,7 +584,8 @@ Widget _buildBenchPlayerItem({
   required Set<int> sentOffPlayerIds,
   required ColorScheme scheme,
   required Brightness brightness,
-  required MatchPlayerDisciplineHighlight Function(int playerId)? playerDiscipline,
+  required MatchPlayerDisciplineHighlight Function(int playerId)?
+  playerDiscipline,
 }) {
   final discipline = playerDiscipline == null
       ? MatchPlayerDisciplineHighlight.none
@@ -616,10 +611,7 @@ Widget _buildBenchPlayerItem({
     hapticFeedbackOnStart: true,
     maxSimultaneousDrags: 1,
     feedback: buildFicha(),
-    childWhenDragging: Opacity(
-      opacity: 0.35,
-      child: buildFicha(),
-    ),
+    childWhenDragging: Opacity(opacity: 0.35, child: buildFicha()),
     child: buildFicha(),
   );
 }

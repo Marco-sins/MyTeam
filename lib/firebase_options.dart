@@ -1,10 +1,10 @@
 // Generado a partir de `android/app/google-services.json` (Android).
-// Para iOS/macOS añade la app en Firebase y ejecuta: flutterfire configure
+// Android ya está enlazado para FCM; iOS/macOS/web siguen requiriendo `flutterfire configure`.
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
-/// Marca opciones no enlazadas (iOS hasta añadir app en la consola).
+/// Marca opciones no enlazadas para plataformas que aún no están configuradas.
 const String kFirebaseProjectPlaceholder = 'YOUR_FIREBASE_PROJECT_ID';
 
 class DefaultFirebaseOptions {
@@ -60,10 +60,12 @@ bool get isFirebaseOptionsConfigured {
   }
   switch (defaultTargetPlatform) {
     case TargetPlatform.android:
-      return DefaultFirebaseOptions.android.projectId != kFirebaseProjectPlaceholder &&
+      return DefaultFirebaseOptions.android.projectId !=
+              kFirebaseProjectPlaceholder &&
           DefaultFirebaseOptions.android.projectId.isNotEmpty;
     case TargetPlatform.iOS:
-      return DefaultFirebaseOptions.ios.projectId != kFirebaseProjectPlaceholder &&
+      return DefaultFirebaseOptions.ios.projectId !=
+              kFirebaseProjectPlaceholder &&
           DefaultFirebaseOptions.ios.appId != '1:0:ios:0' &&
           DefaultFirebaseOptions.ios.appId.isNotEmpty;
     default:

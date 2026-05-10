@@ -172,7 +172,7 @@ class TeamPlayersList extends StatelessWidget {
                               const SnackBar(
                                 content: Text('Jugador borrado correctamente'),
                                 backgroundColor: Colors.green,
-                                duration: const Duration(seconds: 4),
+                                duration: Duration(seconds: 4),
                               ),
                             );
                             context.read<TeamDetailCubit>().loadTeam(team.id);
