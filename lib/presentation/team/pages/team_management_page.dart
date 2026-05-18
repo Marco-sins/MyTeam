@@ -69,38 +69,39 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
       builder: (ctx) {
         final l10n = AppLocalizations.of(ctx)!;
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  l10n.teamColorSheetTitle,
-                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.teamColorSheetTitle,
+                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  l10n.teamColorSheetHint,
-                  style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.teamColorSheetHint,
+                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: Icon(Icons.restart_alt, color: scheme.primary),
-                  title: Text(l10n.teamColorDefault),
-                  onTap: () {
-                    setState(() => _colorHex = null);
-                    Navigator.of(ctx).pop();
-                  },
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 220,
-                  child: GridView.builder(
+                  const SizedBox(height: 16),
+                  ListTile(
+                    leading: Icon(Icons.restart_alt, color: scheme.primary),
+                    title: Text(l10n.teamColorDefault),
+                    onTap: () {
+                      setState(() => _colorHex = null);
+                      Navigator.of(ctx).pop();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
@@ -162,8 +163,8 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
                       );
                     },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
