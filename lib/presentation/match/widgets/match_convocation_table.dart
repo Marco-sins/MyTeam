@@ -14,6 +14,7 @@ class MatchConvocationTable extends StatelessWidget {
   final Set<int> sentOffPlayerIds;
   final Set<int> yellowCardPlayerIds;
   final Map<int, double> playerRatings;
+  final bool isAdmin;
 
   /// Minutos disputados por [Player.id] (solo gestores; null = no mostrar).
   final Map<int, int>? minutesPlayedByPlayerId;
@@ -38,6 +39,7 @@ class MatchConvocationTable extends StatelessWidget {
     this.scrollingChild = false,
     this.readOnly = false,
     required this.onPlayerTap,
+    required this.isAdmin,
   });
 
   /// Construye la tabla con estados de carga, error o lista.
@@ -211,6 +213,7 @@ class MatchConvocationTable extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (isAdmin) 
                 Tooltip(
                   message: 'Media: ${rating.toStringAsFixed(1)}',
                   child: Container(

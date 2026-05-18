@@ -59,6 +59,7 @@ dependencies:
   latlong2: ^0.9.1
   google_maps_flutter: ^2.7.0
   geolocator: ^12.0.0
+  flutter_svg: ^2.0.0
 
 dev_dependencies:
   flutter_test:
@@ -101,6 +102,7 @@ flutter:
     - .env
     - media/campo.png
     - assets/icon/app_icon.png
+    - assets/copyright_badge.svg
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

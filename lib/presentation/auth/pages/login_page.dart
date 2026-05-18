@@ -1,3 +1,4 @@
+import 'package:football_manager/presentation/auth/widgets/copyright_badge.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -143,48 +144,58 @@ class _LoginPageState extends State<LoginPage> {
               unawaited(_handleAuthSideEffects(context, state));
             },
             builder: (context, state) {
-              return Center(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AuthHeader(isRegisterMode: _isRegisterMode),
-                      const SizedBox(height: 24),
+              return Stack(
+                children: [
+                  Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AuthHeader(isRegisterMode: _isRegisterMode),
+                          const SizedBox(height: 24),
 
-                      Container(
-                        constraints: const BoxConstraints(maxWidth: 380),
-                        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.2),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.12),
-                              blurRadius: 28,
-                              offset: const Offset(0, 12),
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 380),
+                            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.surface,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.2),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withValues(alpha: 0.12),
+                                  blurRadius: 28,
+                                  offset: const Offset(0, 12),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: _isRegisterMode
-                            ? const RegisterForm()
-                            : const LoginForm(),
-                      ),
+                            child: _isRegisterMode
+                                ? const RegisterForm()
+                                : const LoginForm(),
+                          ),
 
-                      const SizedBox(height: 8),
-                      AuthModeSelector(
-                        isRegisterMode: _isRegisterMode,
-                        onTap: _toggleMode,
+                          const SizedBox(height: 8),
+                          AuthModeSelector(
+                            isRegisterMode: _isRegisterMode,
+                            onTap: _toggleMode,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  // Copyright badge in bottom right corner
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: const CopyrightBadge(),
+                  ),
+                ],
               );
             },
           ),

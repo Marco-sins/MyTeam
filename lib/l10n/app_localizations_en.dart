@@ -1206,4 +1206,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get matchEventLegacyActionRegistered => 'Logged action';
+
+  @override
+  String get registerTermsAndConditionsLabel =>
+      'I accept the Terms and Conditions';
+
+  @override
+  String get registerTermsAndConditionsError =>
+      'You must accept the Terms and Conditions';
+
+  @override
+  String get registerViewTerms => 'View Terms and Conditions';
+
+  @override
+  String get termsAndConditionsTitle => 'Terms and Conditions';
+
+  @override
+  String get termsAndConditionsContent =>
+      '1. General Terms\n\nWelcome to My Team. These Terms and Conditions govern your use of our application and services.\n\n2. User Accounts\n\nYou are responsible for maintaining the confidentiality of your account credentials. You agree to provide accurate and complete information during registration.\n\n3. Acceptable Use\n\nYou agree not to use the application for any unlawful purposes or in ways that could damage, disable, or impair the service.\n\n4. Data Privacy\n\nYour personal data is handled according to our Privacy Policy. By using this service, you consent to the collection and processing of your information as described.\n\n5. Limitation of Liability\n\nOur service is provided \"as is\" without warranties. We shall not be liable for any indirect damages arising from your use of the application.\n\n6. Changes to Terms\n\nWe reserve the right to modify these terms at any time. Your continued use of the application constitutes acceptance of the updated terms.';
+
+  @override
+  String get termsAndConditionsAccept => 'Accept';
+
+  @override
+  String get termsAndConditionsDecline => 'Decline';
 }

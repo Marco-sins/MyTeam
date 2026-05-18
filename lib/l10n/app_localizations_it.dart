@@ -1228,4 +1228,28 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get matchEventLegacyActionRegistered => 'Azione registrata';
+
+  @override
+  String get registerTermsAndConditionsLabel =>
+      'Accetto i Termini e le Condizioni';
+
+  @override
+  String get registerTermsAndConditionsError =>
+      'Devi accettare i Termini e le Condizioni';
+
+  @override
+  String get registerViewTerms => 'Visualizza Termini e Condizioni';
+
+  @override
+  String get termsAndConditionsTitle => 'Termini e Condizioni';
+
+  @override
+  String get termsAndConditionsContent =>
+      '1. Termini generali\n\nBenvenuto in My Team. Questi Termini e Condizioni disciplinano l\'uso della nostra applicazione e dei nostri servizi.\n\n2. Account utente\n\nSei responsabile del mantenimento della riservatezza delle credenziali del tuo account. Accetti di fornire informazioni accurate e complete durante la registrazione.\n\n3. Uso accettabile\n\nAccetti di non utilizzare l\'applicazione per scopi illegali o in modi che potrebbero danneggiare, disabilitare o compromettere il servizio.\n\n4. Privacy dei dati\n\nI tuoi dati personali sono gestiti in conformità alla nostra Informativa sulla privacy. Utilizzando questo servizio, acconsenti alla raccolta e al trattamento delle tue informazioni come descritto.\n\n5. Limitazione di responsabilità\n\nIl nostro servizio è fornito \"così com\'è\" senza garanzie. Non saremo responsabili di eventuali danni indiretti derivanti dall\'uso dell\'applicazione.\n\n6. Modifiche ai Termini\n\nCi riserviamo il diritto di modificare questi termini in qualsiasi momento. L\'uso continuato dell\'applicazione costituisce l\'accettazione dei termini aggiornati.';
+
+  @override
+  String get termsAndConditionsAccept => 'Accetta';
+
+  @override
+  String get termsAndConditionsDecline => 'Rifiuta';
 }

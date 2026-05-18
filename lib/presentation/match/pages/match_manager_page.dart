@@ -147,19 +147,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return authState.user.teamRoles[widget.team.id] == UserRole.external;
   }
 
-  /// Indica si el usuario puede ver todos los eventos del partido.
-  /// Lo hace comprobando permisos de admin/superadmin.
-  bool get _canSeeAllEvents {
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! Authenticated) return false;
-    final role = authState.user.teamRoles[widget.team.id];
-    return role?.hasAdminPrivileges ?? false;
-  }
-
-  /// Minutos disputados en la convocatoria: solo admins / superadmins.
-  /// Indica si puede ver minutos disputados de la convocatoria.
-  /// Lo hace comprobando privilegios de administrador.
-  bool get _canSeeConvokedMinutesPlayed {
+  bool get _isAdmin {
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) return false;
     final role = authState.user.teamRoles[widget.team.id];
@@ -3035,7 +3023,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final bool isExternal = _isExternal;
-    final bool canSeeAllEvents = _canSeeAllEvents;
+    final bool canSeeAllEvents = _isAdmin;
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
     final s = context.layoutScale;
@@ -3533,7 +3521,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                   sentOffPlayerIds: effectiveSentOff,
                   yellowCardPlayerIds: yellowCardPlayerIds,
                   playerRatings: _playerRatings,
-                  minutesPlayedByPlayerId: _canSeeConvokedMinutesPlayed
+                  isAdmin: _isAdmin,
+                  minutesPlayedByPlayerId: _isAdmin
                       ? _computeMinutesPlayedForConvoked()
                       : null,
                   scrollingChild: true,

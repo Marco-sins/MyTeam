@@ -1,0 +1,47 @@
+<svg viewBox="0 0 280 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f0f1e;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="280" height="80" fill="url(#bgGradient)" rx="12"/>
+  
+  <!-- Border glow -->
+  <rect width="280" height="80" fill="none" stroke="#FFD700" stroke-width="2" rx="12" opacity="0.6"/>
+  <rect width="280" height="80" fill="none" stroke="#FFD700" stroke-width="1" rx="12" opacity="0.3" filter="url(#glow)"/>
+  
+  <!-- Left decorative line -->
+  <line x1="12" y1="20" x2="12" y2="60" stroke="#FFD700" stroke-width="2" opacity="0.8"/>
+  
+  <!-- Copyright circle -->
+  <g filter="url(#glow)">
+    <circle cx="35" cy="40" r="16" fill="none" stroke="#FFD700" stroke-width="2"/>
+    <text x="35" y="46" font-size="18" font-weight="bold" fill="#FFD700" text-anchor="middle" font-family="Arial, sans-serif">©</text>
+  </g>
+  
+  <!-- Main text -->
+  <text x="65" y="32" font-size="18" font-weight="700" fill="#FFFFFF" font-family="Arial, sans-serif">My Team</text>
+  
+  <!-- Subtext -->
+  <text x="65" y="50" font-size="11" font-weight="500" fill="#FFD700" font-family="Arial, sans-serif">All Rights Reserved © 2026</text>
+  
+  <!-- Right shield icon -->
+  <g transform="translate(220, 20)" filter="url(#glow)">
+    <path d="M 8 0 L 30 0 L 30 20 Q 30 35 8 42 Q -14 35 -14 20 L -14 0 Z" 
+          fill="none" stroke="#FFD700" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="8" cy="18" r="4" fill="#FFD700"/>
+  </g>
+  
+  <!-- Protected text -->
+  <text x="265" y="68" font-size="8" font-weight="600" fill="#FFD700" text-anchor="end" font-family="Arial, sans-serif">PROTECTED</text>
+</svg>

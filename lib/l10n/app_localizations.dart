@@ -2327,6 +2327,48 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Acción registrada'**
   String get matchEventLegacyActionRegistered;
+
+  /// No description provided for @registerTermsAndConditionsLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Acepto los Términos y Condiciones'**
+  String get registerTermsAndConditionsLabel;
+
+  /// No description provided for @registerTermsAndConditionsError.
+  ///
+  /// In es, this message translates to:
+  /// **'Debes aceptar los Términos y Condiciones'**
+  String get registerTermsAndConditionsError;
+
+  /// No description provided for @registerViewTerms.
+  ///
+  /// In es, this message translates to:
+  /// **'Ver Términos y Condiciones'**
+  String get registerViewTerms;
+
+  /// No description provided for @termsAndConditionsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Términos y Condiciones'**
+  String get termsAndConditionsTitle;
+
+  /// No description provided for @termsAndConditionsContent.
+  ///
+  /// In es, this message translates to:
+  /// **'1. Términos Generales\n\nBienvenido a My Team. Estos Términos y Condiciones regulan tu uso de nuestra aplicación y servicios.\n\n2. Cuentas de Usuario\n\nEres responsable de mantener la confidencialidad de las credenciales de tu cuenta. Te comprometes a proporcionar información exacta y completa durante el registro.\n\n3. Uso Aceptable\n\nAceptas no usar la aplicación para ningún propósito ilegal ni de manera que pueda dañar, deshabilitar o afectar el servicio.\n\n4. Privacidad de Datos\n\nTus datos personales se tratan de acuerdo con nuestra Política de Privacidad. Al usar este servicio, consientes la recopilación y tratamiento de tu información como se describe.\n\n5. Limitación de Responsabilidad\n\nNuestro servicio se proporciona \"tal cual\" sin garantías. No seremos responsables de daños indirectos que surjan del uso de la aplicación.\n\n6. Cambios en los Términos\n\nNos reservamos el derecho de modificar estos términos en cualquier momento. El uso continuado de la aplicación constituye la aceptación de los términos actualizados.'**
+  String get termsAndConditionsContent;
+
+  /// No description provided for @termsAndConditionsAccept.
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptar'**
+  String get termsAndConditionsAccept;
+
+  /// No description provided for @termsAndConditionsDecline.
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazar'**
+  String get termsAndConditionsDecline;
 }
 
 class _AppLocalizationsDelegate
