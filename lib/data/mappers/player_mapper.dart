@@ -18,6 +18,7 @@ class PlayerMapper {
       stats: player.stats != null 
           ? PlayerStatsMapper.toModel(player.stats!) 
           : null,
+      anioNacimiento: player.anioNacimiento
     );
   }
 
@@ -35,6 +36,7 @@ class PlayerMapper {
       stats: playerModel.stats != null 
           ? PlayerStatsMapper.toEntity(playerModel.stats! as PlayerStatsModel) 
           : null,
+      anioNacimiento: playerModel.anioNacimiento
     );
   }
 }

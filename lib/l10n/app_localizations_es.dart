@@ -1203,11 +1203,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get convocationImageLabelFixture => 'Partido';
 
   @override
-  String get convocationImageLabelCallDateTime =>
-      'Fecha y hora de convocatoria';
+  String get convocationImageLabelCallDateTime => 'Hora de convocatoria';
 
   @override
-  String get convocationImageLabelMeetingVenue => 'Lugar de la convocatoria';
+  String get convocationImageLabelMeetingVenue => 'Lugar del partido';
 
   @override
   String get convocationImageLabelMatchVenue => 'Lugar del partido';
@@ -1241,11 +1240,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Fecha, horas y lugar — léelo con calma';
 
   @override
-  String get convocationImageLabelMatchKickoff => 'HORA DEL PARTIDO (INICIO)';
+  String get convocationImageLabelMatchKickoff => 'HORA DEL PARTIDO';
 
   @override
-  String get convocationImageLabelCallArrival =>
-      'HORA DE CONVOCATORIA (LLEGADA)';
+  String get convocationImageLabelCallArrival => 'HORA DE CONVOCATORIA';
 
   @override
   String get convocationImageCallTimeReminder =>

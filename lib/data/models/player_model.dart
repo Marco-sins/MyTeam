@@ -15,6 +15,7 @@ class PlayerModel extends Player {
     super.imgUrl,
     super.positions,
     PlayerStatsModel? super.stats,
+    int? super.anioNacimiento,
   });
 
   static String? _optionalString(dynamic v) {
@@ -56,6 +57,7 @@ class PlayerModel extends Player {
       imgUrl: imgUrl,
       positions: positions,
       stats: _statsFromEmbed(json['stats'] ?? json['player_stats']),
+      anioNacimiento: supabaseInt(json['anio_nacimiento']),
     );
   }
 
@@ -97,6 +99,7 @@ class PlayerModel extends Player {
       'email': email,
       'positions': positionsString,
       'img_url': imgUrl,
+      'anio_nacimiento': anioNacimiento,
     };
 
     return map;
@@ -113,6 +116,7 @@ class PlayerModel extends Player {
     String? imgUrl,
     List<PlayerPosition>? positions,
     PlayerStatsModel? stats,
+    int? anioNacimiento,
   }) {
     return PlayerModel(
       id: id ?? this.id,
@@ -125,6 +129,7 @@ class PlayerModel extends Player {
       imgUrl: imgUrl ?? this.imgUrl,
       positions: positions ?? this.positions,
       stats: stats ?? this.stats as PlayerStatsModel?,
+      anioNacimiento: anioNacimiento ?? this.anioNacimiento,
     );
   }
 }

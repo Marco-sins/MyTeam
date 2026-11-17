@@ -2271,13 +2271,13 @@ abstract class AppLocalizations {
   /// No description provided for @convocationImageLabelCallDateTime.
   ///
   /// In es, this message translates to:
-  /// **'Fecha y hora de convocatoria'**
+  /// **'Hora de convocatoria'**
   String get convocationImageLabelCallDateTime;
 
   /// No description provided for @convocationImageLabelMeetingVenue.
   ///
   /// In es, this message translates to:
-  /// **'Lugar de la convocatoria'**
+  /// **'Lugar del partido'**
   String get convocationImageLabelMeetingVenue;
 
   /// No description provided for @convocationImageLabelMatchVenue.
@@ -2343,13 +2343,13 @@ abstract class AppLocalizations {
   /// No description provided for @convocationImageLabelMatchKickoff.
   ///
   /// In es, this message translates to:
-  /// **'HORA DEL PARTIDO (INICIO)'**
+  /// **'HORA DEL PARTIDO'**
   String get convocationImageLabelMatchKickoff;
 
   /// No description provided for @convocationImageLabelCallArrival.
   ///
   /// In es, this message translates to:
-  /// **'HORA DE CONVOCATORIA (LLEGADA)'**
+  /// **'HORA DE CONVOCATORIA'**
   String get convocationImageLabelCallArrival;
 
   /// No description provided for @convocationImageCallTimeReminder.

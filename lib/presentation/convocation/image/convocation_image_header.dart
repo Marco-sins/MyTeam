@@ -222,8 +222,8 @@ double drawConvocationHeader({
     drawChipLabel('LOCAL', localChipRect);
     drawChipLabel('VISITANTE', awayChipRect);
   } else {
-    drawChipLabel('VISITANTE', localChipRect);
     drawChipLabel('LOCAL', awayChipRect);
+    drawChipLabel('VISITANTE', localChipRect);
   }
 
   return headerRRect.outerRect.bottom + ConvocationImageTheme.headerBottomGap;

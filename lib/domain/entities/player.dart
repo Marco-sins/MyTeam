@@ -13,6 +13,7 @@ class Player {
   final String? imgUrl;
   final List<PlayerPosition>? positions;
   final PlayerStats? stats;
+  final int? anioNacimiento; 
 
   const Player({
     this.id = 0,
@@ -25,7 +26,22 @@ class Player {
     this.imgUrl,
     this.positions,
     this.stats,
+    this.anioNacimiento,
   });
+
+  String get getAnioNacimiento {
+    if (anioNacimiento == null) {
+      return '';
+    }
+    return anioNacimiento.toString();
+  }
+
+  String get getNumber {
+    if (number == null) {
+      return '';
+    }
+    return number.toString();
+  }
 
   String get fullName {
     final ln = lastName?.trim();

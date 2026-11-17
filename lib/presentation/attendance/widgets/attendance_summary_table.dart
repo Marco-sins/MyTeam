@@ -376,6 +376,19 @@ class _AttendanceSummaryTableState extends State<AttendanceSummaryTable> {
                                                     letterSpacing: 0.1,
                                                   ),
                                             ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              player.getAnioNacimiento.isNotEmpty
+                                                  ? '\tAño (${player.getAnioNacimiento})'
+                                                  : '',
+                                              style: textTheme.labelLarge
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: scheme.onSecondaryContainer
+                                                    .withValues(alpha: 0.75),
+                                                letterSpacing: 0.1,
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),

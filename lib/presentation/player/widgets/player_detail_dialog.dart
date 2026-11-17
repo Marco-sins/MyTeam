@@ -69,6 +69,7 @@ class _PlayerDetailDialogState extends State<PlayerDetailDialog> {
     }
     return player.positions!.map((p) => p.name).join(', ');
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -122,12 +123,12 @@ class _PlayerDetailDialogState extends State<PlayerDetailDialog> {
                       ),
                       child: PlayerPhotoRect(
                         player: player,
-                        width: 92,
-                        height: 122,
+                        width: 88,
+                        height: 110,
                         borderRadius: 14,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,6 +158,26 @@ class _PlayerDetailDialogState extends State<PlayerDetailDialog> {
                               style: textTheme.labelLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: scheme.onSecondaryContainer,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.secondaryContainer
+                                  .withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              player.anioNacimiento != null
+                                  ? 'Año de nacimiento: ${player.anioNacimiento}'
+                                  : 'Año de nacimiento: —',
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),

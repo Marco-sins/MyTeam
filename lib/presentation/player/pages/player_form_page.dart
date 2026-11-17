@@ -44,6 +44,7 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
   late final TextEditingController _numberController;
   late final TextEditingController _phoneController;
   late final TextEditingController _emailController;
+  late final TextEditingController _anioNacimientoController;
 
   late List<PlayerPosition> _selectedPositions;
   bool _isLoading = false;
@@ -58,6 +59,9 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
     final player = widget.initialPlayer;
     _firstNameController = TextEditingController(text: player?.firstName ?? '');
     _lastNameController = TextEditingController(text: player?.lastName ?? '');
+    _anioNacimientoController = TextEditingController(
+      text: player?.anioNacimiento?.toString() ?? '',
+    );
     _numberController = TextEditingController(
       text: player?.number?.toString() ?? '',
     );
@@ -176,6 +180,9 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
       lastName: _lastNameController.text.trim().isEmpty
           ? null
           : _lastNameController.text.trim(),
+      anioNacimiento: _anioNacimientoController.text.trim().isEmpty
+          ? null
+          : int.tryParse(_anioNacimientoController.text.trim()),
       number: number,
       phone: _phoneController.text.trim().isEmpty
           ? null
@@ -441,6 +448,25 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
                               labelText: 'Apellidos (opcional)',
                               border: OutlineInputBorder(),
                             ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _anioNacimientoController,
+                            onChanged: (_) => setState(() {}),
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Año de nacimiento (opcional)',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) {
+                              final text = value?.trim() ?? '';
+                              if (text.isEmpty) return null;
+                              final year = int.tryParse(text);
+                              if (year == null || year < 1900 || year > DateTime.now().year) {
+                                return 'Año inválido';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
