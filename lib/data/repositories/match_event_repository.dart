@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
 import 'package:football_manager/data/datasource/match_event_remote_datasource.dart';
 import 'package:football_manager/data/mappers/match_event_mapper.dart';
@@ -141,6 +141,18 @@ class MatchEventRepository implements IMatchEventRepository {
       );
       if (row == null) return null;
       return MatchEventMapper.toEntity(MatchEventModel.fromJson(row));
+    });
+  }
+
+  @override
+  Future<Either<Failure, ({int goalsScored, int goalsConceded})>>
+      getLiveGoalTallyFromEventRows(int matchId) {
+    return runRepositoryGuard(() async {
+      final aggregates = await _remoteDatasource.getEventAggregates(matchId);
+      return (
+        goalsScored: aggregates.goalsScored,
+        goalsConceded: aggregates.goalsConceded,
+      );
     });
   }
 }

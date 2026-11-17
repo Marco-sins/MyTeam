@@ -3,7 +3,7 @@ import 'package:football_manager/core/errors/exception/auth_server_exception.dar
 import 'package:football_manager/core/errors/exception/network_exception.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/core/errors/failure/network_failure.dart';
 import 'package:football_manager/core/errors/failure/server_failure.dart';
 import 'package:football_manager/core/errors/failure/unknow_failure.dart';

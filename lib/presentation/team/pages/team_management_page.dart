@@ -177,24 +177,23 @@ class _TeamManagementPageState extends State<TeamManagementPage> {
   }
 
   void _onLogoTap() async {
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.image,
-      withData: true,
     );
 
-    if (result != null && result.files.isNotEmpty) {
-      final file = result.files.first;
-      if (file.bytes != null) {
+    if (file != null) {
+      final bytes = await file.readAsBytes();
         final ext = p.extension(file.name);
-        final safeName = 'team_logo_${context.read<TeamContextCubit>().state.id}$ext';
+        final safeName =
+            'team_logo_${context.read<TeamContextCubit>().state.id}$ext';
         final localPath = await LocalImageSaver.saveImageLocally(
-          file.bytes!,
+          bytes,
           safeName,
         );
         setState(() {
           _selectedLogoPath = localPath;
         });
-      } else if (file.path != null) {
+        if (localPath.isEmpty && file.path != null) {
         setState(() {
           _selectedLogoPath = file.path;
         });

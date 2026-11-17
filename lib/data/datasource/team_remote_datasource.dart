@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
 import 'package:football_manager/data/models/team_model.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
+import 'package:football_manager/domain/entities/team_member_row.dart';
 
 class TeamRemoteDatasource {
   final SupabaseClient _supabase;
@@ -105,9 +107,10 @@ class TeamRemoteDatasource {
         .select('id')
         .eq('team_id', teamId);
 
-    final List<int> matchIds = (matchesRows as List<dynamic>)
-        .map((e) => (e as Map)['id'] as int)
-        .toList();
+    final matchIds = (matchesRows as List<dynamic>)
+      .map((e) => supabaseInt((e as Map)['id']))
+      .whereType<int>()
+      .toList();
 
     if (matchIds.isNotEmpty) {
       await _supabase
@@ -130,8 +133,9 @@ class TeamRemoteDatasource {
         .select('id')
         .eq('team_id', teamId);
     final playerIds = (playersRes as List<dynamic>)
-        .map((e) => (e as Map)['id'] as int)
-        .toList();
+      .map((e) => supabaseInt((e as Map)['id']))
+      .whereType<int>()
+      .toList();
     if (playerIds.isNotEmpty) {
       await _supabase
           .from('player_stats')
@@ -193,6 +197,52 @@ class TeamRemoteDatasource {
     }
   }
 
+  Future<List<TeamMemberRow>> getTeamMemberRows(int teamId) async {
+    try {
+      final rows = await _supabase
+          .from('team_members')
+          .select('id_user, role')
+          .eq('id_team', teamId);
+      return (rows as List<dynamic>).map((row) {
+        final map = row as Map;
+        return TeamMemberRow(
+          userId: map['id_user']?.toString() ?? '',
+          role: map['role']?.toString() ?? 'external',
+        );
+      }).where((member) => member.userId.isNotEmpty).toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<bool> isUserMemberOfTeam({
+    required int teamId,
+    required String userId,
+  }) async {
+    try {
+      final row = await _supabase
+          .from('team_members')
+          .select('id_user')
+          .eq('id_team', teamId)
+          .eq('id_user', userId)
+          .maybeSingle();
+      return row != null;
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> removeTeamMember({
+    required int teamId,
+    required String userId,
+  }) async {
+    await removeSelfFromTeam(teamId: teamId, userId: userId);
+  }
+
   Future<List<TeamModel>> getTeams() async {
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
@@ -214,7 +264,8 @@ class TeamRemoteDatasource {
       }
 
       final teamIds = memberRows
-          .map<int>((row) => row['id_team'] as int)
+          .map<int?>((row) => supabaseInt(row['id_team']))
+          .whereType<int>()
           .toList();
 
       // 2) Obtenemos sólo esos equipos

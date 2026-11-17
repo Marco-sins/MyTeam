@@ -1,5 +1,7 @@
 part of 'match_stats_cubit.dart';
 
+const Object _keepMatchStatsValue = Object();
+
 class MatchStatsState extends Equatable {
   const MatchStatsState({
     required this.isLoading,
@@ -42,10 +44,13 @@ class MatchStatsState extends Equatable {
   final List<Player> substitutePlayers;
   final Map<int, bool> isStarterById;
   final Map<int, double> playerRatings;
+
   /// Filas del campo (portero + líneas), p. ej. [1,4,4,2]. Vacío = no hay dibujo.
   final List<int> formationLines;
+
   /// Clave de formación guardada (`4-4-2`, …) o null si se infirió por posiciones.
   final String? formationLabel;
+
   /// Titulares en el diagrama: alineación **inicial** ([MatchLineup.initialPosition]) en
   /// partidos finalizados; [sentOffPlayerIds] se aplica en la UI de lectura.
   final List<Player?> fieldPositionPlayers;
@@ -60,7 +65,7 @@ class MatchStatsState extends Equatable {
 
   MatchStatsState copyWith({
     bool? isLoading,
-    String? error,
+    Object? error = _keepMatchStatsValue,
     List<Map<String, dynamic>>? events,
     Map<int, Player>? playersById,
     List<Player>? startingPlayers,
@@ -68,15 +73,17 @@ class MatchStatsState extends Equatable {
     Map<int, bool>? isStarterById,
     Map<int, double>? playerRatings,
     List<int>? formationLines,
-    String? formationLabel,
+    Object? formationLabel = _keepMatchStatsValue,
     List<Player?>? fieldPositionPlayers,
     Set<int>? sentOffPlayerIds,
-    MatchEventAggregates? eventAggregates,
+    Object? eventAggregates = _keepMatchStatsValue,
     List<Map<String, dynamic>>? allEventMaps,
   }) {
     return MatchStatsState(
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: identical(error, _keepMatchStatsValue)
+          ? this.error
+          : error as String?,
       events: events ?? this.events,
       playersById: playersById ?? this.playersById,
       startingPlayers: startingPlayers ?? this.startingPlayers,
@@ -84,10 +91,14 @@ class MatchStatsState extends Equatable {
       isStarterById: isStarterById ?? this.isStarterById,
       playerRatings: playerRatings ?? this.playerRatings,
       formationLines: formationLines ?? this.formationLines,
-      formationLabel: formationLabel ?? this.formationLabel,
+      formationLabel: identical(formationLabel, _keepMatchStatsValue)
+          ? this.formationLabel
+          : formationLabel as String?,
       fieldPositionPlayers: fieldPositionPlayers ?? this.fieldPositionPlayers,
       sentOffPlayerIds: sentOffPlayerIds ?? this.sentOffPlayerIds,
-      eventAggregates: eventAggregates ?? this.eventAggregates,
+      eventAggregates: identical(eventAggregates, _keepMatchStatsValue)
+          ? this.eventAggregates
+          : eventAggregates as MatchEventAggregates?,
       allEventMaps: allEventMaps ?? this.allEventMaps,
     );
   }

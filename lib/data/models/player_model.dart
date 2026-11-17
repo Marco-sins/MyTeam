@@ -24,15 +24,17 @@ class PlayerModel extends Player {
   }
 
   factory PlayerModel.fromJson(Map<String, dynamic> json) {
-    final rawPositions = json['positions'] as String?;
+    final rawPositions = json['positions']?.toString();
     List<PlayerPosition> positions = [];
     if (rawPositions != null && rawPositions.trim().isNotEmpty) {
-      positions = rawPositions
-          .split(',')
-          .map((p) => p.trim())
-          .where((p) => p.isNotEmpty)
-          .map((p) => PlayerPosition.values.byName(p))
-          .toList();
+      positions = rawPositions.split(',').map((rawPosition) {
+        final value = rawPosition.trim();
+        if (value.isEmpty) return null;
+        for (final position in PlayerPosition.values) {
+          if (position.name == value) return position;
+        }
+        return null;
+      }).whereType<PlayerPosition>().toList();
     }
 
     final rawImg = json['img_url'];
@@ -57,14 +59,10 @@ class PlayerModel extends Player {
     );
   }
 
-  static PlayerStatsModel _statsFromEmbed(dynamic raw) {
-    if (raw == null) {
-      return const PlayerStatsModel();
-    }
+  static PlayerStatsModel? _statsFromEmbed(dynamic raw) {
+    if (raw == null) return null;
     if (raw is List) {
-      if (raw.isEmpty) {
-        return const PlayerStatsModel();
-      }
+      if (raw.isEmpty) return null;
       final first = raw.first;
       if (first is Map<String, dynamic>) {
         return PlayerStatsModel.fromJson(first);
@@ -72,7 +70,7 @@ class PlayerModel extends Player {
       if (first is Map) {
         return PlayerStatsModel.fromJson(Map<String, dynamic>.from(first));
       }
-      return const PlayerStatsModel();
+      return null;
     }
     if (raw is Map<String, dynamic>) {
       return PlayerStatsModel.fromJson(raw);
@@ -80,7 +78,7 @@ class PlayerModel extends Player {
     if (raw is Map) {
       return PlayerStatsModel.fromJson(Map<String, dynamic>.from(raw));
     }
-    return const PlayerStatsModel();
+    return null;
   }
 
   Map<String, dynamic> toJson() {

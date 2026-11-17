@@ -6,6 +6,8 @@ import 'package:football_manager/core/errors/exception/server_exception.dart';
 import 'package:football_manager/core/errors/exception/unknow_exception.dart';
 import 'package:football_manager/data/models/auth_user_model.dart';
 import 'package:football_manager/domain/entities/enum/user_role.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
+import 'package:football_manager/domain/entities/auth_session_side_effect.dart';
 
 class AuthRemoteDatasource {
   final SupabaseClient _supabase;
@@ -65,8 +67,9 @@ class AuthRemoteDatasource {
 
       final Map<int, UserRole> roles = {};
       for (final row in rows) {
-        final int teamId = row['id_team'] as int;
-        final String roleStr = (row['role'] as String?) ?? 'external';
+        final teamId = supabaseInt(row['id_team']);
+        if (teamId == null) continue;
+        final roleStr = row['role']?.toString() ?? 'external';
         try {
           roles[teamId] = UserRole.fromString(roleStr);
         } catch (_) {
@@ -202,5 +205,31 @@ class AuthRemoteDatasource {
     } catch (e) {
       throw UnknowException('Unexpected error: $e');
     }
+  }
+
+  Future<void> requestPasswordReset(String email) async {
+    try {
+      await _supabase.auth.resetPasswordForEmail(email);
+    } on AuthException catch (e) {
+      throw AuthServerException('Password reset error: ${e.message}');
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
+    } on AuthException catch (e) {
+      throw AuthServerException('Password update error: ${e.message}');
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
+
+  Stream<AuthSessionSideEffect> watchSessionSideEffects() {
+    return _supabase.auth.onAuthStateChange
+        .where((data) => data.event == AuthChangeEvent.passwordRecovery)
+        .map((_) => AuthSessionSideEffect.passwordRecoverySessionStarted);
   }
 }

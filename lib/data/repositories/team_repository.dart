@@ -1,11 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
 import 'package:football_manager/data/datasource/team_remote_datasource.dart';
 import 'package:football_manager/data/mappers/team_mapper.dart';
 import 'package:football_manager/domain/entities/team.dart';
+import 'package:football_manager/domain/entities/team_member_row.dart';
 import 'package:football_manager/domain/repositories/i_team_repository.dart';
 
 class TeamRepository implements ITeamRepository {
@@ -70,5 +71,31 @@ class TeamRepository implements ITeamRepository {
     String fileName,
   ) {
     return runRepositoryGuard(() => _datasource.uploadLogo(bytes, fileName));
+  }
+
+  @override
+  Future<Either<Failure, List<TeamMemberRow>>> getTeamMemberRows(int teamId) {
+    return runRepositoryGuard(() => _datasource.getTeamMemberRows(teamId));
+  }
+
+  @override
+  Future<Either<Failure, bool>> isUserMemberOfTeam({
+    required int teamId,
+    required String userId,
+  }) {
+    return runRepositoryGuard(
+      () => _datasource.isUserMemberOfTeam(teamId: teamId, userId: userId),
+    );
+  }
+
+  @override
+  Future<Either<Failure, Unit>> removeTeamMember({
+    required int teamId,
+    required String userId,
+  }) {
+    return runRepositoryGuard(() async {
+      await _datasource.removeTeamMember(teamId: teamId, userId: userId);
+      return unit;
+    });
   }
 }

@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
 import 'package:football_manager/data/datasource/player_remote_datasource.dart';
 import 'package:football_manager/data/mappers/player_mapper.dart';

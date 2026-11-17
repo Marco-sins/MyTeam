@@ -101,15 +101,13 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
   }
 
   Future<void> _pickPhoto() async {
-    final result = await FilePicker.pickFiles(
+    final file = await FilePicker.pickFile(
       type: FileType.image,
-      withData: true,
     );
     if (!mounted) return;
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
-    final bytes = file.bytes;
-    if (bytes == null || bytes.isEmpty) return;
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) return;
     setState(() {
       _pickedImageBytes = bytes;
       _pickedFileName = file.name;

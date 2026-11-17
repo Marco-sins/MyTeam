@@ -172,44 +172,44 @@ class MatchEventRemoteDatasource {
       for (final row in supabaseResponseAsList(result)) {
         final raw = row['type'];
         if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
+        final typeString = canonicalMatchEventTypeKey(raw);
         final p1 = supabaseInt(row['player_id1']);
 
-        if (typeString == 'scoreGoal') {
+        if (typeString == 'scoregoal') {
           scored++;
           shotsOur++; // Gol a favor = tiro a puerta propio
-        } else if (typeString == 'concedeGoal' || typeString == 'ownGoal') {
+        } else if (typeString == 'concedegoal' || typeString == 'owngoal') {
           conceded++;
           shotsRival++; // Gol encajado / propia = tiro a puerta del rival
         } else if (typeString == 'shot') {
           shotsOur++;
-        } else if (typeString == 'rivalShot') {
+        } else if (typeString == 'rivalshot') {
           shotsRival++;
         } else if (typeString == 'foul') {
           foulsOur++;
-        } else if (typeString == 'rivalFoul') {
+        } else if (typeString == 'rivalfoul') {
           foulsRival++;
         } else if (typeString == 'corner') {
           cornersOur++;
-        } else if (typeString == 'rivalCorner') {
+        } else if (typeString == 'rivalcorner') {
           cornersRival++;
         } else if (typeString == 'offside') {
           offsidesOur++;
-        } else if (typeString == 'rivalOffside') {
+        } else if (typeString == 'rivaloffside') {
           offsidesRival++;
-        } else if (typeString == 'yellowCard') {
+        } else if (typeString == 'yellowcard') {
           yellowOur++;
           if (p1 != null) {
             yellowsByOurPlayer[p1] = (yellowsByOurPlayer[p1] ?? 0) + 1;
           }
-        } else if (typeString == 'rivalYellowCard') {
+        } else if (typeString == 'rivalyellowcard') {
           yellowRival++;
           if (p1 != null) {
             yellowsByRivalPlayer[p1] = (yellowsByRivalPlayer[p1] ?? 0) + 1;
           }
-        } else if (typeString == 'redCard') {
+        } else if (typeString == 'redcard') {
           redOur++;
-        } else if (typeString == 'rivalRedCard') {
+        } else if (typeString == 'rivalredcard') {
           redRival++;
         }
       }
@@ -299,13 +299,13 @@ class MatchEventRemoteDatasource {
       for (final row in supabaseResponseAsList(result)) {
         final raw = row['type'];
         if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
+        final typeString = canonicalMatchEventTypeKey(raw);
         final p1 = supabaseInt(row['player_id1']);
         if (p1 == null) continue;
 
-        if (typeString == 'redCard') {
+        if (typeString == 'redcard') {
           sentOff.add(p1);
-        } else if (typeString == 'yellowCard') {
+        } else if (typeString == 'yellowcard') {
           final current = yellowCounts[p1] ?? 0;
           final next = current + 1;
           yellowCounts[p1] = next;
@@ -339,10 +339,10 @@ class MatchEventRemoteDatasource {
       for (final row in supabaseResponseAsList(result)) {
         final raw = row['type'];
         if (raw == null) continue;
-        final typeString = raw.toString().split('.').last;
-        if (typeString == 'yellowCard') {
+        final typeString = canonicalMatchEventTypeKey(raw);
+        if (typeString == 'yellowcard') {
           yellowCount++;
-        } else if (typeString == 'redCard') {
+        } else if (typeString == 'redcard') {
           hasRed = true;
         }
       }

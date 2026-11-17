@@ -144,11 +144,18 @@ class MatchRemoteDatasource {
     required int minutesPlayed,
   }) async {
     try {
-      await _supabase
+      final response = await _supabase
           .from('match_lineup')
           .update({'minutes_played': minutesPlayed})
           .eq('match_id', matchId)
-          .eq('player_id', playerId);
+          .eq('player_id', playerId)
+          .select('player_id');
+      if (response.isEmpty) {
+        throw ServerException(
+          message: 'No se encontró la alineación del jugador $playerId',
+          code: '404',
+        );
+      }
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -256,11 +263,18 @@ class MatchRemoteDatasource {
     required int? position,
   }) async {
     try {
-      await _supabase
+      final response = await _supabase
           .from('match_lineup')
           .update({'position': position})
           .eq('match_id', matchId)
-          .eq('player_id', playerId);
+          .eq('player_id', playerId)
+          .select('player_id');
+      if (response.isEmpty) {
+        throw ServerException(
+          message: 'No se encontró la alineación del jugador $playerId',
+          code: '404',
+        );
+      }
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {

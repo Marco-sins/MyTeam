@@ -30,7 +30,8 @@ class MatchModel extends Match {
       parsedLineups = const [];
     }
 
-    final parsedDate = DateTime.parse(json['date']);
+    final parsedDate = DateTime.tryParse('${json['date']}') ??
+      DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 
     // Si existe columna "hour" (timestamp), derivamos la hora desde ahí;
     // si no, usamos el campo "date" como respaldo.
@@ -60,7 +61,7 @@ class MatchModel extends Match {
     final m = combinedDateTime.minute.toString().padLeft(2, '0');
     final String parsedHour = '$h:$m';
 
-    final bool parsedIsHome = (json['is_home'] as bool?) ?? true;
+    final bool parsedIsHome = json['is_home'] is bool ? json['is_home'] as bool : true;
 
     return MatchModel(
       id: json['id'],
@@ -70,12 +71,18 @@ class MatchModel extends Match {
       goalsConceded: json['goals_conceded'],
       date: combinedDateTime,
       hour: parsedHour,
-      status: MatchStatus.values.firstWhere(
-        (e) => e.toString() == 'MatchStatus.${json['status']}',
-      ),
+      status: _parseStatus(json['status']),
       lineups: parsedLineups,
       isHome: parsedIsHome,
     );
+  }
+
+  static MatchStatus _parseStatus(dynamic raw) {
+    final value = raw?.toString().split('.').last;
+    for (final status in MatchStatus.values) {
+      if (status.name == value) return status;
+    }
+    return MatchStatus.notStarted;
   }
 
   Map<String, dynamic> toJson() {

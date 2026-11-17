@@ -66,7 +66,7 @@ class MatchEvent {
       playerId2: supabaseInt(json['player_id2']),
       type: parsedType,
       minute: resolveMatchEventMinute(json),
-      note: json['note'] as String?,
+      note: json['note']?.toString(),
       createdAt: createdAt,
     );
   }

@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/domain/entities/match_event.dart';
 import 'package:football_manager/domain/entities/match_event_aggregates.dart';
 import 'package:football_manager/domain/entities/match_live_timeline_row.dart';
@@ -35,4 +35,6 @@ abstract class IMatchEventRepository {
     required int matchId,
     required String typeDbValue,
   });
+  Future<Either<Failure, ({int goalsScored, int goalsConceded})>>
+      getLiveGoalTallyFromEventRows(int matchId);
 }

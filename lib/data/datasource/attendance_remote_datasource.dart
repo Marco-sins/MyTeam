@@ -110,4 +110,26 @@ class AttendanceRemoteDatasource {
       throw UnknowException('Unexpected error: $e');
     }
   }
+
+  Future<({int total, int attended})> getPlayerAttendanceStats({
+    required int teamId,
+    required int playerId,
+  }) async {
+    try {
+      final rows = await _supabase
+          .from('attendances')
+          .select('attended')
+          .eq('team_id', teamId)
+          .eq('player_id', playerId);
+      final values = rows as List<dynamic>;
+      return (
+        total: values.length,
+        attended: values.where((row) => (row as Map)['attended'] == true).length,
+      );
+    } on PostgrestException catch (e) {
+      throw ServerException(message: e.message, code: e.code);
+    } catch (e) {
+      throw UnknowException('Unexpected error: $e');
+    }
+  }
 }

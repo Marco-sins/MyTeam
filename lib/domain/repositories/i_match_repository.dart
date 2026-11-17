@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:football_manager/domain/entities/enum/match_status.dart';
 import 'package:football_manager/domain/entities/match.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/domain/entities/match_lineup.dart';
 
 abstract class IMatchRepository {

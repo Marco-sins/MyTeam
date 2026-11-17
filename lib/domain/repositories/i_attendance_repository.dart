@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/domain/entities/attendance.dart';
 
 abstract class IAttendanceRepository {
@@ -12,4 +12,8 @@ abstract class IAttendanceRepository {
     DateTime date,
     int teamId,
   );
+  Future<Either<Failure, ({int total, int attended})>> getPlayerAttendanceStats({
+    required int teamId,
+    required int playerId,
+  });
 }

@@ -133,7 +133,7 @@ class MatchLiveTimelineFilter {
       return true;
     }
     if (key == 'statuschange') {
-      return isMatchTimeStatusNote(event['note'] as String?);
+      return isMatchTimeStatusNote(event['note']?.toString());
     }
     if (_hiddenPlayerActionKeys.contains(key)) {
       return false;

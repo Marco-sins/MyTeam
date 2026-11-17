@@ -1,4 +1,5 @@
 import 'package:football_manager/domain/entities/match_lineup.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 
 class MatchLineupModel extends MatchLineup {
   const MatchLineupModel({
@@ -14,13 +15,13 @@ class MatchLineupModel extends MatchLineup {
 
   factory MatchLineupModel.fromJson(Map<String, dynamic> json) {
     return MatchLineupModel(
-      id: json['id'],
-      playerId: json['player_id'],
-      matchId: json['match_id'],
-      isStarting: json['is_start'],
-      minutesPlayed: json['minutes_played'] ?? 0,
-      position: json['position'] as int?,
-      initialPosition: json['initial_position'] as int?,
+      id: supabaseInt(json['id']) ?? 0,
+      playerId: supabaseInt(json['player_id']) ?? 0,
+      matchId: supabaseInt(json['match_id']) ?? 0,
+      isStarting: json['is_start'] == true,
+      minutesPlayed: supabaseInt(json['minutes_played']) ?? 0,
+      position: supabaseInt(json['position']),
+      initialPosition: supabaseInt(json['initial_position']),
       rating: (json['rating'] as num?)?.toDouble() ?? 5,
     );
   }

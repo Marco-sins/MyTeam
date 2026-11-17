@@ -16,6 +16,7 @@ import 'package:football_manager/domain/usecase/player/get_players_by_team_use_c
 import 'package:football_manager/data/team_scoring_config_storage.dart';
 import 'package:football_manager/presentation/match/utils/match_formation_utils.dart';
 import 'package:football_manager/presentation/match/utils/player_rating_utils.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 
 part 'match_stats_state.dart';
 
@@ -45,9 +46,8 @@ List<Map<String, dynamic>> _sortChronologyLikeManager(
   if (eventMaps.isEmpty) return eventMaps;
   final rows = eventMaps
       .map(
-        (m) => MatchLiveTimelineRow.fromPostgresMap(
-          Map<String, dynamic>.from(m),
-        ),
+        (m) =>
+            MatchLiveTimelineRow.fromPostgresMap(Map<String, dynamic>.from(m)),
       )
       .toList();
   final sorted = MatchLiveTimelineFilter.filterAndSort(rows);
@@ -73,9 +73,9 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
   final GetMatchLineupsByMatchUseCase getMatchLineupsByMatchUseCase;
   final GetFirstFormationNoteByMatchUseCase getFirstFormationNoteByMatchUseCase;
   final GetLatestFormationNoteByMatchUseCase
-      getLatestFormationNoteByMatchUseCase;
+  getLatestFormationNoteByMatchUseCase;
   final GetMatchEventAggregatesFromEventsUseCase
-      getMatchEventAggregatesFromEventsUseCase;
+  getMatchEventAggregatesFromEventsUseCase;
   final TeamScoringConfigStorage teamScoringConfigStorage;
   final String loadErrorMessage;
 
@@ -85,12 +85,12 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
     for (final event in events) {
       final rawType = event['type'];
       if (rawType == null) continue;
-      final typeString = rawType.toString().split('.').last;
+      final typeString = canonicalMatchEventTypeKey(rawType);
       final p1 = event['player_id1'] as int?;
       if (p1 == null) continue;
-      if (typeString == 'redCard') {
+      if (typeString == 'redcard') {
         sentOff.add(p1);
-      } else if (typeString == 'yellowCard') {
+      } else if (typeString == 'yellowcard') {
         final next = (yellowCounts[p1] ?? 0) + 1;
         yellowCounts[p1] = next;
         if (next >= 2) {
@@ -105,48 +105,38 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
     emit(state.copyWith(isLoading: true, error: null));
     try {
       final eventsEither = await getMatchEventsByMatchUseCase(match.id);
-      final matchEvents = eventsEither.fold<List<MatchEvent>?>(
-        (failure) {
-          emit(state.copyWith(isLoading: false, error: failure.message));
-          return null;
-        },
-        (list) => list,
-      );
+      final matchEvents = eventsEither.fold<List<MatchEvent>?>((failure) {
+        emit(state.copyWith(isLoading: false, error: failure.message));
+        return null;
+      }, (list) => list);
       if (matchEvents == null) return;
 
       MatchEventAggregates? eventAggregates;
       if (match.status == MatchStatus.finished) {
-        final aggEither =
-            await getMatchEventAggregatesFromEventsUseCase(match.id);
+        final aggEither = await getMatchEventAggregatesFromEventsUseCase(
+          match.id,
+        );
         eventAggregates = aggEither.fold((_) => null, (a) => a);
       } else {
         eventAggregates = null;
       }
 
       final fullEventMaps = _matchEventsToEventMaps(matchEvents);
-      final eventMaps = _sortChronologyLikeManager(
-        fullEventMaps,
-      );
+      final eventMaps = _sortChronologyLikeManager(fullEventMaps);
       final teamScoring = teamScoringConfigStorage.load(match.teamId);
 
       final playersEither = await getPlayersByTeamUseCase(match.teamId);
-      final playersById = playersEither.fold<Map<int, Player>?>(
-        (f) {
-          emit(state.copyWith(isLoading: false, error: f.message));
-          return null;
-        },
-        (players) => {for (final p in players) p.id: p},
-      );
+      final playersById = playersEither.fold<Map<int, Player>?>((f) {
+        emit(state.copyWith(isLoading: false, error: f.message));
+        return null;
+      }, (players) => {for (final p in players) p.id: p});
       if (playersById == null) return;
 
       final lineupsEither = await getMatchLineupsByMatchUseCase(match.id);
-      final lineups = lineupsEither.fold(
-        (failure) {
-          emit(state.copyWith(isLoading: false, error: failure.message));
-          return null;
-        },
-        (list) => list,
-      );
+      final lineups = lineupsEither.fold((failure) {
+        emit(state.copyWith(isLoading: false, error: failure.message));
+        return null;
+      }, (list) => list);
       if (lineups == null) return;
 
       final starting = <Player>[];
@@ -209,14 +199,19 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
           }
         }
 
-        final firstFormationEither =
-            await getFirstFormationNoteByMatchUseCase(match.id);
-        final firstFormationKey =
-            firstFormationEither.fold((_) => null, (n) => n);
+        final firstFormationEither = await getFirstFormationNoteByMatchUseCase(
+          match.id,
+        );
+        final firstFormationKey = firstFormationEither.fold(
+          (_) => null,
+          (n) => n,
+        );
         final latestFormationEither =
             await getLatestFormationNoteByMatchUseCase(match.id);
-        final latestFormationKey =
-            latestFormationEither.fold((_) => null, (n) => n);
+        final latestFormationKey = latestFormationEither.fold(
+          (_) => null,
+          (n) => n,
+        );
 
         final neededSlots = maxPos < 0 ? 0 : maxPos + 1;
         String? formationKey;
@@ -324,12 +319,7 @@ class MatchStatsCubit extends Cubit<MatchStatsState> {
       }
     } catch (_) {
       if (!isClosed) {
-        emit(
-          state.copyWith(
-            isLoading: false,
-            error: loadErrorMessage,
-          ),
-        );
+        emit(state.copyWith(isLoading: false, error: loadErrorMessage));
       }
     }
   }

@@ -179,6 +179,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   /// reconstruir la UI con un estado intermedio de alineación/eventos.
   DateTime? _suppressRemoteRefreshUntil;
 
+  bool _isLineupSyncing = false;
+
   /// Si no es null, fuerza el uso de este conjunto de ids como los jugadores
   /// que estaban en el campo antes de una modificación local (usado para
   /// evitar atribuciones cruzadas de minutos durante la sincronización).
@@ -216,6 +218,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     return authState.user.teamRoles[widget.team.id]?.hasAdminPrivileges ??
         false;
   }
+
+  bool get _isLiveMatchPhase =>
+      _match.status == MatchStatus.firstHalf ||
+      _match.status == MatchStatus.secondHalf;
 
   /// Actualiza el caché de minutos disputados cuando los eventos cambian.
   int? _lastCachedMatchMinute;
@@ -566,6 +572,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         _phase = _MatchPhase.secondHalf;
         break;
       case MatchStatus.finished:
+        _phase = _MatchPhase.notStarted;
         break;
     }
   }
@@ -825,20 +832,30 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     );
   }
 
-  Future<void> _persistCurrentPositionsToMatchLineup() async {
+  Future<void> _persistLineupPositions(
+    List<Player?> positions, {
+    Set<int>? affectedPlayerIds,
+  }) async {
     try {
       final Map<int, int> positionByPlayerId = {};
-      for (int i = 0; i < _positionPlayers.length; i++) {
-        final player = _positionPlayers[i];
+      for (int i = 0; i < positions.length; i++) {
+        final player = positions[i];
         if (player != null) {
           positionByPlayerId[player.id] = i;
         }
       }
 
       final uc = context.read<PersistMatchLineupPositionsUseCase>();
+      final convokedIds = _convokedPlayers
+          .map((p) => p.id)
+          .where(
+            (id) =>
+                affectedPlayerIds == null || affectedPlayerIds.contains(id),
+          )
+          .toList();
       final res = await uc(
         matchId: _match.id,
-        convokedPlayerIds: _convokedPlayers.map((p) => p.id).toList(),
+        convokedPlayerIds: convokedIds,
         onFieldPositionByPlayerId: positionByPlayerId,
       );
       res.fold((f) {
@@ -849,39 +866,82 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
-  /// Un solo hilo: si es sustitución, guardar primero el evento y luego
-  /// persistir la alineación. Esto asegura que los `initialOnFieldPlayerIds`
-  /// usados para calcular minutos reflejen el estado **antes** de la
-  /// sustitución y evita atribuciones cruzadas de minutos entre jugadores.
-  /// Al final, recarga eventos y actualiza caché de minutos.
+  Future<void> _persistCurrentPositionsToMatchLineup() {
+    return _persistLineupPositions(_positionPlayers);
+  }
+
+  /// Guarda una sustitución como una operación compensable: primero persiste
+  /// la alineación y luego registra el evento. Si falla cualquiera de los dos
+  /// pasos, restaura la alineación anterior y no deja un evento huérfano.
   Future<void> _syncLineupAfterFieldChange({
+    required List<Player?> newPositions,
+    required List<Player?> previousPositions,
     required bool logSubstitutionEvent,
     Player? substitutionIn,
     Player? substitutionOut,
   }) async {
+    final affectedPlayerIds = <int>{};
+    final maxLength =
+        newPositions.length > previousPositions.length
+            ? newPositions.length
+            : previousPositions.length;
+    for (var index = 0; index < maxLength; index++) {
+      final previous = index < previousPositions.length
+          ? previousPositions[index]
+          : null;
+      final next = index < newPositions.length ? newPositions[index] : null;
+      if (previous?.id != next?.id) {
+        if (previous != null) affectedPlayerIds.add(previous.id);
+        if (next != null) affectedPlayerIds.add(next.id);
+      }
+    }
     try {
       _suppressRemoteRefreshUntil = DateTime.now().add(
         const Duration(milliseconds: 2500),
       );
-      // Si es sustitución, guardar el evento antes de persistir posiciones
+      await _persistLineupPositions(
+        newPositions,
+        affectedPlayerIds: affectedPlayerIds,
+      );
+
       if (logSubstitutionEvent && substitutionIn != null) {
-        await _saveSubstitutionEvent(
+        final saved = await _saveSubstitutionEvent(
           playerIn: substitutionIn,
           playerOut: substitutionOut,
         );
+        if (!saved) {
+          await _persistLineupPositions(
+            previousPositions,
+            affectedPlayerIds: affectedPlayerIds,
+          );
+          if (mounted) {
+            setState(() {
+              _positionPlayers = previousPositions;
+              _selectedPlayer = null;
+            });
+          }
+          return;
+        }
       }
 
-      // Persistir siempre las posiciones (actualiza match_lineup)
-      await _persistCurrentPositionsToMatchLineup();
-      if (!mounted) return;
-      // Asegurar que los eventos se recargan después de cualquier cambio
       if (!mounted) return;
       await _loadLiveEvents();
-      if (!mounted) return;
-      // El caché se actualiza automáticamente en _loadLiveEvents
     } catch (e) {
       if (mounted) {
-        // Intentar recargar eventos incluso en caso de error
+        try {
+          await _persistLineupPositions(
+            previousPositions,
+            affectedPlayerIds: affectedPlayerIds,
+          );
+        } catch (_) {}
+        setState(() {
+          _positionPlayers = previousPositions;
+          _selectedPlayer = null;
+        });
+        _showSnack(
+          'No se pudo guardar la sustitución. No se ha registrado el cambio.',
+          error: true,
+        );
         await _loadLiveEvents();
       }
     }
@@ -1052,14 +1112,25 @@ class _MatchManagerPageState extends State<MatchManagerPage>
 
       await saveMatchEventUseCase(event, authState.user, widget.team.id);
       if (mounted) await _loadLiveEvents();
-    } catch (e) {}
+    } catch (e) {
+      if (mounted) {
+        _showSnack(
+          AppLocalizations.of(context)!.matchGoalSaveFail,
+          error: true,
+        );
+      }
+    }
   }
 
   Future<MatchEventAggregates?> _queryEventAggregatesFromEvents() async {
     try {
       final uc = context.read<GetMatchEventAggregatesFromEventsUseCase>();
       final result = await uc(_match.id);
-      return result.fold((_) => null, (a) => a);
+      final aggregate = result.fold<MatchEventAggregates?>(
+        (_) => null,
+        (value) => value,
+      );
+      return aggregate;
     } catch (_) {
       return null;
     }
@@ -1115,6 +1186,10 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   }) async {
     final l10n = AppLocalizations.of(context)!;
     if (!_canModifyMatch) return;
+    if (!_isLiveMatchPhase) {
+      _showSnack(l10n.matchMustLoginRegisterGoals, error: true);
+      return;
+    }
     final authState = context.read<AuthCubit>().state;
     if (authState is! Authenticated) {
       _showSnack(l10n.matchMustLoginRegisterGoals, error: true);
@@ -1156,13 +1231,14 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
     final typeDb = type.toString().split('.').last;
     final uc = context.read<GetLatestMatchEventByDbTypeUseCase>();
+    final deleteMatchEventUseCase =
+      context.read<DeleteMatchEventUseCase>();
     final latest = await uc(matchId: _match.id, typeDbValue: typeDb);
     final ev = latest.fold((_) => null, (e) => e);
     if (ev == null) {
       _showSnack(l10n.matchNoCounterToRemove, error: true);
       return;
     }
-    final deleteMatchEventUseCase = context.read<DeleteMatchEventUseCase>();
     final result = await deleteMatchEventUseCase(
       ev,
       authState.user,
@@ -1181,12 +1257,12 @@ class _MatchManagerPageState extends State<MatchManagerPage>
   Future<Map<int, double>?> _queryPlayerRatingsMap() async {
     try {
       final uc = context.read<GetPlayerRatingEventRowsUseCase>();
+      final teamScoring = context.read<TeamScoringConfigStorage>().load(
+        _match.teamId,
+      );
       final result = await uc(_match.id);
-      return result.fold((_) => null, (events) {
+      final ratings = result.fold<Map<int, double>?>((_) => null, (events) {
         final Map<int, double> newRatings = {};
-        final teamScoring = context.read<TeamScoringConfigStorage>().load(
-          _match.teamId,
-        );
         for (final player in _convokedPlayers) {
           newRatings[player.id] = calculatePlayerRating(
             player.id,
@@ -1196,6 +1272,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         }
         return newRatings;
       });
+      return ratings;
     } catch (e) {
       return null;
     }
@@ -1337,7 +1414,11 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     try {
       final uc = context.read<GetMatchLiveTimelineMapsUseCase>();
       final result = await uc(matchId: _match.id);
-      return result.fold((_) => null, (rows) => rows);
+      final rows = result.fold<List<Map<String, dynamic>>?>(
+        (_) => null,
+        (value) => value,
+      );
+      return rows;
     } catch (e) {
       return null;
     }
@@ -1347,7 +1428,8 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     try {
       final uc = context.read<GetMatchSentOffPlayerIdsUseCase>();
       final result = await uc(_match.id);
-      return result.fold((_) => null, (s) => s);
+      final sentOff = result.fold<Set<int>?>((_) => null, (value) => value);
+      return sentOff;
     } catch (e) {
       return null;
     }
@@ -1472,7 +1554,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
           ),
         ],
       );
-    } catch (e) {}
+    } catch (_) {}
   }
 
   Player? _playerFromRoster(int? id) {
@@ -1898,7 +1980,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
     }
   }
 
-  Future<void> _saveSubstitutionEvent({
+  Future<bool> _saveSubstitutionEvent({
     required Player playerIn,
     Player? playerOut,
   }) async {
@@ -1912,7 +1994,7 @@ class _MatchManagerPageState extends State<MatchManagerPage>
       }
       final authState = context.read<AuthCubit>().state;
       if (authState is! Authenticated) {
-        return;
+        return false;
       }
 
       final saveMatchEventUseCase = context.read<SaveMatchEventUseCase>();
@@ -1954,22 +2036,24 @@ class _MatchManagerPageState extends State<MatchManagerPage>
         (failure) async {
           if (!mounted) return;
           _showSnack(failure.message, error: true);
-          // Intentar recargar eventos incluso si el evento no se guardó
-          await _loadLiveEvents();
+          return;
         },
         (_) async {
-          if (mounted) {
-            await _loadLiveEvents();
-            if (kDebugMode) {
-              final after = _liveEvents
-                  .map((e) => Map<String, dynamic>.from(e))
-                  .toList();
-              debugPrint('DEBUG after substitution events: ${after.length}');
-            }
+          if (kDebugMode) {
+            debugPrint('Substitution event saved for match ${_match.id}');
           }
         },
       );
-    } catch (e) {}
+      return result.isRight();
+    } catch (_) {
+      if (mounted) {
+        _showSnack(
+          'No se pudo registrar la sustitución.',
+          error: true,
+        );
+      }
+      return false;
+    }
   }
 
   Future<void> _onAddGoal({required bool ourTeam}) async {
@@ -3208,26 +3292,44 @@ class _MatchManagerPageState extends State<MatchManagerPage>
                               Player? substitutionIn,
                               Player? substitutionOut,
                             }) {
+                              if (_isLineupSyncing) {
+                                return;
+                              }
+                              final previousPositions =
+                                  List<Player?>.from(_positionPlayers);
+                              final committedPositions =
+                                  List<Player?>.from(newPositions);
                               setState(() {
-                                _positionPlayers = newPositions;
+                                _isLineupSyncing = true;
+                                _positionPlayers = committedPositions;
                                 _selectedPlayer = null;
                               });
                               _suppressRemoteLineupLoadUntil = DateTime.now()
                                   .add(const Duration(milliseconds: 2000));
                               // Ejecutar sincronización y asegurar que se completa
                               unawaited(() async {
-                                await _syncLineupAfterFieldChange(
-                                  logSubstitutionEvent: logSubstitutionEvent,
-                                  substitutionIn: substitutionIn,
-                                  substitutionOut: substitutionOut,
-                                );
-                                if (mounted) {
-                                  _suppressRemoteRefreshUntil = null;
+                                try {
+                                  await _syncLineupAfterFieldChange(
+                                    newPositions: committedPositions,
+                                    previousPositions: previousPositions,
+                                    logSubstitutionEvent:
+                                        logSubstitutionEvent,
+                                    substitutionIn: substitutionIn,
+                                    substitutionOut: substitutionOut,
+                                  );
+                                } finally {
+                                  if (mounted) {
+                                    setState(() {
+                                      _isLineupSyncing = false;
+                                    });
+                                    _suppressRemoteRefreshUntil = null;
+                                  }
                                 }
                               }());
                             },
                         onPlayerActionRequested: _onPlayerActionRequested,
-                        readOnly: policy.readOnlyMatchActions,
+                        readOnly:
+                          policy.readOnlyMatchActions || _isLineupSyncing,
                         playerDiscipline: _playerDisciplineHighlight,
                       ),
                     ),

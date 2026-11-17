@@ -1,4 +1,5 @@
 import 'package:football_manager/domain/entities/attendance.dart';
+import 'package:football_manager/core/utils/supabase_dynamic.dart';
 
 class AttendanceModel extends Attendance {
   const AttendanceModel({
@@ -11,11 +12,11 @@ class AttendanceModel extends Attendance {
 
   factory AttendanceModel.fromJson(Map<String, dynamic> json) {
     return AttendanceModel(
-      id: json['id'],
-      teamId: json['team_id'],
-      playerId: json['player_id'],
-      date: DateTime.parse(json['date']),
-      attended: json['attended'],
+      id: supabaseInt(json['id']) ?? 0,
+      teamId: supabaseInt(json['team_id']) ?? 0,
+      playerId: supabaseInt(json['player_id']) ?? 0,
+      date: DateTime.tryParse('${json['date']}') ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      attended: json['attended'] == true,
     );
   }
 

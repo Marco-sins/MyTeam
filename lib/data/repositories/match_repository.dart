@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
 import 'package:football_manager/data/datasource/match_remote_datasource.dart';
 import 'package:football_manager/data/mappers/match_lineup_mapper.dart';
@@ -153,13 +153,15 @@ class MatchRepository implements IMatchRepository {
     required Map<int, int> onFieldPositionByPlayerId,
   }) {
     return runRepositoryGuard(() async {
-      for (final playerId in convokedPlayerIds) {
-        await _remoteDatasource.updateMatchLineupPosition(
-          matchId: matchId,
-          playerId: playerId,
-          position: onFieldPositionByPlayerId[playerId],
-        );
-      }
+      await Future.wait(
+        convokedPlayerIds.map(
+          (playerId) => _remoteDatasource.updateMatchLineupPosition(
+            matchId: matchId,
+            playerId: playerId,
+            position: onFieldPositionByPlayerId[playerId],
+          ),
+        ),
+      );
       return unit;
     });
   }

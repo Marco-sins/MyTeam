@@ -2,6 +2,11 @@
 cmake_minimum_required(VERSION 3.13)
 project(runner LANGUAGES CXX)
 
+# jni is pulled transitively by Android dependencies and is also registered as
+# a Linux FFI plugin. Its bundled JNI headers trigger a harmless Clang pointer
+# compatibility diagnostic that newer Linux toolchains promote to an error.
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=incompatible-pointer-types")
+
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "tfg1")

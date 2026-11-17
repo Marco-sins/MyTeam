@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
 import 'package:football_manager/data/datasource/attendance_remote_datasource.dart';
 import 'package:football_manager/data/mappers/attendance_mapper.dart';
@@ -64,5 +64,18 @@ class AttendanceRepository implements IAttendanceRepository {
       );
       return unit;
     });
+  }
+
+  @override
+  Future<Either<Failure, ({int total, int attended})>> getPlayerAttendanceStats({
+    required int teamId,
+    required int playerId,
+  }) {
+    return runRepositoryGuard(
+      () => _remoteDatasource.getPlayerAttendanceStats(
+        teamId: teamId,
+        playerId: playerId,
+      ),
+    );
   }
 }

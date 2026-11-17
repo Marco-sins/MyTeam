@@ -1,5 +1,6 @@
-import com.android.build.gradle.BaseExtension
+import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.api.JavaVersion
+import org.gradle.kotlin.dsl.findByType
 
 allprojects {
     repositories {
@@ -11,7 +12,7 @@ allprojects {
 // Algunos plugins aún fijan Java 8; JDK reciente avisa. Unifica a 17 con el módulo :app.
 subprojects {
     afterEvaluate {
-        extensions.findByType(BaseExtension::class.java)?.apply {
+        extensions.findByType<ApplicationExtension>()?.apply {
             compileOptions {
                 sourceCompatibility = JavaVersion.VERSION_17
                 targetCompatibility = JavaVersion.VERSION_17

@@ -55,10 +55,10 @@ class MatchLiveTimelineRow {
       id: supabaseInt(map['id']) ?? 0,
       matchId: supabaseInt(map['match_id']) ?? 0,
       rawType: map['type'],
-      minute: map['minute'] as int,
+      minute: supabaseInt(map['minute']) ?? 0,
       playerId1: id1,
       playerId2: id2,
-      note: map['note'] as String?,
+      note: map['note']?.toString(),
       createdAt: createdAt,
     );
   }

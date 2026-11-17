@@ -1,10 +1,11 @@
 import 'package:dartz/dartz.dart';
-import 'package:football_manager/core/errors/failure/failure.dart';
+import 'package:football_manager/domain/failures/failure.dart';
 import 'package:football_manager/core/utils/repository_guard.dart';
 import 'package:football_manager/data/datasource/auth_remote_datasource.dart';
 import 'package:football_manager/data/mappers/auth_user_mapper.dart';
 import 'package:football_manager/domain/entities/auth_user.dart';
 import 'package:football_manager/domain/entities/sign_up_success.dart';
+import 'package:football_manager/domain/entities/auth_session_side_effect.dart';
 import 'package:football_manager/domain/repositories/i_auth_repository.dart';
 
 class AuthRepository implements IAuthRepository {
@@ -60,4 +61,24 @@ class AuthRepository implements IAuthRepository {
       return SignUpSuccess.authenticated(user);
     });
   }
+
+  @override
+  Future<Either<Failure, Unit>> requestPasswordReset(String email) {
+    return runRepositoryGuard(() async {
+      await _datasource.requestPasswordReset(email);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> updatePassword(String newPassword) {
+    return runRepositoryGuard(() async {
+      await _datasource.updatePassword(newPassword);
+      return unit;
+    });
+  }
+
+  @override
+  Stream<AuthSessionSideEffect> watchSessionSideEffects() =>
+      _datasource.watchSessionSideEffects();
 }

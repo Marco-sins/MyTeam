@@ -132,7 +132,7 @@ class MatchStatsPage extends StatelessWidget {
     final int? playerId2 = supabaseInt(event['player_id2']);
 
     if (typeKey == 'statuschange') {
-      final rawLabel = (event['note'] as String?) ?? '';
+      final rawLabel = event['note']?.toString() ?? '';
       final lowerLabel = rawLabel.toLowerCase();
       const allowedStatusNotes = [
         'inicio 1ª parte',

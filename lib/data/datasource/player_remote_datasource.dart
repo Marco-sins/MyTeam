@@ -9,13 +9,6 @@ import 'package:football_manager/data/models/player_participation_totals.dart';
 import 'package:football_manager/data/models/player_stats_model.dart';
 import 'package:football_manager/domain/entities/enum/player_position.dart';
 
-String _matchEventTypeTail(dynamic raw) {
-  if (raw == null) return '';
-  final s = raw.toString();
-  final parts = s.split('.');
-  return parts.isNotEmpty ? parts.last : s;
-}
-
 /// Mensajes tipo: Could not find the 'minutes_played' column of 'player_stats'...
 final _unknownColumnInPayload = RegExp(
   r"the '([^']+)' column",
@@ -178,10 +171,16 @@ class PlayerRemoteDatasource {
           ? first
           : Map<String, dynamic>.from(first as Map);
       final int playerId = supabaseInt(map['id']) ?? 0;
-      await _insertPlayerStatsWithSchemaFallback(
-        _supabase,
-        playerStatsData.copyWith(playerId: playerId).toJson(),
-      );
+      try {
+        await _insertPlayerStatsWithSchemaFallback(
+          _supabase,
+          playerStatsData.copyWith(playerId: playerId).toJson(),
+        );
+      } catch (_) {
+        // Evita dejar un jugador sin estadísticas si falla el segundo insert.
+        await _supabase.from('players').delete().eq('id', playerId);
+        rethrow;
+      }
       return PlayerModel.fromJson(map);
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
@@ -192,13 +191,20 @@ class PlayerRemoteDatasource {
 
   Future<void> deletePlayer(int id) async {
     try {
-      // Borramos primero el jugador; si no existe, Supabase lanzará
-      // PostgrestException y la propagaremos como ServerException.
-      await _supabase.from('players').delete().eq('id', id);
-
-      // Borramos sus estadísticas si existen, pero no consideramos error
-      // el hecho de que no haya fila en player_stats (puede ser opcional).
+      // Primero se eliminan las filas dependientes para no depender de
+      // configuraciones concretas de ON DELETE CASCADE.
       await _supabase.from('player_stats').delete().eq('player_id', id);
+      final response = await _supabase
+          .from('players')
+          .delete()
+          .eq('id', id)
+          .select('id');
+      if (response.isEmpty) {
+        throw ServerException(
+          message: 'Player with id $id not found',
+          code: '404',
+        );
+      }
     } on PostgrestException catch (e) {
       throw ServerException(message: e.message, code: e.code);
     } catch (e) {
@@ -389,7 +395,7 @@ class PlayerRemoteDatasource {
       for (final row in events as List<dynamic>) {
         final map = Map<String, dynamic>.from(row as Map);
         final mid = map['match_id'] as int;
-        if (_matchEventTypeTail(map['type']) == 'statusChange') {
+        if (canonicalMatchEventTypeKey(map['type']) == 'statuschange') {
           continue;
         }
         final p1 = map['player_id1'] as int?;
@@ -487,19 +493,19 @@ class PlayerRemoteDatasource {
 
         for (final row in events as List<dynamic>) {
           final map = Map<String, dynamic>.from(row as Map);
-          final tail = _matchEventTypeTail(map['type']);
           final p1 = map['player_id1'] as int?;
           final p2 = map['player_id2'] as int?;
           final matchId = map['match_id'] as int?;
 
-          if (tail == 'scoreGoal') {
+          final eventType = canonicalMatchEventTypeKey(map['type']);
+          if (eventType == 'scoregoal') {
             if (p1 != null) {
               goals[p1] = (goals[p1] ?? 0) + 1;
             }
             if (p2 != null) {
               assists[p2] = (assists[p2] ?? 0) + 1;
             }
-          } else if (tail == 'yellowCard') {
+          } else if (eventType == 'yellowcard') {
             if (p1 != null) {
               yellows[p1] = (yellows[p1] ?? 0) + 1;
               if (matchId != null) {
@@ -508,7 +514,7 @@ class PlayerRemoteDatasource {
                     (yellowsByMatchAndPlayer[k] ?? 0) + 1;
               }
             }
-          } else if (tail == 'redCard') {
+          } else if (eventType == 'redcard') {
             if (p1 != null) {
               reds[p1] = (reds[p1] ?? 0) + 1;
             }
